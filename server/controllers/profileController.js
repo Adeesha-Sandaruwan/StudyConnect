@@ -24,6 +24,12 @@ const createOrUpdateProfile = async (req, res) => {
     phoneNumber,
     city,
     country,
+    dob,
+    gender,
+    nicNumber,
+    emergencyContactName,
+    emergencyContactRelation,
+    emergencyContactPhone,
     subjects,
     experience,
     availability,
@@ -38,10 +44,19 @@ const createOrUpdateProfile = async (req, res) => {
     phoneNumber,
     city,
     country,
+    dob,
+    gender,
+    nicNumber,
     experience,
     gradeLevel,
     schoolOrUniversity,
     learningNeeds
+  };
+
+  profileFields.emergencyContact = {
+    name: emergencyContactName,
+    relation: emergencyContactRelation,
+    phoneNumber: emergencyContactPhone
   };
 
   if (subjects) {
@@ -51,20 +66,28 @@ const createOrUpdateProfile = async (req, res) => {
     profileFields.availability = Array.isArray(availability) ? availability : availability.split(',').map(s => s.trim());
   }
 
-  if (req.files && req.files.length > 0) {
-    profileFields.verificationDocuments = req.files.map(file => file.path);
+  if (req.files) {
+    if (req.files.nicFront && req.files.nicFront.length > 0) {
+      profileFields.nicFront = req.files.nicFront[0].path;
+    }
+    if (req.files.nicBack && req.files.nicBack.length > 0) {
+      profileFields.nicBack = req.files.nicBack[0].path;
+    }
+    if (req.files.certificates && req.files.certificates.length > 0) {
+      profileFields.certificates = req.files.certificates.map(file => file.path);
+    }
   }
 
   try {
     let profile = await Profile.findOne({ user: req.user._id });
 
     if (profile) {
-      if (profileFields.verificationDocuments) {
+      if (req.files && req.files.certificates) {
          profile = await Profile.findOneAndUpdate(
            { user: req.user._id },
            { 
              $set: profileFields,
-             $push: { verificationDocuments: { $each: profileFields.verificationDocuments } }
+             $push: { certificates: { $each: profileFields.certificates } }
            },
            { new: true }
          );
