@@ -1,0 +1,399 @@
+{
+  "info": {
+    "_postman_id": "3de853f3-30b5-4225-bcfb-eed4f3f4c55f",
+    "name": "StudyConnectAPI Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "48023158",
+    "_collection_link": "https://go.postman.co/collection/48023158-3de853f3-30b5-4225-bcfb-eed4f3f4c55f?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Register users",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"name\": \"Alice Student\",\r\n  \"email\": \"alice@example.com\",\r\n  \"password\": \"securePassword123\",\r\n  \"role\": \"student\"\r\n}\r\n\r\n\r\n{\r\n  \"name\": \"Bob Tutor\",\r\n  \"email\": \"bob@example.com\",\r\n  \"password\": \"securePassword123\",\r\n  \"role\": \"tutor\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login User",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"alice@example.com\",\r\n  \"password\": \"securePassword123\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/users/auth",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "users",
+            "auth"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Security Check - Admin Attempt",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"name\": \"Fake Admin\",\r\n  \"email\": \"hacker@example.com\",\r\n  \"password\": \"password123\",\r\n  \"role\": \"admin\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/users/logout",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "users",
+            "logout"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Test the Profile & File Upload",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "bio",
+              "value": "I am a passionate math tutor.",
+              "type": "text",
+              "uuid": "99016288-5f16-426b-b94a-f88f0dda2cde"
+            },
+            {
+              "key": "phoneNumber",
+              "value": "0771234567",
+              "type": "text",
+              "uuid": "f21898a1-076c-4c40-b431-16830a7263d4"
+            },
+            {
+              "key": "city",
+              "value": "Colombo",
+              "type": "text",
+              "uuid": "2fd9f1f0-220f-4f3d-b588-d2787b77b4b3"
+            },
+            {
+              "key": "subjects",
+              "value": "Mathematics, Physics",
+              "type": "text",
+              "uuid": "0449c565-b4bf-4a71-9f8f-5a9af4858cc7"
+            },
+            {
+              "key": "documents",
+              "type": "file",
+              "uuid": "396dad3c-0a1c-4228-89b7-60891d2a7527",
+              "src": "/D:/Downloads Official/testId-back.jpg"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/profile",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "profile"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "The Tutor Flow",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "bio",
+              "value": "I am an experienced mathematics tutor.",
+              "type": "text",
+              "uuid": "dc6ef40c-1b5e-4ab8-b55b-ee43d23e2be4"
+            },
+            {
+              "key": "phoneNumber",
+              "value": "0771112222",
+              "type": "text",
+              "uuid": "9ad0593d-101b-4247-a689-5dc85aae2057"
+            },
+            {
+              "key": "city",
+              "value": "Kandy",
+              "type": "text",
+              "uuid": "1ad8a506-4f1d-4437-baaf-5e970f1c2aa1"
+            },
+            {
+              "key": "dob",
+              "value": "1995-05-15",
+              "type": "text",
+              "uuid": "1ff32673-5ac2-4971-95f8-a4c613ce8770"
+            },
+            {
+              "key": "gender",
+              "value": "Male",
+              "type": "text",
+              "uuid": "9fcf9ee0-00ce-410e-9f0b-ae9488d825f4"
+            },
+            {
+              "key": "nicNumber",
+              "value": "199512345678",
+              "type": "text",
+              "uuid": "ecb1c43c-7463-42e3-a164-3c8b90808bc2"
+            },
+            {
+              "key": "emergencyContactName",
+              "value": "Kamal Perera",
+              "type": "text",
+              "uuid": "ce38c2db-b71c-4f60-bfbd-f825eadf33c0"
+            },
+            {
+              "key": "emergencyContactRelation",
+              "value": "Father",
+              "type": "text",
+              "uuid": "81d871cc-34e7-4f1a-a9d8-787bc438d637"
+            },
+            {
+              "key": "emergencyContactPhone",
+              "value": "0712223333",
+              "type": "text",
+              "uuid": "80ce5c67-5f3d-4786-b45f-fcb1a23ad866"
+            },
+            {
+              "key": "subjects",
+              "value": "Mathematics, Physics",
+              "type": "text",
+              "uuid": "9484adad-0a42-4139-bbb8-06ff849d34e1"
+            },
+            {
+              "key": "experience",
+              "value": "5 years teaching O-Level.",
+              "type": "text",
+              "uuid": "dd85a0b0-d8c4-4b57-8c5e-f21485806512"
+            },
+            {
+              "key": "availability",
+              "value": "Weekends",
+              "type": "text",
+              "uuid": "d626a8dd-ad96-4821-8c92-009403859f2f"
+            },
+            {
+              "key": "nicFront",
+              "type": "file",
+              "uuid": "98dee25f-7e3e-4507-9e0a-913f12241ea8",
+              "src": "/D:/Downloads Official/testId-back.jpg"
+            },
+            {
+              "key": "nicBack",
+              "type": "file",
+              "uuid": "d9410ffb-0c0d-4181-bc03-7f13dbd0d6bb",
+              "src": "/D:/Downloads Official/testId-back.jpg"
+            },
+            {
+              "key": "certificates",
+              "type": "file",
+              "uuid": "7a58520a-61e0-49b3-899b-a25f909810db",
+              "src": "/D:/Downloads Official/modern-elegant-certificate-template-free-vector.jpg"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/profile",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "profile"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "The Student Flow",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "bio",
+              "value": "I am an O-Level student looking for extra help.",
+              "type": "text",
+              "uuid": "51af15c1-ba41-4e38-ba99-31a15b4645cc"
+            },
+            {
+              "key": "phoneNumber",
+              "value": "0779998888",
+              "type": "text",
+              "uuid": "08006a16-be6d-45c5-8712-377256862674"
+            },
+            {
+              "key": "city",
+              "value": "Colombo",
+              "type": "text",
+              "uuid": "c8d9c3ce-c0ca-4009-809d-ed7a67c33c62"
+            },
+            {
+              "key": "dob",
+              "value": "2008-05-20",
+              "type": "text",
+              "uuid": "2040c416-e9cc-4f26-b99b-949ef5a11291"
+            },
+            {
+              "key": "gender",
+              "value": "Male",
+              "type": "text",
+              "uuid": "c4f26a52-f44f-4525-9c40-d17d1584ecf1"
+            },
+            {
+              "key": "nicNumber",
+              "value": "200812345678",
+              "type": "text",
+              "uuid": "5fcfcab9-5012-4e13-9804-4165c9723666"
+            },
+            {
+              "key": "emergencyContactName",
+              "value": "Sunil Perera",
+              "type": "text",
+              "uuid": "2073100d-83c7-4e46-a7aa-36202a7adedd"
+            },
+            {
+              "key": "emergencyContactRelation",
+              "value": "Father",
+              "type": "text",
+              "uuid": "43a8bc4b-11ce-4555-b6d2-330e6003dbe8"
+            },
+            {
+              "key": "emergencyContactPhone",
+              "value": "0719998888",
+              "type": "text",
+              "uuid": "b85e9441-c67a-4d73-ab3f-11a95860cc97"
+            },
+            {
+              "key": "gradeLevel",
+              "value": "Grade 11 (O-Level)",
+              "type": "text",
+              "uuid": "b8467e55-e2bf-4e09-9145-4403f59408eb"
+            },
+            {
+              "key": "schoolOrUniversity",
+              "value": "Royal College",
+              "type": "text",
+              "uuid": "b304a307-f145-4b9b-86f6-33d7efc00ac9"
+            },
+            {
+              "key": "learningNeeds",
+              "value": "I am struggling with Mathematics past papers and need someone to explain the theories.",
+              "type": "text",
+              "uuid": "a4ca0a51-bd5c-4f38-8200-c8a68ce916c1"
+            },
+            {
+              "key": "nicFront",
+              "type": "file",
+              "uuid": "1d45d53f-76d7-4c83-bc38-d3295c022181",
+              "src": "/D:/Downloads Official/testId-back.jpg"
+            },
+            {
+              "key": "nicBack",
+              "type": "file",
+              "uuid": "83b0e2d8-cfcb-4035-a6c9-4c549fada88c",
+              "src": "/D:/Downloads Official/testId-back.jpg"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/profile",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "profile"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
