@@ -25,15 +25,26 @@ const profileSchema = mongoose.Schema(
       type: String,
       default: 'Sri Lanka'
     },
+    dob: {
+      type: Date,
+      required: true
+    },
+    gender: {
+      type: String,
+      enum: ['Male', 'Female', 'Other', 'Prefer not to say'],
+      required: true
+    },
+    nicNumber: {
+      type: String,
+      required: true
+    },
+    emergencyContact: {
+      name: { type: String, required: true },
+      relation: { type: String, required: true },
+      phoneNumber: { type: String, required: true }
+    },
     subjects: {
-      type: [String],
-      validate: {
-        validator: function (v) {
-          if (this.role === 'tutor' && v.length === 0) return false;
-          return true;
-        },
-        message: 'Tutors must select at least one subject.'
-      }
+      type: [String]
     },
     experience: {
       type: String,
@@ -42,14 +53,20 @@ const profileSchema = mongoose.Schema(
       type: [String],
       default: []
     },
+    nicFront: {
+      type: String,
+    },
+    nicBack: {
+      type: String,
+    },
+    certificates: {
+      type: [String],
+      default: []
+    },
     verificationStatus: {
       type: String,
       enum: ['pending', 'verified', 'rejected'],
       default: 'pending'
-    },
-    verificationDocuments: {
-      type: [String],
-      default: []
     },
     gradeLevel: {
       type: String,

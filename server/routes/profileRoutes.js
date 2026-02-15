@@ -16,7 +16,11 @@ router.get('/me', protect, getCurrentProfile);
 router.post(
   '/',
   protect,
-  upload.array('documents', 3),
+  upload.fields([
+    { name: 'nicFront', maxCount: 1 },
+    { name: 'nicBack', maxCount: 1 },
+    { name: 'certificates', maxCount: 5 }
+  ]),
   validateProfile,
   createOrUpdateProfile
 );
