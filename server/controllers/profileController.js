@@ -113,7 +113,7 @@ const createOrUpdateProfile = async (req, res) => {
 
 const getAllProfiles = async (req, res) => {
   try {
-    const profiles = await Profile.find().populate('user', ['name', 'avatar', 'role']);
+    const profiles = await Profile.find({ verificationStatus: 'verified' }).populate('user', ['name', 'avatar', 'role']);
     res.json(profiles);
   } catch (error) {
     console.error(error.message);
@@ -121,4 +121,43 @@ const getAllProfiles = async (req, res) => {
   }
 };
 
-export { getCurrentProfile, createOrUpdateProfile, getAllProfiles };
+// Admin: Get all pending profiles
+const getPendingProfiles = async (req, res) => {
+  try {
+    const profiles = await Profile.find({ verificationStatus: 'pending' }).populate('user', ['name', 'email', 'role']);
+    res.json(profiles);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Admin: Approve or Reject Profile
+const updateProfileStatus = async (req, res) => {
+  try {
+    const { status } = req.body; // Expecting { "status": "verified" } or "rejected"
+    
+    // Find profile by ID (passed in URL)
+    const profile = await Profile.findById(req.params.id);
+
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    profile.verificationStatus = status;
+    await profile.save();
+
+    res.json({ message: `Profile marked as ${status}`, profile });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+export { 
+  getCurrentProfile, 
+  createOrUpdateProfile, 
+  getAllProfiles,
+  getPendingProfiles,
+  updateProfileStatus 
+};
