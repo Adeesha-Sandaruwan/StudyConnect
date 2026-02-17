@@ -4,7 +4,9 @@ import {
   createOrUpdateProfile,
   getAllProfiles,
   getPendingProfiles,
-  updateProfileStatus
+  getProfileById,
+  updateProfileStatus,
+  deleteProfile
 } from '../controllers/profileController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { admin } from '../middleware/adminMiddleware.js';
@@ -13,13 +15,10 @@ import { validateProfile } from '../middleware/validationMiddleware.js';
 
 const router = express.Router();
 
-// Public: View all VERIFIED profiles (for search)
 router.get('/', getAllProfiles);
 
-// Private: View my own profile
 router.get('/me', protect, getCurrentProfile);
 
-// Private: Create/Update my profile
 router.post(
   '/',
   protect,
@@ -32,8 +31,9 @@ router.post(
   createOrUpdateProfile
 );
 
-// Admin Only Routes
 router.get('/admin/pending', protect, admin, getPendingProfiles);
+router.get('/admin/:id', protect, admin, getProfileById);
 router.put('/admin/verify/:id', protect, admin, updateProfileStatus);
+router.delete('/admin/:id', protect, admin, deleteProfile);
 
 export default router;

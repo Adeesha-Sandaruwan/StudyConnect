@@ -121,7 +121,6 @@ const getAllProfiles = async (req, res) => {
   }
 };
 
-// Admin: Get all pending profiles
 const getPendingProfiles = async (req, res) => {
   try {
     const profiles = await Profile.find({ verificationStatus: 'pending' }).populate('user', ['name', 'email', 'role']);
@@ -132,12 +131,28 @@ const getPendingProfiles = async (req, res) => {
   }
 };
 
-// Admin: Approve or Reject Profile
+const getProfileById = async (req, res) => {
+  try {
+    const profile = await Profile.findById(req.params.id).populate('user', ['name', 'email', 'avatar', 'role']);
+    
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    
+    res.json(profile);
+  } catch (error) {
+    console.error(error.message);
+    if (error.kind === 'ObjectId') {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    res.status(500).send('Server Error');
+  }
+};
+
 const updateProfileStatus = async (req, res) => {
   try {
-    const { status } = req.body; // Expecting { "status": "verified" } or "rejected"
+    const { status } = req.body;
     
-    // Find profile by ID (passed in URL)
     const profile = await Profile.findById(req.params.id);
 
     if (!profile) {
@@ -154,10 +169,28 @@ const updateProfileStatus = async (req, res) => {
   }
 };
 
+const deleteProfile = async (req, res) => {
+  try {
+    const profile = await Profile.findById(req.params.id);
+
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    await Profile.deleteOne({ _id: profile._id });
+    res.json({ message: 'Profile removed successfully' });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+};
+
 export { 
   getCurrentProfile, 
   createOrUpdateProfile, 
   getAllProfiles,
   getPendingProfiles,
-  updateProfileStatus 
+  getProfileById,
+  updateProfileStatus,
+  deleteProfile
 };
