@@ -4,9 +4,6 @@ import generateToken from '../utils/generateToken.js';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// @desc    Register a new user
-// @route   POST /api/users
-// @access  Public
 const registerUser = async (req, res) => {
   const { name, email, password, role } = req.body;
 
@@ -17,8 +14,6 @@ const registerUser = async (req, res) => {
     throw new Error('User already exists');
   }
 
-  // SECURITY: Prevent 'admin' creation via public registration
-  // If user tries to send 'admin', default them to 'student'
   let safeRole = role;
   if (role === 'admin' || (role !== 'student' && role !== 'tutor')) {
       safeRole = 'student';
@@ -46,9 +41,6 @@ const registerUser = async (req, res) => {
   }
 };
 
-// @desc    Auth user & get token
-// @route   POST /api/users/auth
-// @access  Public
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
@@ -69,9 +61,6 @@ const loginUser = async (req, res) => {
   }
 };
 
-// @desc    Auth user via Google
-// @route   POST /api/users/google
-// @access  Public
 const googleAuth = async (req, res) => {
   const { token } = req.body;
 
@@ -97,7 +86,7 @@ const googleAuth = async (req, res) => {
         email,
         googleId: sub,
         avatar: picture,
-        role: 'student', // Default Google Auth to student
+        role: 'student',
         password: Date.now().toString(36) + Math.random().toString(36).substr(2)
       });
     }
@@ -116,9 +105,6 @@ const googleAuth = async (req, res) => {
   }
 };
 
-// @desc    Logout user
-// @route   POST /api/users/logout
-// @access  Public
 const logoutUser = (req, res) => {
   res.cookie('jwt', '', {
     httpOnly: true,
@@ -127,4 +113,73 @@ const logoutUser = (req, res) => {
   res.status(200).json({ message: 'Logged out successfully' });
 };
 
-export { registerUser, loginUser, googleAuth, logoutUser };
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find({});
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+const getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (user) {
+      res.json(user);
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+const deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (user) {
+      await User.deleteOne({ _id: user._id });
+      res.json({ message: 'User removed successfully' });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+const updateUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (user) {
+      user.name = req.body.name || user.name;
+      user.email = req.body.email || user.email;
+      user.role = req.body.role || user.role;
+
+      const updatedUser = await user.save();
+
+      res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+      });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export {
+  registerUser,
+  loginUser,
+  googleAuth,
+  logoutUser,
+  getUsers,
+  getUserById,
+  deleteUser,
+  updateUser
+};
