@@ -14,7 +14,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"name\": \"Alice Student\",\r\n  \"email\": \"alice@example.com\",\r\n  \"password\": \"securePassword123\",\r\n  \"role\": \"student\"\r\n}\r\n\r\n\r\n{\r\n  \"name\": \"Bob Tutor\",\r\n  \"email\": \"bob@example.com\",\r\n  \"password\": \"securePassword123\",\r\n  \"role\": \"tutor\"\r\n}",
+          "raw": "[\r\n  {\r\n    \"name\": \"Alice Student\",\r\n    \"email\": \"alice@example.com\",\r\n    \"password\": \"securePassword123\",\r\n    \"role\": \"student\"\r\n  },\r\n  {\r\n    \"name\": \"Bob Tutor\",\r\n    \"email\": \"bob@example.com\",\r\n    \"password\": \"securePassword123\",\r\n    \"role\": \"tutor\"\r\n  },\r\n  {\r\n  \"name\": \"Admin\",\r\n  \"email\": \"admin778899@gmail.com\",\r\n  \"password\": \"AdminSecurePWD\",\r\n  \"role\": \"tutor\"\r\n}\r\n]\r\n",
           "options": {
             "raw": {
               "language": "json"
@@ -390,6 +390,226 @@
           "path": [
             "api",
             "profile"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Admin Login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"admin778899@gmail.com\",\r\n  \"password\": \"AdminSecurePWD\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/users/auth",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "users",
+            "auth"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET All Users",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Single User",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/users/698ef8b738da4d01dbda5b22",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "users",
+            "698ef8b738da4d01dbda5b22"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PUT Update User Role",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"role\": \"admin\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/users/698ef98238da4d01dbda5b29",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "users",
+            "698ef98238da4d01dbda5b29"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DELETE User",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/users/698ef8b738da4d01dbda5b22",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "users",
+            "698ef8b738da4d01dbda5b22"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Pending Profiles",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/profile/admin/pending",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "profile",
+            "admin",
+            "pending"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Single Profile Details",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/profile/admin/699132a3483a5e5a453f169a",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "profile",
+            "admin",
+            "699132a3483a5e5a453f169a"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PUT Verify Profile",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"status\": \"verified\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/profile/admin/verify/699132a3483a5e5a453f169a",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "profile",
+            "admin",
+            "verify",
+            "699132a3483a5e5a453f169a"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DELETE Profile",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/profile/admin/6991397685fada0e66dba646",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "profile",
+            "admin",
+            "6991397685fada0e66dba646"
           ]
         }
       },
