@@ -29,12 +29,7 @@ const userSchema = mongoose.Schema(
       type: String,
       enum: ['student', 'tutor', 'admin'],
       default: 'student'
-    },
-    isAdmin: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
+    }
   },
   {
     timestamps: true,
@@ -47,7 +42,7 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
