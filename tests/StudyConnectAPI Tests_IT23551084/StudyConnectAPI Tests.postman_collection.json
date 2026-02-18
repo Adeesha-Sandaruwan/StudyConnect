@@ -614,6 +614,134 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Create the Post",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "title",
+              "value": "How to solve basic algebra equations 2",
+              "type": "text",
+              "uuid": "b500040b-ba97-4f93-8c9f-4a0fc4d85871"
+            },
+            {
+              "key": "description",
+              "value": "Here is a step-by-step breakdown of the math homework from chapter 4.",
+              "type": "text",
+              "uuid": "770642d7-cb58-4d7c-a0d0-3012228137ca"
+            },
+            {
+              "key": "subjectTag",
+              "value": "Mathematics",
+              "type": "text",
+              "uuid": "b99122d8-d8ec-4c22-a1b3-3dbd2698b253"
+            },
+            {
+              "key": "media",
+              "type": "file",
+              "uuid": "d3fc76f6-e686-4708-994f-36f38a89b5ea",
+              "src": "/D:/Downloads Official/sddefault.jpg"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/studyposts",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "studyposts"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update the Post",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "title",
+              "value": "Advanced Algebra Mastery(Testing)",
+              "type": "text",
+              "uuid": "19ddc4d9-f548-4ee3-ac38-02099c7315dd"
+            },
+            {
+              "key": "description",
+              "value": "I fixed the typo in the previous explanation.",
+              "type": "text",
+              "uuid": "c9cda1f9-062c-4dae-bc10-2905e74bde13"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/studyposts/6995bd3c0775ee8314e84735",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "studyposts",
+            "6995bd3c0775ee8314e84735"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "View the Posts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/studyposts",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "studyposts"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete the Post",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/studyposts/6995bee40775ee8314e8473d",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "studyposts",
+            "6995bee40775ee8314e8473d"
+          ]
+        }
+      },
+      "response": []
     }
   ]
 }
