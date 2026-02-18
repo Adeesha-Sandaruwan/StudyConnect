@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
+import studyPostRoutes from './routes/studyPostRoutes.js';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use(cors({
 
 app.use('/api/users', authRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/studyposts', studyPostRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');
