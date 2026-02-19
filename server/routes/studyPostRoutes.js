@@ -4,7 +4,10 @@ import {
   getPosts, 
   getPostById, 
   updatePost,
-  deletePost 
+  deletePost,
+  likePost,
+  addComment,
+  deleteComment
 } from '../controllers/studyPostController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import upload from '../middleware/uploadMiddleware.js';
@@ -19,5 +22,9 @@ router.route('/:id')
   .get(getPostById)
   .put(protect, upload.fields([{ name: 'media', maxCount: 3 }]), updatePost)
   .delete(protect, deletePost);
+
+router.route('/:id/like').put(protect, likePost);
+router.route('/:id/comment').post(protect, addComment);
+router.route('/:postId/comment/:commentId').delete(protect, deleteComment);
 
 export default router;
