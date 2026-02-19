@@ -8,6 +8,7 @@ import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import studyPostRoutes from './routes/studyPostRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use(cors({
 app.use('/api/users', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/studyposts', studyPostRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');
