@@ -98,4 +98,89 @@ const deletePost = async (req, res) => {
   }
 };
 
-export { createPost, getPosts, getPostById, updatePost, deletePost };
+const likePost = async (req, res) => {
+  try {
+    const post = await StudyPost.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const isLiked = post.likes.includes(req.user._id);
+
+    if (isLiked) {
+      post.likes = post.likes.filter((likeId) => likeId.toString() !== req.user._id.toString());
+    } else {
+      post.likes.push(req.user._id);
+    }
+
+    await post.save();
+    res.json(post.likes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const addComment = async (req, res) => {
+  try {
+    const { text } = req.body;
+    const post = await StudyPost.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const newComment = {
+      user: req.user._id,
+      text,
+    };
+
+    post.comments.push(newComment);
+    await post.save();
+    res.status(201).json(post.comments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteComment = async (req, res) => {
+  try {
+    const post = await StudyPost.findById(req.params.postId);
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const comment = post.comments.find((c) => c._id.toString() === req.params.commentId);
+
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    const isCommentOwner = comment.user.toString() === req.user._id.toString();
+    const isPostOwner = post.user.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isCommentOwner && !isPostOwner && !isAdmin) {
+      return res.status(401).json({ message: 'User not authorized to delete this comment' });
+    }
+
+    post.comments = post.comments.filter((c) => c._id.toString() !== req.params.commentId);
+    await post.save();
+    
+    res.json({ message: 'Comment removed successfully', comments: post.comments });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export { 
+  createPost, 
+  getPosts, 
+  getPostById, 
+  updatePost, 
+  deletePost,
+  likePost,
+  addComment,
+  deleteComment 
+};
