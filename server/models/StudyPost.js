@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const commentSchema = mongoose.Schema(
+const answerSchema = mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -39,13 +39,19 @@ const studyPostSchema = mongoose.Schema(
       validate: [arrayLimit, '{PATH} exceeds the limit of 3'],
       default: []
     },
-    likes: [
+    upvotes: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
       }
     ],
-    comments: [commentSchema],
+    downvotes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      }
+    ],
+    answers: [answerSchema],
   },
   { timestamps: true }
 );

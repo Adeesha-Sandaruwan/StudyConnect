@@ -1,4 +1,5 @@
 import StudyPost from '../models/StudyPost.js';
+import Notification from '../models/Notification.js';
 
 const createPost = async (req, res) => {
   try {
@@ -39,7 +40,7 @@ const getPostById = async (req, res) => {
   try {
     const post = await StudyPost.findById(req.params.id)
       .populate('user', 'name avatar role')
-      .populate('comments.user', 'name avatar role');
+      .populate('answers.user', 'name avatar role');
 
     if (post) {
       res.json(post);
@@ -98,7 +99,7 @@ const deletePost = async (req, res) => {
   }
 };
 
-const likePost = async (req, res) => {
+const upvotePost = async (req, res) => {
   try {
     const post = await StudyPost.findById(req.params.id);
 
@@ -106,22 +107,66 @@ const likePost = async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    const isLiked = post.likes.includes(req.user._id);
+    const userId = req.user._id.toString();
+    const hasUpvoted = post.upvotes.some(id => id.toString() === userId);
+    const hasDownvoted = post.downvotes.some(id => id.toString() === userId);
 
-    if (isLiked) {
-      post.likes = post.likes.filter((likeId) => likeId.toString() !== req.user._id.toString());
+    if (hasDownvoted) {
+      post.downvotes = post.downvotes.filter(id => id.toString() !== userId);
+    }
+
+    if (hasUpvoted) {
+      post.upvotes = post.upvotes.filter(id => id.toString() !== userId);
     } else {
-      post.likes.push(req.user._id);
+      post.upvotes.push(req.user._id);
+      
+      if (post.user.toString() !== userId) {
+        await Notification.create({
+          recipient: post.user,
+          sender: req.user._id,
+          type: 'upvote',
+          post: post._id
+        });
+      }
     }
 
     await post.save();
-    res.json(post.likes);
+    res.json({ upvotes: post.upvotes, downvotes: post.downvotes });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-const addComment = async (req, res) => {
+const downvotePost = async (req, res) => {
+  try {
+    const post = await StudyPost.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const userId = req.user._id.toString();
+    const hasUpvoted = post.upvotes.some(id => id.toString() === userId);
+    const hasDownvoted = post.downvotes.some(id => id.toString() === userId);
+
+    if (hasUpvoted) {
+      post.upvotes = post.upvotes.filter(id => id.toString() !== userId);
+    }
+
+    if (hasDownvoted) {
+      post.downvotes = post.downvotes.filter(id => id.toString() !== userId);
+    } else {
+      post.downvotes.push(req.user._id);
+    }
+
+    await post.save();
+    res.json({ upvotes: post.upvotes, downvotes: post.downvotes });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const addAnswer = async (req, res) => {
   try {
     const { text } = req.body;
     const post = await StudyPost.findById(req.params.id);
@@ -130,20 +175,30 @@ const addComment = async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    const newComment = {
+    const newAnswer = {
       user: req.user._id,
       text,
     };
 
-    post.comments.push(newComment);
+    post.answers.push(newAnswer);
     await post.save();
-    res.status(201).json(post.comments);
+
+    if (post.user.toString() !== req.user._id.toString()) {
+      await Notification.create({
+        recipient: post.user,
+        sender: req.user._id,
+        type: 'answer',
+        post: post._id
+      });
+    }
+
+    res.status(201).json(post.answers);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-const deleteComment = async (req, res) => {
+const deleteAnswer = async (req, res) => {
   try {
     const post = await StudyPost.findById(req.params.postId);
 
@@ -151,24 +206,24 @@ const deleteComment = async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    const comment = post.comments.find((c) => c._id.toString() === req.params.commentId);
+    const answer = post.answers.find((a) => a._id.toString() === req.params.answerId);
 
-    if (!comment) {
-      return res.status(404).json({ message: 'Comment not found' });
+    if (!answer) {
+      return res.status(404).json({ message: 'Answer not found' });
     }
 
-    const isCommentOwner = comment.user.toString() === req.user._id.toString();
+    const isAnswerOwner = answer.user.toString() === req.user._id.toString();
     const isPostOwner = post.user.toString() === req.user._id.toString();
     const isAdmin = req.user.role === 'admin';
 
-    if (!isCommentOwner && !isPostOwner && !isAdmin) {
-      return res.status(401).json({ message: 'User not authorized to delete this comment' });
+    if (!isAnswerOwner && !isPostOwner && !isAdmin) {
+      return res.status(401).json({ message: 'User not authorized to delete this answer' });
     }
 
-    post.comments = post.comments.filter((c) => c._id.toString() !== req.params.commentId);
+    post.answers = post.answers.filter((a) => a._id.toString() !== req.params.answerId);
     await post.save();
     
-    res.json({ message: 'Comment removed successfully', comments: post.comments });
+    res.json({ message: 'Answer removed successfully', answers: post.answers });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -180,7 +235,8 @@ export {
   getPostById, 
   updatePost, 
   deletePost,
-  likePost,
-  addComment,
-  deleteComment 
+  upvotePost,
+  downvotePost,
+  addAnswer,
+  deleteAnswer 
 };
