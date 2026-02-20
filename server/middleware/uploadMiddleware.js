@@ -16,7 +16,7 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'study-connect-uploads',
     allowed_formats: ['jpg', 'png', 'jpeg', 'pdf'],
-    resource_type: 'auto',
+    resource_type: 'raw',
   },
 });
 
