@@ -43,7 +43,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"email\": \"alice@example.com\",\r\n  \"password\": \"securePassword123\"\r\n}",
+          "raw": "{\r\n  \"email\": \"bob@example.com\",\r\n  \"password\": \"securePassword123\"\r\n}\r\n\r\n",
           "options": {
             "raw": {
               "language": "json"
@@ -738,6 +738,146 @@
             "api",
             "studyposts",
             "6995bee40775ee8314e8473d"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Test Upvote",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/studyposts/6995bd3c0775ee8314e84735/upvote",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "studyposts",
+            "6995bd3c0775ee8314e84735",
+            "upvote"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Test Downvote",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/studyposts/6995bd3c0775ee8314e84735/downvote",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "studyposts",
+            "6995bd3c0775ee8314e84735",
+            "downvote"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Test Answer for the post",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"text\": \"test\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/studyposts/6995bd3c0775ee8314e84735/answer",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "studyposts",
+            "6995bd3c0775ee8314e84735",
+            "answer"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Notifications",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/notifications",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "notifications"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Mark as Read(Notifications)",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/notifications/69982954d8f8851a7d3069fb/read",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "notifications",
+            "69982954d8f8851a7d3069fb",
+            "read"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Answer",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/studyposts/6995bd3c0775ee8314e84735/answer/69983057d8f8851a7d306a0a",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "studyposts",
+            "6995bd3c0775ee8314e84735",
+            "answer",
+            "69983057d8f8851a7d306a0a"
           ]
         }
       },
