@@ -10,6 +10,7 @@ import profileRoutes from './routes/profileRoutes.js';
 import studyPostRoutes from './routes/studyPostRoutes.js';
 import subjectContentRoutes from "./routes/subjectContentRoutes.js";
 import notificationRoutes from './routes/notificationRoutes.js';
+import feedbackRoutes from './routes/feedbackRoutes.js';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/studyposts', studyPostRoutes);
 app.use("/api/subject-content", subjectContentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');
