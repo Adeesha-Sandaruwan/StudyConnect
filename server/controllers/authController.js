@@ -123,8 +123,36 @@ const logoutUser = (req, res) => {
 
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find({});
-    res.json(users);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+
+    if (req.query.keyword) {
+      query.$or = [
+        { name: { $regex: req.query.keyword, $options: 'i' } },
+        { email: { $regex: req.query.keyword, $options: 'i' } }
+      ];
+    }
+
+    if (req.query.role) {
+      query.role = req.query.role;
+    }
+
+    const users = await User.find(query)
+      .select('-password')
+      .skip(skip)
+      .limit(limit);
+      
+    const total = await User.countDocuments(query);
+
+    res.json({
+      users,
+      page,
+      pages: Math.ceil(total / limit),
+      total
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message });

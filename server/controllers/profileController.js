@@ -113,8 +113,32 @@ const createOrUpdateProfile = async (req, res) => {
 
 const getAllProfiles = async (req, res) => {
   try {
-    const profiles = await Profile.find({ verificationStatus: 'verified' }).populate('user', ['name', 'avatar', 'role']);
-    res.json(profiles);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = { verificationStatus: 'verified' };
+
+    if (req.query.city) {
+      query.city = { $regex: req.query.city, $options: 'i' };
+    }
+    if (req.query.subject) {
+      query.subjects = { $regex: req.query.subject, $options: 'i' };
+    }
+
+    const profiles = await Profile.find(query)
+      .populate('user', ['name', 'avatar', 'role'])
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Profile.countDocuments(query);
+
+    res.json({
+      profiles,
+      page,
+      pages: Math.ceil(total / limit),
+      total
+    });
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server Error');
@@ -123,8 +147,25 @@ const getAllProfiles = async (req, res) => {
 
 const getPendingProfiles = async (req, res) => {
   try {
-    const profiles = await Profile.find({ verificationStatus: 'pending' }).populate('user', ['name', 'email', 'role']);
-    res.json(profiles);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = { verificationStatus: 'pending' };
+
+    const profiles = await Profile.find(query)
+      .populate('user', ['name', 'email', 'role'])
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Profile.countDocuments(query);
+
+    res.json({
+      profiles,
+      page,
+      pages: Math.ceil(total / limit),
+      total
+    });
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server Error');
