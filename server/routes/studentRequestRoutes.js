@@ -13,25 +13,33 @@ import {
 } from '../controllers/studentRequestController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { admin } from '../middleware/adminMiddleware.js';
+import {
+  validateStudentRequest,
+  validateStudentRequestUpdate,
+  validateRequestStatus,
+  validateAssignTutor
+} from '../middleware/validationMiddleware.js';
 
 const router = express.Router();
 
 // Public routes
 router.get('/', getAllRequests);
 router.get('/subject/:subject', getRequestsBySubject);
-router.get('/:id', getRequestById);
 
 // Private routes (authenticated users)
-router.post('/', protect, createRequest);
+router.post('/', protect, validateStudentRequest, createRequest);
 router.get('/my-requests', protect, getMyRequests);
-router.put('/:id', protect, updateRequest);
-router.delete('/:id', protect, deleteRequest);
-router.put('/:id/status', protect, updateRequestStatus);
-
-// Tutor routes
 router.get('/tutor/assigned', protect, getTutorAssignedRequests);
 
 // Admin routes
-router.put('/:id/assign-tutor', protect, admin, assignTutor);
+router.put('/:id/assign-tutor', protect, admin, validateAssignTutor, assignTutor);
+
+// Request-specific actions
+router.put('/:id/status', protect, validateRequestStatus, updateRequestStatus);
+router.put('/:id', protect, validateStudentRequestUpdate, updateRequest);
+router.delete('/:id', protect, deleteRequest);
+
+// Get single request (last)
+router.get('/:id', getRequestById);
 
 export default router;

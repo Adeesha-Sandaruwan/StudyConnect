@@ -148,8 +148,9 @@ const updateRequest = async (req, res) => {
 
     await request.save();
 
-    const updatedRequest = await request.populate('student', ['name', 'email', 'avatar'])
-      .populate('assignedTutor', ['name', 'email', 'avatar']);
+    await request.populate('student', ['name', 'email', 'avatar']);
+    await request.populate('assignedTutor', ['name', 'email', 'avatar']);
+    const updatedRequest = request;
 
     res.json({
       message: 'Request updated successfully',
@@ -221,12 +222,12 @@ const assignTutor = async (req, res) => {
     request.status = 'in-progress';
     await request.save();
 
-    const updatedRequest = await request.populate('student', ['name', 'email', 'avatar'])
-      .populate('assignedTutor', ['name', 'email', 'avatar']);
+    await request.populate('student', ['name', 'email', 'avatar']);
+    await request.populate('assignedTutor', ['name', 'email', 'avatar']);
 
     res.json({
       message: 'Tutor assigned successfully',
-      request: updatedRequest
+      request
     });
   } catch (error) {
     console.error(error);
@@ -267,12 +268,12 @@ const updateRequestStatus = async (req, res) => {
     request.status = status;
     await request.save();
 
-    const updatedRequest = await request.populate('student', ['name', 'email', 'avatar'])
-      .populate('assignedTutor', ['name', 'email', 'avatar']);
+    await request.populate('student', ['name', 'email', 'avatar']);
+    await request.populate('assignedTutor', ['name', 'email', 'avatar']);
 
     res.json({
       message: 'Status updated successfully',
-      request: updatedRequest
+      request
     });
   } catch (error) {
     console.error(error);
