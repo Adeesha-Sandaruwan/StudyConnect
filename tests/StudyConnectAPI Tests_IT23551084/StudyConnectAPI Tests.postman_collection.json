@@ -451,7 +451,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:5000/api/users/698ef8b738da4d01dbda5b22",
+          "raw": "http://localhost:5000/api/users/698ef8f038da4d01dbda5b25",
           "protocol": "http",
           "host": [
             "localhost"
@@ -460,7 +460,7 @@
           "path": [
             "api",
             "users",
-            "698ef8b738da4d01dbda5b22"
+            "698ef8f038da4d01dbda5b25"
           ]
         }
       },
@@ -878,6 +878,49 @@
             "6995bd3c0775ee8314e84735",
             "answer",
             "69983057d8f8851a7d306a0a"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "test_post_violation",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "title",
+              "value": "Need help with basic algebra",
+              "type": "text",
+              "uuid": "5059d964-0f90-44df-9603-f2201cba4f61"
+            },
+            {
+              "key": "description",
+              "value": "This math problem is absolute bullshit and I hate it.",
+              "type": "text",
+              "uuid": "c6bd70ec-2312-4252-8080-c9830a6afd10"
+            },
+            {
+              "key": "subjectTag",
+              "value": "Mathematics",
+              "type": "text",
+              "uuid": "b98b7dfc-683f-44e6-b1da-94395a3fb077"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/studyposts",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "studyposts"
           ]
         }
       },

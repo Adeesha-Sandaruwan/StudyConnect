@@ -1,9 +1,32 @@
 import StudyPost from '../models/StudyPost.js';
 import Notification from '../models/Notification.js';
 
+// Helper function to call the 3rd Party API
+const containsProfanity = async (text) => {
+  try {
+    const response = await fetch(`https://www.purgomalum.com/service/containsprofanity?text=${encodeURIComponent(text)}`);
+    const isProfane = await response.text();
+    return isProfane === 'true';
+  } catch (error) {
+    console.error("Profanity API Error:", error);
+    return false; // If API fails, let it pass rather than breaking the app
+  }
+};
+
 const createPost = async (req, res) => {
   try {
     const { title, description, subjectTag } = req.body;
+
+    // 3rd Party API Integration: Check for bad words before saving
+    const isTitleBad = await containsProfanity(title);
+    const isDescBad = await containsProfanity(description);
+
+    if (isTitleBad || isDescBad) {
+      return res.status(400).json({ 
+        message: 'Post rejected: Content violates community guidelines. Inappropriate language is strictly prohibited.' 
+      });
+    }
+
     let mediaUrls = [];
 
     if (req.files && req.files.media) {
@@ -27,10 +50,37 @@ const createPost = async (req, res) => {
 
 const getPosts = async (req, res) => {
   try {
-    const posts = await StudyPost.find()
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+
+    if (req.query.keyword) {
+      query.$or = [
+        { title: { $regex: req.query.keyword, $options: 'i' } },
+        { description: { $regex: req.query.keyword, $options: 'i' } }
+      ];
+    }
+
+    if (req.query.subjectTag) {
+      query.subjectTag = req.query.subjectTag;
+    }
+
+    const posts = await StudyPost.find(query)
       .populate('user', 'name avatar role')
-      .sort({ createdAt: -1 });
-    res.json(posts);
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await StudyPost.countDocuments(query);
+
+    res.json({
+      posts,
+      page,
+      pages: Math.ceil(total / limit),
+      total
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -173,6 +223,15 @@ const addAnswer = async (req, res) => {
 
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // 3rd Party API Integration: Check answer for bad words
+    const isTextBad = await containsProfanity(text);
+
+    if (isTextBad) {
+      return res.status(400).json({ 
+        message: 'Answer rejected: Content violates community guidelines. Inappropriate language is strictly prohibited.' 
+      });
     }
 
     const newAnswer = {
