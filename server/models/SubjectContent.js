@@ -1,18 +1,26 @@
 import mongoose from "mongoose";
 
+/**
+ * One document = one weekly lesson item.
+ * “Module” concept is formed by grouping:
+ * createdBy + grade + subject
+ * Example module: (Tutor A, Grade 10, ICT) -> Week 1..N documents
+ */
+
+
 const subjectContentSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true, trim: true, maxlength: 120 },
+    title: { type: String, required: true, trim: true, maxlength: 120 }, // lesson title shown in UI
     subject: { type: String, required: true, trim: true }, // ICT, Maths...
     grade: { type: Number, required: true, min: 1, max: 13 }, // 10
     weekNumber: { type: Number, required: true, min: 1, max: 52 },
-    lessonDate: { type: Date, required: true }, // ✅ date
+    lessonDate: { type: Date, required: true }, //  date
 
     description: { type: String, default: "", maxlength: 1500 },
-    contentText: { type: String, default: "", maxlength: 7000 }, // ✅ week content details
+    contentText: { type: String, default: "", maxlength: 7000 }, //  week content details
 
     resources: {
-      pdfUrl: { type: String, default: "" },        // ✅ notes PDF URL (Cloudinary)
+      pdfUrl: { type: String, default: "" },        //  notes PDF URL (Cloudinary)
       pdfPublicId: { type: String, default: "" },   // optional: for delete from cloud
       referenceLinks: { type: [String], default: [] },
       videoLinks: { type: [String], default: [] },
