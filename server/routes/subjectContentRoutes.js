@@ -8,6 +8,9 @@ import {
 } from "../middleware/subjectContentValidation.js";
 import upload from "../middleware/uploadMiddleware.js";
 
+import { askAI } from "../controllers/subjectContentController.js";
+
+
 import {
   createSubjectContent,
   getMySubjectContents,
@@ -59,5 +62,7 @@ router.post(
   upload.single("pdf"),
   uploadPdfToContent
 );
+
+router.post("/:id/ask", askAI);
 
 export default router;
