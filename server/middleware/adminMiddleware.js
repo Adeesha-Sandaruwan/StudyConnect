@@ -1,9 +1,20 @@
 const admin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  // First check if user exists
+  if (!req.user) {
+    return res.status(401).json({ 
+      success: false,
+      message: 'Not authenticated' 
+    });
+  }
+
+  // Then check if user is admin
+  if (req.user.role === 'admin') {
     next();
   } else {
-    res.status(401);
-    throw new Error('Not authorized as an admin');
+    return res.status(403).json({ 
+      success: false,
+      message: `Not authorized. Only admins can access this resource. Your role: ${req.user.role}` 
+    });
   }
 };
 

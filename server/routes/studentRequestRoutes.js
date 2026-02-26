@@ -9,10 +9,12 @@ import {
   assignTutor,
   updateRequestStatus,
   getTutorAssignedRequests,
+  getAvailableRequests,
   getRequestsBySubject
 } from '../controllers/studentRequestController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { admin } from '../middleware/adminMiddleware.js';
+import { checkOwnerOrAdmin } from '../middleware/ownerMiddleware.js';
 import {
   validateStudentRequest,
   validateStudentRequestUpdate,
@@ -22,24 +24,27 @@ import {
 
 const router = express.Router();
 
+// Private routes (authenticated users) - MUST be before generic :id routes
+router.post('/', protect, validateStudentRequest, createRequest);
+router.get('/my-requests', protect, getMyRequests);
+router.get('/tutor/assigned', protect, getTutorAssignedRequests);
+router.get('/tutor/available', protect, getAvailableRequests);
+
 // Public routes
 router.get('/', getAllRequests);
 router.get('/subject/:subject', getRequestsBySubject);
 
-// Private routes (authenticated users)
-router.post('/', protect, validateStudentRequest, createRequest);
-router.get('/my-requests', protect, getMyRequests);
-router.get('/tutor/assigned', protect, getTutorAssignedRequests);
-
-// Admin routes
+// SPECIFIC ROUTES BEFORE GENERIC :id ROUTES
+// Admin only - assign tutor (MUST be before generic /:id routes)
 router.put('/:id/assign-tutor', protect, admin, validateAssignTutor, assignTutor);
 
-// Request-specific actions
-router.put('/:id/status', protect, validateRequestStatus, updateRequestStatus);
-router.put('/:id', protect, validateStudentRequestUpdate, updateRequest);
-router.delete('/:id', protect, deleteRequest);
+// Status update (owner or admin only)
+router.put('/:id/status', protect, checkOwnerOrAdmin, validateRequestStatus, updateRequestStatus);
 
-// Get single request (last)
+// Generic :id routes (update/delete)
+// MUST have checkOwnerOrAdmin middleware to verify ownership
+router.put('/:id', protect, checkOwnerOrAdmin, validateStudentRequestUpdate, updateRequest);
+router.delete('/:id', protect, checkOwnerOrAdmin, deleteRequest);
 router.get('/:id', getRequestById);
 
 export default router;

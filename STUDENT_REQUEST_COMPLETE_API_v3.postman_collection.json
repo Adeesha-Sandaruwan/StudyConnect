@@ -1,0 +1,1583 @@
+{
+  "info": {
+    "name": "StudyConnect - Student Request Management API (Complete)",
+    "description": "Complete API collection with all CRUD operations, authorization checks, and validation tests for Student Request Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "3.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student2Token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tutorToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "requestId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tutorId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication Setup",
+      "item": [
+        {
+          "name": "Login as Student 1 (Owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('studentToken', jsonData.token);",
+                  "    pm.environment.set('studentToken', jsonData.token);",
+                  "    console.log('Student 1 token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student1@test.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/auth",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "auth"]
+            },
+            "description": "Login as Student 1 (request owner) and save token"
+          }
+        },
+        {
+          "name": "Login as Student 2 (Non-Owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('student2Token', jsonData.token);",
+                  "    pm.environment.set('student2Token', jsonData.token);",
+                  "    console.log('Student 2 token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student2@test.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/auth",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "auth"]
+            },
+            "description": "Login as Student 2 (different student) and save token"
+          }
+        },
+        {
+          "name": "Login as Tutor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('tutorToken', jsonData.token);",
+                  "    pm.collectionVariables.set('tutorId', jsonData._id);",
+                  "    pm.environment.set('tutorToken', jsonData.token);",
+                  "    pm.environment.set('tutorId', jsonData._id);",
+                  "    console.log('Tutor token and ID saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tutor@test.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/auth",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "auth"]
+            },
+            "description": "Login as Tutor and save token"
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('adminToken', jsonData.token);",
+                  "    pm.environment.set('adminToken', jsonData.token);",
+                  "    console.log('Admin token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@test.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/auth",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "auth"]
+            },
+            "description": "Login as Admin and save token"
+          }
+        }
+      ],
+      "description": "Setup authentication tokens for different user roles"
+    },
+    {
+      "name": "2. Create Student Request",
+      "item": [
+        {
+          "name": "Create Request - Success (Student)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success flag', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('requestId', jsonData.request._id);",
+                  "    pm.environment.set('requestId', jsonData.request._id);",
+                  "    console.log('Request ID saved: ' + jsonData.request._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Mathematics\",\n  \"description\": \"Need help with calculus and algebra problems. Struggling with derivatives and integration.\",\n  \"gradeLevel\": \"Grade 12\",\n  \"requestType\": \"ongoing\",\n  \"preferredSchedule\": [\"Monday 4-6 PM\", \"Wednesday 4-6 PM\"],\n  \"priority\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests"]
+            },
+            "description": "Student creates a new help request - should succeed"
+          }
+        },
+        {
+          "name": "Create Request - Missing Required Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error message about missing fields', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Mathematics\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests"]
+            },
+            "description": "Try to create request without required fields - should fail"
+          }
+        },
+        {
+          "name": "Create Request - Tutor Attempting (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Error message about only students', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('Only students');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tutorToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Science\",\n  \"description\": \"Need help with physics\",\n  \"gradeLevel\": \"Grade 11\",\n  \"priority\": \"medium\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests"]
+            },
+            "description": "Tutor tries to create request - should fail"
+          }
+        },
+        {
+          "name": "Create Request - Unauthenticated",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Science\",\n  \"description\": \"Need help\",\n  \"gradeLevel\": \"Grade 11\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests"]
+            },
+            "description": "Try to create request without authentication - should fail"
+          }
+        }
+      ],
+      "description": "Tests for creating student requests with validation"
+    },
+    {
+      "name": "3. Get Requests (Public & Filtered)",
+      "item": [
+        {
+          "name": "Get All Requests",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has requests array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.requests).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests"]
+            },
+            "description": "Get all student requests - public endpoint"
+          }
+        },
+        {
+          "name": "Get Requests - Filtered by Subject",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests?subject=Mathematics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests"],
+              "query": [
+                {
+                  "key": "subject",
+                  "value": "Mathematics"
+                }
+              ]
+            },
+            "description": "Get requests filtered by subject"
+          }
+        },
+        {
+          "name": "Get Requests - Filtered by Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests?status=open",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                }
+              ]
+            },
+            "description": "Get requests filtered by status"
+          }
+        },
+        {
+          "name": "Get Requests - Multiple Filters + Pagination",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests?status=open&subject=Mathematics&priority=high&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                },
+                {
+                  "key": "subject",
+                  "value": "Mathematics"
+                },
+                {
+                  "key": "priority",
+                  "value": "high"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get requests with multiple filters and pagination"
+          }
+        },
+        {
+          "name": "Get Requests by Subject",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/subject/Mathematics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "subject", "Mathematics"]
+            },
+            "description": "Get open requests for a specific subject - public endpoint"
+          }
+        },
+        {
+          "name": "Get Single Request by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has request object', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.request).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}"]
+            },
+            "description": "Get single request by ID - public endpoint"
+          }
+        }
+      ],
+      "description": "Tests for retrieving requests with various filters"
+    },
+    {
+      "name": "4. Get My Requests (Student)",
+      "item": [
+        {
+          "name": "Get My Requests - Student 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns only my requests', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.requests).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/my-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "my-requests"]
+            },
+            "description": "Student gets their own requests only"
+          }
+        },
+        {
+          "name": "Get My Requests - Unauthenticated",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/my-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "my-requests"]
+            },
+            "description": "Try to get my requests without authentication - should fail"
+          }
+        }
+      ],
+      "description": "Tests for student getting their own requests"
+    },
+    {
+      "name": "5. Update Request (Owner/Admin Only)",
+      "item": [
+        {
+          "name": "Update Request - Owner Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Request updated successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.request).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated description: Need extra help with calculus and trigonometry\",\n  \"priority\": \"high\",\n  \"preferredSchedule\": [\"Monday 5-7 PM\", \"Friday 3-5 PM\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}"]
+            },
+            "description": "Owner updates their own request - should succeed"
+          }
+        },
+        {
+          "name": "Update Request - Non-Owner Student (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Authorization error message', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(false);",
+                  "    pm.expect(jsonData.message).to.include('Not authorized');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student2Token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Trying to update someone else's request\",\n  \"priority\": \"low\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}"]
+            },
+            "description": "Different student tries to update another student's request - should fail with 403"
+          }
+        },
+        {
+          "name": "Update Request - Admin Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Admin can update any request', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priority\": \"medium\",\n  \"description\": \"Admin updated this request\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}"]
+            },
+            "description": "Admin updates any request - should succeed"
+          }
+        },
+        {
+          "name": "Update Request - Tutor Attempting (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tutorToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Tutor trying to update\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}"]
+            },
+            "description": "Tutor tries to update request - should fail"
+          }
+        }
+      ],
+      "description": "Tests for updating requests with authorization checks"
+    },
+    {
+      "name": "6. Update Request Status (Owner/Admin Only)",
+      "item": [
+        {
+          "name": "Update Status - Owner Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Status updated successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in-progress\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}", "status"]
+            },
+            "description": "Owner updates status of their own request - should succeed"
+          }
+        },
+        {
+          "name": "Update Status - Non-Owner Student (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Authorization error', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(false);",
+                  "    pm.expect(jsonData.message).to.include('Not authorized');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student2Token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}", "status"]
+            },
+            "description": "Different student tries to update status - should fail with 403"
+          }
+        },
+        {
+          "name": "Update Status - Admin Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}", "status"]
+            },
+            "description": "Admin updates status - should succeed"
+          }
+        },
+        {
+          "name": "Update Status - Invalid Status Value",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Invalid status error', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('Invalid status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"invalid-status\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}", "status"]
+            },
+            "description": "Try to update with invalid status - should fail"
+          }
+        },
+        {
+          "name": "Update Status - Missing Status Field",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}", "status"]
+            },
+            "description": "Try to update status without providing status field"
+          }
+        }
+      ],
+      "description": "Tests for updating request status with authorization checks"
+    },
+    {
+      "name": "7. Assign Tutor (Admin Only)",
+      "item": [
+        {
+          "name": "Assign Tutor - Admin Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Tutor assigned successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.message).to.include('assigned');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tutorId\": \"{{tutorId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/assign-tutor",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}", "assign-tutor"]
+            },
+            "description": "Admin assigns tutor to request - should succeed"
+          }
+        },
+        {
+          "name": "Assign Tutor - Student Attempting (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Only admins error message', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(false);",
+                  "    pm.expect(jsonData.message).to.include('admin');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tutorId\": \"{{tutorId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/assign-tutor",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}", "assign-tutor"]
+            },
+            "description": "Student tries to assign tutor - should fail with 403"
+          }
+        },
+        {
+          "name": "Assign Tutor - Tutor Attempting (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tutorToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tutorId\": \"{{tutorId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/assign-tutor",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}", "assign-tutor"]
+            },
+            "description": "Tutor tries to assign themselves - should fail with 403"
+          }
+        },
+        {
+          "name": "Assign Tutor - Missing Tutor ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/assign-tutor",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}", "assign-tutor"]
+            },
+            "description": "Try to assign without providing tutorId"
+          }
+        }
+      ],
+      "description": "Tests for assigning tutor to requests (Admin only)"
+    },
+    {
+      "name": "8. Tutor Endpoints",
+      "item": [
+        {
+          "name": "Get Tutor Assigned Requests",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns assigned requests', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.requests).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tutorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/tutor/assigned",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "tutor", "assigned"]
+            },
+            "description": "Tutor gets all requests assigned to them"
+          }
+        },
+        {
+          "name": "Get Tutor Assigned Requests - With Filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tutorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/tutor/assigned?status=in-progress&page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "tutor", "assigned"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "in-progress"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get tutor assigned requests with filters"
+          }
+        },
+        {
+          "name": "Get Available Requests for Tutors",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns available requests', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.requests).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tutorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/tutor/available",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "tutor", "available"]
+            },
+            "description": "Get open requests available for tutors to accept"
+          }
+        },
+        {
+          "name": "Get Available Requests - Filtered by Subject",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tutorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/tutor/available?subject=Mathematics&priority=high",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "tutor", "available"],
+              "query": [
+                {
+                  "key": "subject",
+                  "value": "Mathematics"
+                },
+                {
+                  "key": "priority",
+                  "value": "high"
+                }
+              ]
+            },
+            "description": "Get available requests filtered by subject and priority"
+          }
+        }
+      ],
+      "description": "Tests for tutor-specific endpoints"
+    },
+    {
+      "name": "9. Delete Request (Owner/Admin Only)",
+      "item": [
+        {
+          "name": "Delete Request - Non-Owner Student (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Authorization error', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(false);",
+                  "    pm.expect(jsonData.message).to.include('Not authorized');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student2Token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}"]
+            },
+            "description": "Different student tries to delete - should fail with 403"
+          }
+        },
+        {
+          "name": "Delete Request - Tutor Attempting (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tutorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}"]
+            },
+            "description": "Tutor tries to delete request - should fail"
+          }
+        },
+        {
+          "name": "Delete Request - Admin Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Deleted successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.message).to.include('deleted');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}"]
+            },
+            "description": "Admin deletes request - should succeed (Note: Run this last as it deletes the request)"
+          }
+        },
+        {
+          "name": "Delete Request - Owner Success (Create New First)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// First create a new request to delete",
+                  "// This requires running the CREATE endpoint first"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Owner can delete their own request', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "{{requestId}}"]
+            },
+            "description": "Owner deletes their own request - should succeed"
+          }
+        }
+      ],
+      "description": "Tests for deleting requests with authorization checks"
+    },
+    {
+      "name": "10. Error Handling & Edge Cases",
+      "item": [
+        {
+          "name": "Get Request - Invalid ID Format",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 500 or 400', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/invalid-id-123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "invalid-id-123"]
+            },
+            "description": "Try to get request with invalid ID format"
+          }
+        },
+        {
+          "name": "Get Request - Non-Existent ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Not found message', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('not found');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/507f1f77bcf86cd799439011",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "507f1f77bcf86cd799439011"]
+            },
+            "description": "Try to get request with valid but non-existent ID"
+          }
+        },
+        {
+          "name": "Update Request - Request Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/507f1f77bcf86cd799439011",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "507f1f77bcf86cd799439011"]
+            },
+            "description": "Try to update non-existent request"
+          }
+        },
+        {
+          "name": "Assign Tutor - Request Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tutorId\": \"{{tutorId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/507f1f77bcf86cd799439011/assign-tutor",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "student-requests", "507f1f77bcf86cd799439011", "assign-tutor"]
+            },
+            "description": "Try to assign tutor to non-existent request"
+          }
+        }
+      ],
+      "description": "Tests for error handling and edge cases"
+    }
+  ]
+}
