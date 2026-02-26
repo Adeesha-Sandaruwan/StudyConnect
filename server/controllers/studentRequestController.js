@@ -1,5 +1,11 @@
 import StudentRequest from '../models/StudentRequest.js';
 import User from '../models/User.js';
+import {
+  sendRequestCreationEmail,
+  sendAdminNotificationEmail,
+  sendTutorAssignmentEmail,
+  sendStatusUpdateEmail
+} from '../services/emailService.js';
 
 // @desc    Get all student requests with optional filters
 // @route   GET /api/student-requests
@@ -49,10 +55,16 @@ const getMyRequests = async (req, res) => {
       .populate('assignedTutor', ['name', 'email', 'avatar'])
       .sort({ createdAt: -1 });
 
-    res.json(requests);
+    res.json({
+      success: true,
+      requests
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -66,13 +78,22 @@ const getRequestById = async (req, res) => {
       .populate('assignedTutor', ['name', 'email', 'avatar']);
 
     if (!request) {
-      return res.status(404).json({ message: 'Request not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Request not found' 
+      });
     }
 
-    res.json(request);
+    res.json({
+      success: true,
+      request
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -86,12 +107,18 @@ const createRequest = async (req, res) => {
     // Validate that user is a student
     const user = await User.findById(req.user._id);
     if (user.role !== 'student') {
-      return res.status(403).json({ message: 'Only students can create requests' });
+      return res.status(403).json({ 
+        success: false,
+        message: 'Only students can create requests' 
+      });
     }
 
     // Validate required fields
     if (!subject || !description || !gradeLevel) {
-      return res.status(400).json({ message: 'Please provide subject, description, and grade level' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Please provide subject, description, and grade level' 
+      });
     }
 
     const studentRequest = await StudentRequest.create({
@@ -106,30 +133,68 @@ const createRequest = async (req, res) => {
 
     const populatedRequest = await studentRequest.populate('student', ['name', 'email', 'avatar']);
 
+    // Send confirmation email to student
+    await sendRequestCreationEmail(
+      user.email,
+      user.name,
+      subject,
+      gradeLevel,
+      studentRequest._id.toString()
+    );
+
+    // Send notification to all admins and tutors
+    try {
+      const adminsAndTutors = await User.find({ 
+        $or: [
+          { role: 'admin' },
+          { role: 'tutor' }
+        ]
+      }).select('email');
+
+      if (adminsAndTutors.length > 0) {
+        const emailList = adminsAndTutors.map(u => u.email);
+        await sendAdminNotificationEmail(
+          emailList,
+          subject,
+          gradeLevel,
+          user.name,
+          description,
+          studentRequest._id.toString()
+        );
+      }
+    } catch (emailError) {
+      console.warn('Failed to send admin notification email:', emailError.message);
+      // Don't fail the request if admin email fails
+    }
+
     res.status(201).json({
-      message: 'Request created successfully',
+      success: true,
+      message: 'Request created successfully. Confirmation email sent.',
       request: populatedRequest
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
 // @desc    Update student request
 // @route   PUT /api/student-requests/:id
-// @access  Private (Request owner only)
+// @access  Private (Request owner or admin)
 const updateRequest = async (req, res) => {
   try {
-    let request = await StudentRequest.findById(req.params.id);
+    // Authorization already checked by checkOwnerOrAdmin middleware
+    // req.studentRequest is available from middleware
+    let request = req.studentRequest || await StudentRequest.findById(req.params.id);
 
     if (!request) {
-      return res.status(404).json({ message: 'Request not found' });
-    }
-
-    // Check if user is the request owner
-    if (request.student.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized to update this request' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Request not found' 
+      });
     }
 
     const { subject, description, gradeLevel, requestType, preferredSchedule, priority, status } = req.body;
@@ -153,12 +218,16 @@ const updateRequest = async (req, res) => {
     const updatedRequest = request;
 
     res.json({
+      success: true,
       message: 'Request updated successfully',
       request: updatedRequest
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -167,26 +236,29 @@ const updateRequest = async (req, res) => {
 // @access  Private (Request owner or admin)
 const deleteRequest = async (req, res) => {
   try {
-    const request = await StudentRequest.findById(req.params.id);
+    // Authorization already checked by checkOwnerOrAdmin middleware
+    // req.studentRequest is available from middleware
+    const request = req.studentRequest || await StudentRequest.findById(req.params.id);
 
     if (!request) {
-      return res.status(404).json({ message: 'Request not found' });
-    }
-
-    // Check authorization
-    const isOwner = request.student.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === 'admin';
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: 'Not authorized to delete this request' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Request not found' 
+      });
     }
 
     await StudentRequest.findByIdAndDelete(req.params.id);
 
-    res.json({ message: 'Request deleted successfully' });
+    res.json({ 
+      success: true,
+      message: 'Request deleted successfully' 
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -195,27 +267,57 @@ const deleteRequest = async (req, res) => {
 // @access  Private (Admin only)
 const assignTutor = async (req, res) => {
   try {
+    // EXTRA VALIDATION - Double check user exists and is admin
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Not authenticated' 
+      });
+    }
+
+    const isAdmin = req.user.role === 'admin';
+    const userRole = req.user.role || 'unknown';
+
+    if (!isAdmin) {
+      return res.status(403).json({ 
+        success: false,
+        message: `Not authorized. Only admins can assign tutors. Your role is: ${userRole}` 
+      });
+    }
+
     const { tutorId } = req.body;
 
     if (!tutorId) {
-      return res.status(400).json({ message: 'Please provide tutor ID' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Please provide tutor ID' 
+      });
     }
 
     const request = await StudentRequest.findById(req.params.id);
 
     if (!request) {
-      return res.status(404).json({ message: 'Request not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Request not found' 
+      });
     }
 
     // Verify tutor exists and has tutor role
     const tutor = await User.findById(tutorId);
     if (!tutor || tutor.role !== 'tutor') {
-      return res.status(400).json({ message: 'Invalid tutor' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid tutor' 
+      });
     }
 
     // Only allow assignment if request is open
     if (request.status !== 'open') {
-      return res.status(400).json({ message: 'Can only assign tutor to open requests' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Can only assign tutor to open requests' 
+      });
     }
 
     request.assignedTutor = tutorId;
@@ -225,13 +327,32 @@ const assignTutor = async (req, res) => {
     await request.populate('student', ['name', 'email', 'avatar']);
     await request.populate('assignedTutor', ['name', 'email', 'avatar']);
 
+    // Send notification email to student about tutor assignment
+    try {
+      const student = await User.findById(request.student);
+      await sendTutorAssignmentEmail(
+        student.email,
+        student.name,
+        tutor.name,
+        request.subject,
+        request._id.toString()
+      );
+    } catch (emailError) {
+      console.warn('Failed to send tutor assignment email:', emailError.message);
+      // Don't fail the request if email fails
+    }
+
     res.json({
-      message: 'Tutor assigned successfully',
+      success: true,
+      message: 'Tutor assigned successfully and email notification sent to student',
       request
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -240,44 +361,67 @@ const assignTutor = async (req, res) => {
 // @access  Private (Admin or request owner)
 const updateRequestStatus = async (req, res) => {
   try {
+    // Authorization already checked by checkOwnerOrAdmin middleware
+    // req.studentRequest is available from middleware
+    let request = req.studentRequest || await StudentRequest.findById(req.params.id);
+
+    if (!request) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Request not found' 
+      });
+    }
+
     const { status } = req.body;
 
     if (!status) {
-      return res.status(400).json({ message: 'Please provide status' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Please provide status' 
+      });
     }
 
     const validStatuses = ['open', 'in-progress', 'completed', 'cancelled'];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid status' 
+      });
     }
 
-    let request = await StudentRequest.findById(req.params.id);
-
-    if (!request) {
-      return res.status(404).json({ message: 'Request not found' });
-    }
-
-    // Check authorization
-    const isOwner = request.student.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === 'admin';
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: 'Not authorized to update this request status' });
-    }
-
+    const oldStatus = request.status;
     request.status = status;
     await request.save();
 
     await request.populate('student', ['name', 'email', 'avatar']);
     await request.populate('assignedTutor', ['name', 'email', 'avatar']);
 
+    // Send notification email to student about status change
+    try {
+      const student = await User.findById(request.student);
+      await sendStatusUpdateEmail(
+        student.email,
+        student.name,
+        status,
+        request.subject,
+        request._id.toString()
+      );
+    } catch (emailError) {
+      console.warn('Failed to send status update email:', emailError.message);
+      // Don't fail the request if email fails
+    }
+
     res.json({
-      message: 'Status updated successfully',
+      success: true,
+      message: 'Status updated successfully and notification email sent',
       request
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -286,14 +430,86 @@ const updateRequestStatus = async (req, res) => {
 // @access  Private (Tutors only)
 const getTutorAssignedRequests = async (req, res) => {
   try {
-    const requests = await StudentRequest.find({ assignedTutor: req.user._id })
-      .populate('student', ['name', 'email', 'avatar'])
-      .sort({ createdAt: -1 });
+    const { status = 'all', page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
 
-    res.json(requests);
+    // Build filter for assigned tutor
+    const filter = { assignedTutor: req.user._id };
+    
+    // If specific status requested, add it to filter
+    if (status !== 'all') {
+      filter.status = status;
+    }
+
+    // Get assigned requests with full details
+    const assignedRequests = await StudentRequest.find(filter)
+      .populate('student', ['_id', 'name', 'email', 'avatar', 'phone', 'institution'])
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip(skip);
+
+    const total = await StudentRequest.countDocuments(filter);
+
+    res.json({
+      success: true,
+      pagination: {
+        total,
+        pages: Math.ceil(total / limit),
+        currentPage: page
+      },
+      requests: assignedRequests
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
+  }
+};
+
+// @desc    Get open requests available for tutor assignment
+// @route   GET /api/student-requests/tutor/available
+// @access  Private (Tutors only)
+const getAvailableRequests = async (req, res) => {
+  try {
+    const { subject, gradeLevel, priority, page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Build filter for open requests without assigned tutor
+    const filter = { 
+      status: 'open',
+      assignedTutor: null
+    };
+
+    if (subject) filter.subject = subject;
+    if (gradeLevel) filter.gradeLevel = gradeLevel;
+    if (priority) filter.priority = priority;
+
+    // Get available open requests
+    const availableRequests = await StudentRequest.find(filter)
+      .populate('student', ['_id', 'name', 'email', 'avatar', 'phone', 'institution'])
+      .sort({ priority: -1, createdAt: -1 })
+      .limit(limit * 1)
+      .skip(skip);
+
+    const total = await StudentRequest.countDocuments(filter);
+
+    res.json({
+      success: true,
+      pagination: {
+        total,
+        pages: Math.ceil(total / limit),
+        currentPage: page
+      },
+      requests: availableRequests
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -339,5 +555,6 @@ export {
   assignTutor,
   updateRequestStatus,
   getTutorAssignedRequests,
+  getAvailableRequests,
   getRequestsBySubject
 };

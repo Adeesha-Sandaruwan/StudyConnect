@@ -1,0 +1,797 @@
+{
+  "info": {
+    "name": "StudyConnect - Student Requests (Complete with Email Notifications)",
+    "description": "Complete API documentation for Student Request Management with email notification examples",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "jwt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tutorId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "requestId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminJwt",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login as Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "auth"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  var cookies = pm.response.headers.get('set-cookie');",
+                  "  if (cookies && cookies.includes('jwt=')) {",
+                  "    var match = cookies.match(/jwt=([^;]+)/);",
+                  "    if (match) {",
+                  "      pm.environment.set('jwt', match[1]);",
+                  "      console.log('JWT Token stored');",
+                  "    }",
+                  "  }",
+                  "  pm.test('Login successful', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "  });",
+                  "}",
+                  "pm.test('Response has success flag', function() {",
+                  "  pm.expect(pm.response.json().success).to.equal(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "auth"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  var cookies = pm.response.headers.get('set-cookie');",
+                  "  if (cookies && cookies.includes('jwt=')) {",
+                  "    var match = cookies.match(/jwt=([^;]+)/);",
+                  "    if (match) {",
+                  "      pm.environment.set('adminJwt', match[1]);",
+                  "      console.log('Admin JWT Token stored');",
+                  "    }",
+                  "  }",
+                  "  pm.test('Admin login successful', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "  });",
+                  "}",
+                  "pm.test('Response has success flag', function() {",
+                  "  pm.expect(pm.response.json().success).to.equal(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Create & Read Requests",
+      "item": [
+        {
+          "name": "Create Student Request (✉️ Sends Email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "jwt={{jwt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Mathematics\",\n  \"description\": \"I need help understanding calculus, especially integration and differential equations. Would prefer online sessions.\",\n  \"gradeLevel\": \"Grade 12\",\n  \"requestType\": \"ongoing\",\n  \"preferredSchedule\": [\n    \"Monday 5-6 PM\",\n    \"Wednesday 4-5 PM\",\n    \"Friday 3-4 PM\"\n  ],\n  \"priority\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Request created successfully', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(true);",
+                  "  pm.expect(jsonData.message).to.include('email sent');",
+                  "  pm.environment.set('requestId', jsonData.request._id);",
+                  "  console.log('✓ Request created: ' + jsonData.request._id);",
+                  "  console.log('✉️  Confirmation email sent to: ' + jsonData.request.student.email);",
+                  "  console.log('✉️  Admin notifications sent to all tutors');",
+                  "});",
+                  "",
+                  "pm.test('Request has correct structure', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.request).to.have.property('_id');",
+                  "  pm.expect(jsonData.request).to.have.property('student');",
+                  "  pm.expect(jsonData.request).to.have.property('subject');",
+                  "  pm.expect(jsonData.request).to.have.property('status');",
+                  "  pm.expect(jsonData.request.status).to.equal('open');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get all requests successful', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(true);",
+                  "  pm.expect(jsonData).to.have.property('requests');",
+                  "  pm.expect(jsonData).to.have.property('pagination');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Requests by Subject",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/subject/Mathematics?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests",
+                "subject",
+                "Mathematics"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get requests by subject successful', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "jwt={{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/my-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests",
+                "my-requests"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get my requests successful', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(true);",
+                  "  pm.expect(Array.isArray(jsonData.requests)).to.equal(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Single Request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests",
+                "{{requestId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get single request successful', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(true);",
+                  "  pm.expect(jsonData.request._id).to.equal(pm.environment.get('requestId'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin Operations",
+      "item": [
+        {
+          "name": "Assign Tutor to Request (✉️ Sends Email)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "jwt={{adminJwt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tutorId\": \"507f1f77bcf86cd799439013\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/assign-tutor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests",
+                "{{requestId}}",
+                "assign-tutor"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Tutor assigned successfully', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(true);",
+                  "  pm.expect(jsonData.message).to.include('email notification sent');",
+                  "  pm.expect(jsonData.request.status).to.equal('in-progress');",
+                  "  console.log('✓ Tutor assigned: ' + jsonData.request.assignedTutor.name);",
+                  "  console.log('✉️  Assignment email sent to student');",
+                  "});",
+                  "",
+                  "pm.test('Request status changed to in-progress', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.request.status).to.equal('in-progress');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Tutor's Assigned Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "jwt={{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/tutor/assigned",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests",
+                "tutor",
+                "assigned"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get tutor assigned requests successful', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(true);",
+                  "  pm.expect(Array.isArray(jsonData.requests)).to.equal(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Update & Status Management",
+      "item": [
+        {
+          "name": "Update Request Status (✉️ Sends Email)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "jwt={{adminJwt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests",
+                "{{requestId}}",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status updated successfully', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(true);",
+                  "  pm.expect(jsonData.message).to.include('email notification sent');",
+                  "  pm.expect(jsonData.request.status).to.equal('completed');",
+                  "  console.log('✓ Status changed to: ' + jsonData.request.status);",
+                  "  console.log('✉️  Status update email sent to student');",
+                  "});",
+                  "",
+                  "pm.test('Status is updated in response', function() {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.request.status).to.equal('completed');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Request Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "jwt={{jwt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated description: Need more focus on differential equations\",\n  \"priority\": \"high\",\n  \"preferredSchedule\": [\n    \"Tuesday 4-5 PM\",\n    \"Thursday 5-6 PM\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests",
+                "{{requestId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Request updated successfully', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Delete Request",
+      "item": [
+        {
+          "name": "Delete Request",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "jwt={{jwt}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests",
+                "{{requestId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Request deleted successfully', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(true);",
+                  "  pm.expect(jsonData.message).to.include('deleted');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Test Cases",
+      "item": [
+        {
+          "name": "Test: Invalid Subject (400 Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "jwt={{jwt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"InvalidSubject\",\n  \"description\": \"Test description\",\n  \"gradeLevel\": \"Grade 10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Invalid subject returns 400', function() {",
+                  "  pm.response.to.have.status(400);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test: Missing Required Fields (400 Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "jwt={{jwt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Mathematics\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Missing required fields returns 400', function() {",
+                  "  pm.response.to.have.status(400);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(false);",
+                  "  pm.expect(jsonData.message).to.include('required');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test: Invalid Request ID (404 Error)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/invalid-id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests",
+                "invalid-id"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Invalid request ID returns 404', function() {",
+                  "  pm.response.to.have.status(404);",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.expect(jsonData.success).to.equal(false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test: Unauthorized Access (403 Error)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "jwt=invalid-token"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/student-requests/{{requestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "student-requests",
+                "{{requestId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Invalid token returns 401 or 403', function() {",
+                  "  var statusCode = pm.response.code;",
+                  "  pm.expect([401, 403]).to.include(statusCode);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "description": "Complete API documentation for Student Request Management component with email notification functionality. All requests marked with ✉️ trigger email notifications.\n\n## Email Notification Events\n\n1. **Create Request** → Sends confirmation to student + notification to all admins/tutors\n2. **Assign Tutor** → Sends assignment notification to student\n3. **Update Status** → Sends status change notification to student\n\n## Setup Instructions\n\n1. Import this collection into Postman\n2. Set variables: baseUrl, jwt (student token), adminJwt (admin token), requestId\n3. Ensure server is running with email service configured\n4. Run requests and check email inbox for notifications\n\n## Response Format\n\nAll responses include a `success` flag:\n```json\n{\n  \"success\": true,\n  \"message\": \"...\",\n  \"data\": {...}\n}\n```"
+}
