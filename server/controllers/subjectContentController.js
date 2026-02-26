@@ -1,12 +1,24 @@
 import mongoose from "mongoose";
 import SubjectContent from "../models/SubjectContent.js";
+import fetch from "node-fetch";
+import * as pdfParse from "pdf-parse"; 
+import dotenv from "dotenv";
 
+dotenv.config(); // Load environment variables from .env file
+
+/**
+ * Helper function to check if the current user is either
+ * the creator of the content or an admin.
+ */
 const isOwnerOrAdmin = (content, user) => {
   const isOwner = content.createdBy.toString() === user._id.toString();
   const isAdmin = user.role === "admin";
   return isOwner || isAdmin;
 };
 
+/**
+ * Helper function to extract PDF information from uploaded file
+ */
 const buildPdfDataFromFile = (file) => {
   if (!file) {
     return { pdfUrl: "", pdfPublicId: "", hasPdf: false };
@@ -22,6 +34,10 @@ const buildPdfDataFromFile = (file) => {
   };
 };
 
+/**
+ * Helper function to safely pick resource fields from request body
+ * Ensures default empty values if fields are missing
+ */
 const pickResourceFields = (resources, withDefaults = false) => {
   const source = resources && typeof resources === "object" ? resources : {};
   const out = {};
@@ -309,5 +325,101 @@ export const viewSubjectContentPdf = async (req, res) => {
     return res.redirect(content.resources.pdfUrl);
   } catch (error) {
     return res.status(500).json({ message: error.message });
+  }
+};
+
+async function getPdfText(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to download PDF");
+    const buffer = await res.arrayBuffer();
+
+    // Use pdfParse.default for ES modules
+    const data = await pdfParse(Buffer.from(buffer));
+    return data.text; // extracted text
+  } catch (err) {
+    console.error("PDF extraction error:", err.message);
+    return ""; // fallback if PDF cannot be read
+  }
+}
+
+/**
+ * Ask AI a question about a lesson content
+ * Route: POST /api/subject-content/:id/ask
+ * Uses Hugging Face API to generate answers
+ */
+export const askAI = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { question } = req.body;
+
+    // 1 Get week content from MongoDB
+    const week = await SubjectContent.findById(id);
+    if (!week) return res.status(404).json({ message: "Week not found" });
+
+    // 2 Extract PDF text if available
+    const pdfText = week.resources?.pdfUrl
+      ? await getPdfText(week.resources.pdfUrl)
+      : "";
+
+    // 3 Combine all context
+    const context = `
+Lesson description:
+${week.description || ""}
+
+Lesson content:
+${week.contentText || ""}
+
+PDF content:
+${pdfText}
+`;
+
+    // 4 Prepare Hugging Face request
+    const body = {
+      model: process.env.HUGGING_FACE_MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a student assistant. Use the provided lesson content and PDF to answer questions in simple words."
+        },
+        {
+          role: "user",
+          content: `Context:\n${context}\n\nStudent question:\n${question}`
+        }
+      ],
+      max_tokens: 300,
+      temperature: 0.7
+    };
+
+    // 5 Call Hugging Face Chat API
+    const hfResponse = await fetch(
+      "https://router.huggingface.co/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.HUGGING_FACE_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      }
+    );
+
+    if (!hfResponse.ok) {
+      const text = await hfResponse.text();
+      console.error("Hugging Face API error:", text);
+      return res.status(hfResponse.status).json({ message: text });
+    }
+
+    // 6 Parse answer
+    const data = await hfResponse.json();
+    const rawAnswer = data.choices?.[0]?.message?.content || "";
+    const answer = rawAnswer.trim() === "" ? "Sorry, no answer." : rawAnswer;
+
+    // 7 Send to frontend
+    res.json({ answer });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 };
