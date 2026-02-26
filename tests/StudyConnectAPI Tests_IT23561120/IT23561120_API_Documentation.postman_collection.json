@@ -1,0 +1,168 @@
+{
+  "info": {
+    "_postman_id": "17307e2a-9ff3-46cc-bb89-ac846a9033e9",
+    "name": "IT23561120_API_Documentation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "46068465",
+    "_collection_link": "https://go.postman.co/collection/46068465-17307e2a-9ff3-46cc-bb89-ac846a9033e9?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Login Tutor",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"Sudam@gmail.com\",\r\n  \"password\": \"321S\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/users/auth",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "users",
+            "auth"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create subject content",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"title\": \"Grade 11 Week 3 Node js\",\r\n  \"subject\": \"ICT\",\r\n  \"grade\": 11,\r\n  \"weekNumber\": 3,\r\n  \"lessonDate\": \"2026-03-06\",\r\n  \"description\": \"Introduction to Node.js runtime environment and its architecture.\",\r\n  \"contentText\": \"Node.js is a JavaScript runtime built on Chrome V8 engine used to build scalable server-side applications.\",\r\n  \"homework\": \"Install Node.js and create a simple server using Express.\",\r\n  \"status\": \"published\",\r\n  \"resources\": {\r\n    \"quizFormLink\": \"https://forms.google.com/example\",\r\n    \"worksheetLink\": \"https://example.com/worksheet.pdf\",\r\n    \"answerSheetLink\": \"https://example.com/answers.pdf\",\r\n    \"meetingLink\": \"https://zoom.us/j/123456\",\r\n    \"referenceLinks\": [\r\n      \"https://example.com/ref1\",\r\n      \"https://example.com/ref2\"\r\n    ],\r\n    \"videoLinks\": [\r\n      \"https://youtube.com/watch?v=abc123\"\r\n    ]\r\n  }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/subject-content",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "subject-content"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "UpdateContent",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"homework\": \"Install Node.js and create a simple server using Express and upload.\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/subject-content/699fe5a9a7942ea711f40865",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "subject-content",
+            "699fe5a9a7942ea711f40865"
+          ],
+          "query": [
+            {
+              "key": "pdf",
+              "value": null,
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "get content",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "AI helping Bot",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"question\": \"can i know about Node js with a simple example \"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/subject-content/699fe5a9a7942ea711f40865/ask",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "subject-content",
+            "699fe5a9a7942ea711f40865",
+            "ask"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "delete a content",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/subject-content/699fe5a9a7942ea711f40865",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "subject-content",
+            "699fe5a9a7942ea711f40865"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
