@@ -1,0 +1,110 @@
+{
+  "info": {
+    "_postman_id": "8d9afe89-c974-4644-b8ba-7f1628c440ac",
+    "name": "feedback",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36288823"
+  },
+  "item": [
+    {
+      "name": "addfeedback",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"tutorName\": \"supun \",\r\n  \"tutorEmail\": \"jayasingheabishek11@gmail.com\",\r\n  \"lesson\": \"Mathematics\",\r\n  \"feedback\": \"Very clear teaching and good explanations\",\r\n  \"rating\": 5\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:5000/api/feedback/createFeedback",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "feedback",
+            "createFeedback"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "getfeedback",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "localhost:5000/api/feedback/getFeedbacks",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "feedback",
+            "getFeedbacks"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "updatefeedback",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"tutorName\": \"supun chamara\",\r\n  \"tutorEmail\": \"jayasingheabishek11@gmail.com\",\r\n  \"lesson\": \"Mathematics\",\r\n  \"feedback\": \"Very clear teaching and good explanations\",\r\n  \"rating\": 5\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:5000/api/feedback/updateFeedback/69a03bab7bca8ea94873a1a1",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "feedback",
+            "updateFeedback",
+            "69a03bab7bca8ea94873a1a1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "deletefeedback",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "localhost:5000/api/feedback/deleteFeedback/69a03bab7bca8ea94873a1a1",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "feedback",
+            "deleteFeedback",
+            "69a03bab7bca8ea94873a1a1"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
