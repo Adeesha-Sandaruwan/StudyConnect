@@ -1,5 +1,6 @@
 import StudentRequest from '../models/StudentRequest.js';
 import User from '../models/User.js';
+import mongoose from 'mongoose';
 import {
   sendRequestCreationEmail,
   sendAdminNotificationEmail,
@@ -104,7 +105,7 @@ const createRequest = async (req, res) => {
   const { subject, description, gradeLevel, requestType, preferredSchedule, priority } = req.body;
 
   try {
-    // Validate that user is a student
+    // Verify the authenticated user is a student (not tutor/admin)
     const user = await User.findById(req.user._id);
     if (user.role !== 'student') {
       return res.status(403).json({ 
@@ -113,7 +114,7 @@ const createRequest = async (req, res) => {
       });
     }
 
-    // Validate required fields
+    // Validate required fields (subject, description, gradeLevel are required by middleware too)
     if (!subject || !description || !gradeLevel) {
       return res.status(400).json({ 
         success: false,
@@ -121,19 +122,22 @@ const createRequest = async (req, res) => {
       });
     }
 
+    // Create the student request in database
+    // Status starts as 'open', assignedTutor is null, responses is 0
     const studentRequest = await StudentRequest.create({
-      student: req.user._id,
+      student: req.user._id,                              // Link to the student who created it
       subject,
       description,
       gradeLevel,
-      requestType: requestType || 'ongoing',
+      requestType: requestType || 'ongoing',              // Default to ongoing if not specified
       preferredSchedule: preferredSchedule || [],
-      priority: priority || 'medium'
+      priority: priority || 'medium'                      // Default to medium priority
     });
 
+    // Populate student details for response
     const populatedRequest = await studentRequest.populate('student', ['name', 'email', 'avatar']);
 
-    // Send confirmation email to student
+    // Send email confirmation to the student
     await sendRequestCreationEmail(
       user.email,
       user.name,
@@ -320,7 +324,7 @@ const assignTutor = async (req, res) => {
       });
     }
 
-    request.assignedTutor = tutorId;
+    request.assignedTutor = new mongoose.Types.ObjectId(tutorId);
     request.status = 'in-progress';
     await request.save();
 
@@ -359,11 +363,13 @@ const assignTutor = async (req, res) => {
 // @desc    Update request status
 // @route   PUT /api/student-requests/:id/status
 // @access  Private (Admin or request owner)
+// @desc    Update request status
+// @route   PUT /api/student-requests/:id/status
+// @access  Private (Admin or Tutor only)
 const updateRequestStatus = async (req, res) => {
   try {
-    // Authorization already checked by checkOwnerOrAdmin middleware
-    // req.studentRequest is available from middleware
-    let request = req.studentRequest || await StudentRequest.findById(req.params.id);
+    // Authorization already checked by adminOrTutor middleware
+    const request = await StudentRequest.findById(req.params.id);
 
     if (!request) {
       return res.status(404).json({ 
@@ -425,25 +431,38 @@ const updateRequestStatus = async (req, res) => {
   }
 };
 
-// @desc    Get requests by tutor (for assigned tutor)
+// @desc    Get tutor's assigned student requests
 // @route   GET /api/student-requests/tutor/assigned
-// @access  Private (Tutors only)
+// @access  Private (Admin or Tutor)
+// LOGIC: Tutors see only their own assignments, Admins see all (or filtered by ?tutorId=)
 const getTutorAssignedRequests = async (req, res) => {
   try {
-    const { status = 'all', page = 1, limit = 10 } = req.query;
+    const { status = 'all', tutorId, page = 1, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
 
-    // Build filter for assigned tutor
-    const filter = { assignedTutor: req.user._id };
+    // Build filter based on user role
+    // Start with all requests that have a tutor assigned (filter out open requests)
+    let filter = { assignedTutor: { $ne: null } };
     
-    // If specific status requested, add it to filter
+    if (req.user.role === 'tutor') {
+      // Tutors can ONLY see their own assigned requests - restrict by their ID
+      filter.assignedTutor = req.user._id;
+    } else if (tutorId) {
+      // Admins can optionally filter by a specific tutor (?tutorId=xxx)
+      // If not provided, admin sees ALL assigned requests
+      filter.assignedTutor = tutorId;
+    }
+    
+    // Optional: Filter by request status (open, in-progress, completed, cancelled)
+    // Default returns all statuses (status=all)
     if (status !== 'all') {
       filter.status = status;
     }
 
-    // Get assigned requests with full details
+    // Fetch requests with populated student and tutor references
     const assignedRequests = await StudentRequest.find(filter)
       .populate('student', ['_id', 'name', 'email', 'avatar', 'phone', 'institution'])
+      .populate('assignedTutor', ['_id', 'name', 'email', 'avatar'])
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip(skip);
