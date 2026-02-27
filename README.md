@@ -1,84 +1,111 @@
-# 🎓 TutorConnect - Volunteering Platform
+# StudyConnect RESTful API Backend
 
-> A MERN stack application connecting underprivileged students with volunteer tutors to provide quality education.
+StudyConnect is a secure, robust, and scalable full-stack volunteer platform connecting students with tutors. This repository contains the Node.js/Express backend API that powers the platform.
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Stack](https://img.shields.io/badge/stack-MERN-orange)
+---
 
-## 📖 About The Project
+## 🚀 Core Components
 
-**TutorConnect** is a web platform designed to bridge the gap between students in need of academic support and volunteers willing to share their knowledge. Built over a 4-week sprint, this application focuses on accessibility, real-time interaction, and secure user management.
+This backend is built using a clean MVC architecture and comprises the following integrated RESTful components:
 
-### Key Features
-* **Role-Based Access Control**: Distinct dashboards for Students, Tutors, and Admins.
-* **Secure Authentication**: JWT-based session management with Google OAuth 2.0 integration.
-* **Interactive Classrooms**: Real-time scheduling and resource sharing.
-* **Volunteer Verification**: Vetting process for tutors to ensure quality education.
+- **Authentication & Authorization** — `authController`, `authMiddleware`,`adminMiddleware`, `roleMiddleware`
+- **User Profile Management** — `profileController`
+- **Study Posts & Q&A** — `studyPostController`
+- **Student Requests** — `studentRequestController`
+- **Subject Content Management** — `subjectContentController`, `subjectContentValidation`
+- **Feedback System** — `feedbackController`
+- **Automated Notifications** — `notificationController`
 
-## 🛠 Tech Stack
+---
 
-**Frontend:**
-* React.js (Hooks, Context API)
-* Tailwind CSS (UI Styling)
-* Redux Toolkit (State Management)
+## 🔌 Third-Party API Integrations
 
-**Backend:**
-* Node.js & Express.js (REST API)
-* MongoDB & Mongoose (Database)
-* JWT & Google Auth Library (Security)
+| Integration | Purpose |
+|---|---|
+| **Cloudinary** | Media & Document Storage |
+| **Google Authentication** | Login with your google account |
+| **Nodemailer** | Automated Email Delivery |
+| **PurgoMalum REST API** | Automated Content Moderation |
+| **Hugging Face API** | AI question-answering feature for lesson content |
 
-## 🚀 Getting Started
+---
 
-### Prerequisites
-* Node.js (v18+)
-* MongoDB (Local or Atlas)
-* Git
+## 🛠️ Technology Stack
 
-### Installation
+| Layer | Technology |
+|---|---|
+| **Runtime** | Node.js |
+| **Framework** | Express.js |
+| **Database** | MongoDB & Mongoose ORM |
+| **Security** | Helmet, CORS |
+| **File Uploads** | Multer |
 
-1.  **Clone the repository**
-    ```bash
-    git clone [https://github.com/yourusername/tutor-connect.git](https://github.com/yourusername/tutor-connect.git)
-    cd tutor-connect
-    ```
+---
 
-2.  **Setup Backend**
-    ```bash
-    cd server
-    npm install
-    ```
+## ⚙️ Setup Instructions
 
-3.  **Configure Environment Variables**
-    Create a `.env` file in the `server` directory:
-    ```env
-    PORT=5000
-    MONGO_URI=mongodb://localhost:27017/tutor-connect
-    JWT_SECRET=your_jwt_secret
-    NODE_ENV=development
-    GOOGLE_CLIENT_ID=your_google_client_id
-    ```
+Follow these steps to get the backend project running locally on your machine.
 
-4.  **Run the Server**
-    ```bash
-    npm run dev
-    ```
+### 1. Prerequisites
 
-## 🔐 API Endpoints (Auth)
+Ensure you have the following installed:
 
-| Method | Endpoint | Description | Access |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/users` | Register a new user (Student/Tutor) | Public |
-| `POST` | `/api/users/auth` | Login user & get token | Public |
-| `POST` | `/api/users/google` | Google OAuth Login | Public |
-| `POST` | `/api/users/logout` | Logout user (Clear cookie) | Private |
+- [Node.js](https://nodejs.org/) (v18 or higher recommended)
+- [MongoDB](https://www.mongodb.com/) (local installation or MongoDB Atlas URI)
+- Git
 
-## 👥 Contributing
+### 2. Clone the Repository
 
-1.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-2.  Commit your Changes (`git commit -m 'feat: Add some AmazingFeature'`)
-3.  Push to the Branch (`git push origin feature/AmazingFeature`)
-4.  Open a Pull Request
+```bash
+git clone https://github.com/Adeesha-Sandaruwan/StudyConnect
+cd StudyConnect
+```
 
-## 📄 License
+### 3. Install Dependencies
 
-Educational purposes !
+Navigate into the `server` directory and install the required NPM packages:
+
+```bash
+cd server
+npm install
+```
+
+### 4. Environment Variables Configuration
+
+Create a `.env` file in the root of your `server` directory. Copy the structure below and replace all placeholder values with your actual credentials:
+
+```env
+NODE_ENV=development
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_super_secret_jwt_key
+
+# Google OAuth 2.0
+GOOGLE_CLIENT_ID=your_google_client_id
+
+# Cloudinary Media Storage
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Nodemailer (Email Automation)
+EMAIL_USER=your_verified_gmail_address
+EMAIL_PASS=your_16_character_app_password
+```
+
+### 5. Start the Server
+
+Run the application in development mode:
+
+```bash
+npm run dev
+```
+
+If configured correctly, your terminal will display:
+
+```
+Server started on port 5000
+MongoDB Connected...
+```
+
+You can now send requests to `http://localhost:5000`.
