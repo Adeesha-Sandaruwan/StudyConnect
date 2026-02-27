@@ -15,6 +15,7 @@ export const validateProfile = [
 ];
 
 export const validateStudentRequest = [
+  // Subject validation - required and must be from the allowed list
   check('subject', 'Subject is required').not().isEmpty(),
   check('subject').isIn(['Mathematics', 'English', 'Science', 'History', 'Geography', 'ICT', 'Other'])
     .withMessage('Invalid subject'),
@@ -36,16 +37,25 @@ export const validateStudentRequest = [
   }
 ];
 
+// Validate student request updates (all fields optional but validated if provided)
 export const validateStudentRequestUpdate = [
+  // Optional subject - must be from allowed list if provided
   check('subject').optional().isIn(['Mathematics', 'English', 'Science', 'History', 'Geography', 'ICT', 'Other'])
     .withMessage('Invalid subject'),
+  
+  // Optional description - max 1000 characters if provided
   check('description').optional().isLength({ max: 1000 }).withMessage('Description must be at most 1000 characters'),
+  
+  // Optional grade level - must be from allowed list if provided
   check('gradeLevel').optional().isIn(['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12', 'University'])
     .withMessage('Invalid grade level'),
+  
+  // Optional fields with enum validation
   check('requestType').optional().isIn(['one-time', 'ongoing']).withMessage('Invalid request type'),
   check('preferredSchedule').optional().isArray().withMessage('preferredSchedule must be an array of strings'),
   check('preferredSchedule.*').optional().isString().withMessage('Each schedule entry must be a string'),
   check('priority').optional().isIn(['low', 'medium', 'high']).withMessage('Invalid priority'),
+  
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -55,6 +65,8 @@ export const validateStudentRequestUpdate = [
   }
 ];
 
+// Validate request status updates
+// Status must be one of: open, in-progress, completed, cancelled
 export const validateRequestStatus = [
   check('status', 'Status is required').not().isEmpty(),
   check('status').isIn(['open', 'in-progress', 'completed', 'cancelled']).withMessage('Invalid status'),
@@ -67,8 +79,9 @@ export const validateRequestStatus = [
   }
 ];
 
+// Validate tutor assignment
+// tutorId must be a valid MongoDB ObjectId if provided
 export const validateAssignTutor = [
-  // tutorId is optional for now; if provided it must be a valid Mongo ObjectId
   check('tutorId').optional().isMongoId().withMessage('tutorId must be a valid Mongo id'),
   (req, res, next) => {
     const errors = validationResult(req);

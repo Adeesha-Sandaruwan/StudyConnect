@@ -3,17 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-/**
- * Email Service for Student Request Management
- * Uses Resend API or Nodemailer SMTP
- * 
- * Features:
- * - Send notifications when tutor is assigned
- * - Send notifications when request status changes
- * - Send notifications when new request is created
- */
-
-// Configure email transporter
+// Configure email transporter for Gmail SMTP
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -23,12 +13,17 @@ const transporter = nodemailer.createTransport({
 });
 
 /**
- * Send email when a tutor is assigned to a student request
- * @param {Object} studentEmail - Student's email
- * @param {String} studentName - Student's name
- * @param {String} tutorName - Assigned tutor's name
- * @param {String} subject - Request subject
- * @param {String} requestId - Request ID for reference
+  SEND TUTOR ASSIGNMENT EMAIL
+  Notifies the student that a tutor has been assigned to their request
+  Includes tutor name and request details
+  Status: request moves from 'open' to 'in-progress'
+ 
+  @param {String} studentEmail - Student's email address
+  @param {String} studentName - Student's full name
+  @param {String} tutorName - Assigned tutor's name
+  @param {String} subject - Tutoring subject (e.g., Mathematics)
+  @param {String} requestId - The student request's MongoDB ID
+  @returns {Promise<Boolean>} - true if email sent successfully, false otherwise
  */
 export const sendTutorAssignmentEmail = async (
   studentEmail,
@@ -84,12 +79,17 @@ export const sendTutorAssignmentEmail = async (
 };
 
 /**
- * Send email when request status is updated
- * @param {Object} userEmail - User's email
- * @param {String} userName - User's name
- * @param {String} status - New status
- * @param {String} subject - Request subject
- * @param {String} requestId - Request ID
+  SEND STATUS UPDATE EMAIL
+  Notifies the student when their request status changes
+  Status changes: open -> in-progress -> completed or cancelled
+  Email changes color and message based on new status
+  
+  @param {String} userEmail - User's email address
+  @param {String} userName - User's full name
+  @param {String} status - New request status ('open', 'in-progress', 'completed', 'cancelled')
+  @param {String} subject - Tutoring subject
+  @param {String} requestId - The request's MongoDB ID
+  @returns {Promise<Boolean>} - true if email sent successfully, false otherwise
  */
 export const sendStatusUpdateEmail = async (
   userEmail,
@@ -164,13 +164,17 @@ export const sendStatusUpdateEmail = async (
 };
 
 /**
- * Send email when a new student request is created
- * Notifies student of creation confirmation
- * @param {Object} studentEmail - Student's email
- * @param {String} studentName - Student's name
- * @param {String} subject - Request subject
- * @param {String} gradeLevel - Grade level
- * @param {String} requestId - Request ID
+  SEND REQUEST CREATION EMAIL
+  Confirms to the student that their request was successfully created
+  Request is immediately visible to tutors and admins
+  Status starts as 'open' - waiting for tutor assignment
+  
+  @param {String} studentEmail - Student's email address
+  @param {String} studentName - Student's full name
+  @param {String} subject - Tutoring subject (e.g., Mathematics)
+  @param {String} gradeLevel - Student's grade level
+  @param {String} requestId - The request's MongoDB ID
+  @returns {Promise<Boolean>} - true if email sent successfully, false otherwise
  */
 export const sendRequestCreationEmail = async (
   studentEmail,
@@ -237,13 +241,18 @@ export const sendRequestCreationEmail = async (
 };
 
 /**
- * Send email to admin/tutors when a new student request is created
- * @param {Array<String>} emailList - List of admin/tutor emails
- * @param {String} subject - Request subject
- * @param {String} gradeLevel - Grade level
- * @param {String} studentName - Student's name
- * @param {String} description - Request description
- * @param {String} requestId - Request ID
+  SEND ADMIN NOTIFICATION EMAIL
+  Notifies all admins and tutors when a new request is created
+  Helps admins/tutors discover new requests needing assignment
+  Can be used to find matching tutors or assign manually
+  
+  @param {Array<String>} emailList - Array of admin/tutor email addresses
+  @param {String} subject - Tutoring subject
+  @param {String} gradeLevel - Student's grade level
+  @param {String} studentName - Student's full name
+  @param {String} description - Request description (what help is needed)
+  @param {String} requestId - The request's MongoDB ID
+  @returns {Promise<Boolean>} - true if email sent successfully, false otherwise
  */
 export const sendAdminNotificationEmail = async (
   emailList,
