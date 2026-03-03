@@ -62,6 +62,7 @@ const profileSchema = mongoose.Schema(
     certificates: {
       type: [String],
       default: []
+      // certificates field is an array of strings (e.g., file paths or URLs) with a default empty array
     },
     verificationStatus: {
       type: String,

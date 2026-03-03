@@ -4,7 +4,7 @@ const answerSchema = mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: true,// each answer must be associated with a user
       ref: 'User',
     },
     text: {
@@ -18,7 +18,7 @@ const answerSchema = mongoose.Schema(
 const studyPostSchema = mongoose.Schema(
   {
     user: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,// each study post must be associated with a user
       required: true,
       ref: 'User',
     },
@@ -37,6 +37,7 @@ const studyPostSchema = mongoose.Schema(
     media: {
       type: [String],
       validate: [arrayLimit, '{PATH} exceeds the limit of 3'],
+      // media field is an array of strings (e.g., URLs) with a custom validator to ensure it does not exceed 3 items
       default: []
     },
     upvotes: [
@@ -52,6 +53,8 @@ const studyPostSchema = mongoose.Schema(
       }
     ],
     answers: [answerSchema],
+    // answers field is an array of subdocuments defined by the answerSchema,
+    //  allowing each study post to have multiple answers associated with it
   },
   { timestamps: true }
 );

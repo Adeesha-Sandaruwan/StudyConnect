@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 cloudinary.config({
+  // Configure Cloudinary with credentials from environment variables
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
@@ -14,6 +15,7 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
+    // Set the folder in Cloudinary where uploaded files will be stored
     folder: 'study-connect-uploads',
     allowed_formats: ['jpg', 'png', 'jpeg', 'pdf'],
     resource_type: 'raw',
