@@ -1,6 +1,7 @@
 const admin = (req, res, next) => {
   // First check if user exists
   if (!req.user) {
+  // If there is no authenticated user, return a 401 response
     return res.status(401).json({ 
       success: false,
       message: 'Not authenticated' 

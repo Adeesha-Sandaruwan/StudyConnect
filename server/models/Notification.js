@@ -15,6 +15,7 @@ const notificationSchema = mongoose.Schema(
     type: {
       type: String,
       enum: ['answer', 'upvote'],
+      // type field indicates the type of notification, which can be either 'answer' or 'upvote'
       required: true,
     },
     post: {

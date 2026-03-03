@@ -43,9 +43,9 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };// compares the entered password with the hashed password stored in the database and returns true if they match, false otherwise
 
 userSchema.pre('save', async function () {
-  if (!this.isModified('password')) {
-    return;
-  }// checks if the password field has been modified. If it hasn't, it skips the hashing process to avoid re-hashing.
+  if (!this.isModified('password')) {//
+    return;// If the password field has not been modified, skip hashing and save the user document as is
+  }
   const salt = await bcrypt.genSalt(10); // generates a salt with 10 rounds, which is used to enhance the security of the hashed password
   this.password = await bcrypt.hash(this.password, salt); 
 }); // hashes the password before saving the user document to the database. It generates a salt and then hashes the password using that salt
