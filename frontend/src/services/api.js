@@ -6,11 +6,12 @@ const api = axios.create({
 });
 
 api.interceptors.response.use(
-    (response) => {
-        return response;
-    },
+    (response) => response,
     (error) => {
-        if (error.response && error.response.status === 401) {
+        const publicPaths = ['/login', '/register'];
+        const isPublicPath = publicPaths.includes(window.location.pathname);
+
+        if (error.response && error.response.status === 401 && !isPublicPath) {
             window.location.href = '/login';
         }
         return Promise.reject(error);
