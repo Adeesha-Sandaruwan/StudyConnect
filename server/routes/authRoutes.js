@@ -15,10 +15,12 @@ import { admin } from '../middleware/adminMiddleware.js';// Import the admin mid
 const router = express.Router();// Create a new router instance
 
 // Define routes for user registration, login, Google authentication, and logout
-router.post('/', registerUser);
-router.post('/auth', loginUser);
+// Change these lines to be more standard
+router.post('/register', registerUser); // Result: /api/users/register
+router.post('/login', loginUser);       // Result: /api/users/login
 router.post('/google', googleAuth);
 router.post('/logout', logoutUser);
+router.get('/me', protect, (req, res) => res.status(200).json({ user: req.user })); // Add this for AuthContext
 
 // Define routes for admin to manage users, protected by both protect and admin middleware
 router.get('/', protect, admin, getUsers);
