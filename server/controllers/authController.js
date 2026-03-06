@@ -71,16 +71,19 @@ const loginUser = async (req, res) => {// Extracting the email and password from
 };
 
 const googleAuth = async (req, res) => {// Extracting the token from the request body
-  const { token } = req.body;// Verifying the Google ID token using the OAuth2 client
+  const accessToken = req.body.access_token || req.body.token;// Fetching user info directly from Google using the access token
 
   try {
-    const ticket = await client.verifyIdToken({// Verifying the Google ID token using the OAuth2 client
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
+    const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` }
     });
     
+    if (!response.ok) {
+      throw new Error("Failed to retrieve user info from Google");
+    }
+    
     // Extracting the user's name, email, picture, and Google ID (sub) from the token payload
-    const { name, email, picture, sub } = ticket.getPayload();
+    const { name, email, picture, sub } = await response.json();
 
     let user = await User.findOne({ email });// Checking if a user with the provided email already exists in the database
 
