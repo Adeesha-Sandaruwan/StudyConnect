@@ -1,5 +1,6 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 import { AuthContext } from '../context/AuthContext';
 import { validateLoginForm } from '../utils/validation';
 import api from '../services/api';
@@ -32,65 +33,69 @@ const Login = () => {
         }
     };
 
-    const handleGoogleAuth = async () => {
-        try {
-            const res = await api.post('/users/google');
-            console.log(res.data);
-        } catch (err) {
-            setError('Google authentication failed.');
-        }
-    };
+    const handleGoogleAuth = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                await api.post('/users/google', { access_token: tokenResponse.access_token });
+                window.location.href = '/';
+            } catch {
+                setError('Google authentication failed on the server.');
+            }
+        },
+        onError: () => setError('Google popup closed or failed.')
+    });
 
     return (
-        <div className="flex flex-col items-center justify-center h-full w-full px-14 bg-white">
-            <h1 className="text-4xl font-extrabold mb-8 text-gray-800">Login</h1>
+        <div className="flex flex-col items-center justify-center h-full w-full px-6 sm:px-10 md:px-14 bg-white pb-12 md:pb-0">
+            <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-gray-800 tracking-tight">Login</h1>
             
-            <div className={`w-full absolute top-8 left-0 right-0 px-8 transition-all duration-500 ease-out transform ${error ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0 pointer-events-none'}`}>
-                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded shadow-md flex justify-between items-center">
+            <div className={`w-full overflow-hidden transition-all duration-300 ease-out ${error ? 'max-h-24 opacity-100 mb-4 scale-100' : 'max-h-0 opacity-0 mb-0 scale-95'}`}>
+                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded shadow-sm flex justify-between items-center">
                     <span className="font-semibold text-sm">{error}</span>
-                    <button onClick={() => setError('')} className="text-red-700 font-bold">&times;</button>
+                    <button type="button" onClick={() => setError('')} className="text-red-700 font-bold text-lg hover:text-red-900 transition-colors focus:outline-none">&times;</button>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-                <div className="relative">
+                <div className="relative group">
                     <input 
                         type="email" 
                         placeholder="Email" 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className={`bg-gray-100 border ${fieldErrors?.email ? 'border-red-500' : 'border-transparent'} text-sm px-4 py-3.5 rounded-lg w-full outline-none focus:ring-2 focus:ring-[#5b7cfa] transition-all`} 
+                        className={`bg-gray-50 border ${fieldErrors?.email ? 'border-red-500' : 'border-gray-200'} text-base md:text-sm px-4 py-3.5 rounded-lg w-full outline-none focus:ring-2 focus:ring-[#5b7cfa] hover:border-gray-300 transition-all duration-200 shadow-sm`} 
                     />
-                    <svg className="absolute right-4 top-3.5 w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
+                    <svg className="absolute right-4 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-[#5b7cfa] transition-colors duration-200" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
                     {fieldErrors?.email && <span className="text-xs text-red-500 mt-1 ml-1 block">{fieldErrors.email}</span>}
                 </div>
 
-                <div className="relative">
+                <div className="relative group">
                     <input 
                         type="password" 
                         placeholder="Password" 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className={`bg-gray-100 border ${fieldErrors?.password ? 'border-red-500' : 'border-transparent'} text-sm px-4 py-3.5 rounded-lg w-full outline-none focus:ring-2 focus:ring-[#5b7cfa] transition-all`} 
+                        className={`bg-gray-50 border ${fieldErrors?.password ? 'border-red-500' : 'border-gray-200'} text-base md:text-sm px-4 py-3.5 rounded-lg w-full outline-none focus:ring-2 focus:ring-[#5b7cfa] hover:border-gray-300 transition-all duration-200 shadow-sm`} 
                     />
-                    <svg className="absolute right-4 top-3.5 w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"></path></svg>
+                    <svg className="absolute right-4 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-[#5b7cfa] transition-colors duration-200" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"></path></svg>
                     {fieldErrors?.password && <span className="text-xs text-red-500 mt-1 ml-1 block">{fieldErrors.password}</span>}
                 </div>
 
                 <div className="w-full flex justify-end">
-                    <span className="text-xs font-semibold text-gray-500 hover:text-gray-800 cursor-pointer transition-colors">Forgot Password?</span>
+                    <span className="text-xs font-semibold text-gray-500 hover:text-[#5b7cfa] cursor-pointer transition-colors duration-200">Forgot Password?</span>
                 </div>
 
-                <button type="submit" className="w-full bg-[#5b7cfa] text-white rounded-lg py-3.5 font-bold shadow-lg hover:bg-[#4a6be0] transform hover:-translate-y-0.5 transition-all">
+                <button type="submit" className="w-full bg-[#5b7cfa] text-white rounded-lg py-3.5 font-bold shadow-md transition-all duration-200 ease-out hover:bg-[#4a6be0] hover:shadow-[0_8px_15px_rgba(91,124,250,0.4)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0">
                     Login
                 </button>
             </form>
 
-            <div className="w-full mt-8 flex flex-col items-center">
-                <span className="text-xs text-gray-500 mb-4 font-semibold uppercase tracking-wider">or login with social platforms</span>
-                <div 
-                    onClick={handleGoogleAuth}
-                    className="w-full max-w-[280px] bg-[#1a73e8] hover:bg-[#155ab6] text-white rounded-full flex items-center justify-between p-1 cursor-pointer transition-all shadow-md transform hover:scale-105"
+            <div className="w-full mt-6 md:mt-8 flex flex-col items-center">
+                <span className="text-xs text-gray-400 mb-4 font-semibold uppercase tracking-wider">or login with social platforms</span>
+                <button 
+                    type="button"
+                    onClick={() => handleGoogleAuth()}
+                    className="w-full max-w-[280px] bg-[#1a73e8] hover:bg-[#155ab6] text-white rounded-full flex items-center justify-between p-1 cursor-pointer transition-all duration-200 ease-out shadow-md hover:shadow-[0_8px_15px_rgba(26,115,232,0.4)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0"
                 >
                     <div className="flex items-center pl-4 w-full">
                         <div className="flex flex-col items-start leading-tight">
@@ -105,7 +110,7 @@ const Login = () => {
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                         </svg>
                     </div>
-                </div>
+                </button>
             </div>
         </div>
     );
