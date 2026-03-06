@@ -1,21 +1,15 @@
 import { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import api from '../services/api';
 
 const Register = () => {
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-        role: 'Student'
-    });
+    const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'Student' });
     const [error, setError] = useState('');
     const { register } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -24,76 +18,42 @@ const Register = () => {
             await register(formData);
             navigate('/');
         } catch (err) {
-            setError(err.response?.data?.message || 'Registration failed.');
+            setError(err.response?.data?.message || 'Registration failed. Please try again.');
+        }
+    };
+
+    const handleGoogleAuth = async () => {
+        try {
+            const res = await api.post('/users/google');
+            console.log(res.data);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Google authentication failed.');
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-            <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-                <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">Join StudyConnect</h2>
-                
-                {error && (
-                    <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6">
-                        <p>{error}</p>
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                        <input
-                            name="name"
-                            type="text"
-                            className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                        <input
-                            name="email"
-                            type="email"
-                            className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Password</label>
-                        <input
-                            name="password"
-                            type="password"
-                            className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">I am a...</label>
-                        <select
-                            name="role"
-                            className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                            onChange={handleChange}
-                            value={formData.role}
-                        >
-                            <option value="Student">Student</option>
-                            <option value="Tutor">Tutor</option>
-                        </select>
-                    </div>
-                    <button
-                        type="submit"
-                        className="w-full flex justify-center py-3 px-4 rounded-full shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition duration-150"
-                    >
-                        Create Account
-                    </button>
-                </form>
-                <p className="mt-8 text-center text-sm text-gray-600">
-                    Already have an account? <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">Log in</Link>
-                </p>
+        <form onSubmit={handleSubmit} className="flex flex-col items-center w-full px-12 bg-white relative">
+            <h1 className="text-3xl font-bold mb-6 text-gray-800">Registration</h1>
+            
+            <div className={`w-full max-w-sm mb-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-md overflow-hidden transition-all duration-300 ease-out transform ${error ? 'translate-y-0 opacity-100 max-h-20' : '-translate-y-4 opacity-0 max-h-0'}`}>
+                <div className="p-3 flex items-center justify-center text-center">
+                    <span className="text-red-600 font-semibold text-sm">{error}</span>
+                </div>
             </div>
-        </div>
+
+            <input type="text" name="name" placeholder="Username" required onChange={handleChange} value={formData.name} className="bg-gray-100 border-none px-4 py-3 rounded-md w-full mb-3 outline-none focus:ring-2 focus:ring-[#5b7cfa]" />
+            <input type="email" name="email" placeholder="Email" required onChange={handleChange} value={formData.email} className="bg-gray-100 border-none px-4 py-3 rounded-md w-full mb-3 outline-none focus:ring-2 focus:ring-[#5b7cfa]" />
+            <input type="password" name="password" placeholder="Password" required onChange={handleChange} value={formData.password} className="bg-gray-100 border-none px-4 py-3 rounded-md w-full mb-3 outline-none focus:ring-2 focus:ring-[#5b7cfa]" />
+            <select name="role" onChange={handleChange} value={formData.role} className="bg-gray-100 border-none px-4 py-3 rounded-md w-full mb-6 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-gray-600">
+                <option value="Student">Student</option>
+                <option value="Tutor">Tutor</option>
+            </select>
+            <button type="submit" className="w-full bg-[#5b7cfa] text-white rounded-md py-3 font-semibold shadow-md hover:bg-[#4a6be0] transition-colors mb-4">Register</button>
+            <span className="text-xs text-gray-500 mb-3">or register with social platforms</span>
+            <div className="flex gap-4">
+                <button type="button" onClick={handleGoogleAuth} className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors font-bold text-gray-700">G</button>
+            </div>
+        </form>
     );
 };
 
