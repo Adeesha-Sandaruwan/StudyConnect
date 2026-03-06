@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 // imports the mongoose library for interacting with MongoDB and bcryptjs for hashing passwords
 
 const userSchema = mongoose.Schema(
@@ -31,7 +32,9 @@ const userSchema = mongoose.Schema(
       type: String,
       enum: ['student', 'tutor', 'admin'], // restricts role to these three values
       default: 'student'
-    }
+    },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date
   },
   {
     timestamps: true, // automatically adds createdAt and updatedAt fields to the schema
@@ -41,6 +44,13 @@ const userSchema = mongoose.Schema(
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);//
 };// compares the entered password with the hashed password stored in the database and returns true if they match, false otherwise
+
+userSchema.methods.getResetPasswordToken = function () {
+  const resetToken = crypto.randomBytes(20).toString('hex');
+  this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+  return resetToken;
+};
 
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) {//
