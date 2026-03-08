@@ -1,6 +1,8 @@
 import { OAuth2Client } from 'google-auth-library';// Importing the Google OAuth2 client for handling Google authentication
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
+import crypto from 'crypto'; // Importing crypto to hash the reset token before comparing it with the database
+import sendEmail from '../utils/sendEmail.js'; // Importing the email utility
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);// Initializing the Google OAuth2 client with the client ID from environment variables
 
@@ -223,6 +225,85 @@ const updateUser = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.body.email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'There is no user with that email' });
+    }
+
+    const resetToken = user.getResetPasswordToken();
+
+    await user.save({ validateBeforeSave: false });
+
+    // The URL that will be sent to the user's email, pointing to your React frontend
+    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetUrl = `${frontendURL}/resetpassword/${resetToken}`;
+
+    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please click the link below to reset your password: \n\n ${resetUrl}`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'StudyConnect - Password Reset Token',
+        message,
+      });
+
+      res.status(200).json({ message: 'Email sent successfully' });
+    } catch (error) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+
+      await user.save({ validateBeforeSave: false });
+
+      console.error('Email sending failed: ', error);
+      return res.status(500).json({ message: 'Email could not be sent' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    // Get hashed token to match the one saved in the database
+    const resetPasswordToken = crypto.createHash('sha256').update(req.params.resettoken).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    // Set new password
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    // Log the user in immediately after successful reset
+    generateToken(res, user._id);
+    
+    res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+      message: 'Password reset successful'
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export {
   registerUser,
   loginUser,
@@ -231,5 +312,7 @@ export {
   getUsers,
   getUserById,
   deleteUser,
-  updateUser
+  updateUser,
+  forgotPassword,
+  resetPassword
 };// Exporting all the defined functions for use in other parts of the application, such as route handlers

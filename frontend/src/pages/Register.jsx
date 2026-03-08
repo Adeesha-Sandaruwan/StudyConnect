@@ -47,8 +47,8 @@ const Register = () => {
     });
 
     return (
-        <div className="flex flex-col items-center justify-center h-full w-full px-6 sm:px-10 md:px-14 bg-white pb-12 md:pb-0">
-            <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-gray-800 tracking-tight">Registration</h1>
+        <div className="flex flex-col items-center justify-center h-full w-full px-6 sm:px-10 md:px-14 bg-white py-12 md:py-0 overflow-y-auto">
+            <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-gray-800 tracking-tight mt-auto md:mt-0">Registration</h1>
             
             <div className={`w-full overflow-hidden transition-all duration-300 ease-out ${error ? 'max-h-24 opacity-100 mb-4 scale-100' : 'max-h-0 opacity-0 mb-0 scale-95'}`}>
                 <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded shadow-sm flex justify-between items-center">
@@ -115,7 +115,7 @@ const Register = () => {
                 </button>
             </form>
 
-            <div className="w-full mt-5 md:mt-6 flex flex-col items-center">
+            <div className="w-full mt-5 md:mt-6 flex flex-col items-center mb-auto md:mb-0 pb-16 md:pb-0">
                 <span className="text-xs text-gray-400 mb-3 font-semibold uppercase tracking-wider">or register with social platforms</span>
                 <button 
                     type="button"

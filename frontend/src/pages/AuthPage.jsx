@@ -10,7 +10,7 @@ const AuthPage = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#eef2f6] p-4 sm:p-8 font-sans overflow-hidden">
-            <div className="relative w-full max-w-[950px] min-h-[600px] md:min-h-[650px] bg-white rounded-3xl shadow-2xl overflow-hidden flex">
+            <div className="relative w-full max-w-[950px] h-[85vh] md:h-auto md:min-h-[650px] bg-white rounded-3xl shadow-2xl overflow-hidden flex">
                 
                 <div 
                     className={`w-full md:w-1/2 h-full absolute top-0 md:left-0 transition-transform duration-300 ease-out z-10 ${
@@ -56,7 +56,7 @@ const AuthPage = () => {
                     </div>
                 </div>
                 
-                <div className="md:hidden absolute bottom-6 left-0 right-0 flex justify-center z-50">
+                <div className="md:hidden absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-4 flex justify-center z-50 border-t border-gray-100">
                     <button 
                         onClick={() => navigate(isSignUp ? '/login' : '/register')}
                         className="text-sm font-bold text-[#5b7cfa] hover:text-[#4a6be0] transition-colors"

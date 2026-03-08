@@ -7,7 +7,9 @@ import {
   getUsers,
   getUserById,
   deleteUser,
-  updateUser
+  updateUser,
+  forgotPassword,
+  resetPassword
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';// Import the protect middleware to secure routes
 import { admin } from '../middleware/adminMiddleware.js';// Import the admin middleware to restrict access to admin users
@@ -20,6 +22,8 @@ router.post('/register', registerUser); // Result: /api/users/register
 router.post('/login', loginUser);       // Result: /api/users/login
 router.post('/google', googleAuth);
 router.post('/logout', logoutUser);
+router.post('/forgotpassword', forgotPassword);
+router.put('/resetpassword/:resettoken', resetPassword);
 router.get('/me', protect, (req, res) => res.status(200).json({ user: req.user })); // Add this for AuthContext
 
 // Define routes for admin to manage users, protected by both protect and admin middleware
