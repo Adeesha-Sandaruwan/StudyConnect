@@ -28,7 +28,7 @@ const Register = () => {
 
         try {
             await register(formData);
-            navigate('/');
+            navigate('/onboarding');
         } catch (err) {
             setError(err.response?.data?.message || 'Registration failed. Please try again.');
         }
@@ -38,7 +38,12 @@ const Register = () => {
         onSuccess: async (tokenResponse) => {
             try {
                 await api.post('/users/google', { access_token: tokenResponse.access_token });
-                window.location.href = '/';
+                try {
+                    await api.get('/profiles/me');
+                    window.location.href = '/';
+                } catch {
+                    window.location.href = '/onboarding';
+                }
             } catch {
                 setError('Google authentication failed on the server.');
             }

@@ -26,8 +26,12 @@ const Login = () => {
         }
 
         try {
-            await login(email, password);
-            navigate('/');
+            const result = await login(email, password);
+            if (result.hasProfile) {
+                navigate('/');
+            } else {
+                navigate('/onboarding');
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
         }
@@ -37,7 +41,12 @@ const Login = () => {
         onSuccess: async (tokenResponse) => {
             try {
                 await api.post('/users/google', { access_token: tokenResponse.access_token });
-                window.location.href = '/';
+                try {
+                    await api.get('/profiles/me');
+                    window.location.href = '/';
+                } catch {
+                    window.location.href = '/onboarding';
+                }
             } catch {
                 setError('Google authentication failed on the server.');
             }
@@ -46,7 +55,7 @@ const Login = () => {
     });
 
     return (
-        <div className="flex flex-col items-center justify-center h-full w-full px-6 sm:px-10 md:px-14 bg-white py-12 md:py-0 overflow-y-auto">
+        <div className="flex flex-col items-center justify-center h-full w-full px-6 sm:px-10 md:px-14 bg-white pb-12 md:pb-0 overflow-y-auto">
             <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-gray-800 tracking-tight mt-auto md:mt-0">Login</h1>
             
             <div className={`w-full overflow-hidden transition-all duration-300 ease-out ${error ? 'max-h-24 opacity-100 mb-4 scale-100' : 'max-h-0 opacity-0 mb-0 scale-95'}`}>

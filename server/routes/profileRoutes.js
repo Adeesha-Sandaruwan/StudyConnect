@@ -24,6 +24,7 @@ router.post(
   '/',
   protect,// Route to create or update a profile, protected by the auth middleware
   upload.fields([
+    { name: 'avatar', maxCount: 1 },
     { name: 'nicFront', maxCount: 1 },
     { name: 'nicBack', maxCount: 1 },
     { name: 'certificates', maxCount: 5 }

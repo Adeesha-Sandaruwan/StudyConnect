@@ -26,12 +26,12 @@ app.use(cookieParser());// Middleware to parse cookies
 app.use(helmet());// Middleware to set security-related HTTP headers
 app.use(morgan('dev')); // Middleware for logging HTTP requests in console
 app.use(cors({
-    origin: 'http://localhost:5173',// Allow requests from this origin (your frontend)
-    credentials: true
+  origin: 'http://localhost:5173',// Allow requests from this origin (your frontend)
+  credentials: true
 }));
 
 app.use('/api/users', authRoutes);// Use auth routes for user-related endpoints
-app.use('/api/profile', profileRoutes);// Use profile routes for profile-related endpoints
+app.use('/api/profiles', profileRoutes);// Use profile routes for profile-related endpoints
 app.use('/api/studyposts', studyPostRoutes);// Use study post routes for study post-related endpoints
 app.use("/api/subject-content", subjectContentRoutes);
 app.use('/api/notifications', notificationRoutes);// Use notification routes for notification-related endpoints
@@ -39,7 +39,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/student-requests', studentRequestRoutes);
 
 app.get('/', (req, res) => {// Define a basic route for the root URL
-    res.send('API is running...');// Basic route to check if the server is running
+  res.send('API is running...');// Basic route to check if the server is running
 });
 
 app.listen(port, () => console.log(`Server started on port ${port}`));// Start the server and listen on the specified port
