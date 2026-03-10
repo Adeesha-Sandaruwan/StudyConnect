@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
         const fetchCurrentUser = async () => {
             try {
                 const response = await api.get('/users/me');
-                setUser(response.data.user);
+                setUser(response.data.user || response.data);
             } catch {
                 setUser(null);
             } finally {
@@ -23,14 +23,23 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         const response = await api.post('/users/login', { email, password });
-        setUser(response.data.user);
-        return response.data;
+        setUser(response.data.user || response.data);
+        
+        let hasProfile = false;
+        try {
+            await api.get('/profiles/me');
+            hasProfile = true;
+        } catch {
+            hasProfile = false;
+        }
+        
+        return { ...response.data, hasProfile };
     };
 
     const register = async (userData) => {
         const response = await api.post('/users/register', userData);
-        setUser(response.data.user);
-        return response.data;
+        setUser(response.data.user || response.data);
+        return { ...response.data, hasProfile: false };
     };
 
     const logout = async () => {
