@@ -1,5 +1,5 @@
 import Profile from '../models/Profile.js';
-
+import User from '../models/User.js';
 
 const getCurrentProfile = async (req, res) => {
   try {// Find the profile associated with the currently authenticated user
@@ -74,6 +74,9 @@ const createOrUpdateProfile = async (req, res) => {
 
   if (req.files) {
     // Handle file uploads for NIC front, NIC back, and certificates
+    if (req.files.avatar && req.files.avatar.length > 0) {
+      await User.findByIdAndUpdate(req.user._id, { avatar: req.files.avatar[0].path });
+    }
     if (req.files.nicFront && req.files.nicFront.length > 0) {
       profileFields.nicFront = req.files.nicFront[0].path;
     }
