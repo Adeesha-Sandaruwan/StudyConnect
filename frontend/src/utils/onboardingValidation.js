@@ -2,8 +2,8 @@ export const validateFile = (file) => {
     const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
     const maxSize = 2 * 1024 * 1024; // 2MB
 
-    if (!validTypes.includes(file.type)) return 'Only Images (JPG/PNG) or PDFs are allowed';
-    if (file.size > maxSize) return 'File size must be under 2MB';
+    if (!validTypes.includes(file.type)) return 'Only Images (JPG/PNG) or PDFs are allowed.';
+    if (file.size > maxSize) return 'File size must be under 2MB.';
     return null;
 };
 
@@ -11,14 +11,16 @@ export const validateSlide = (slideId, data, files, isTutor) => {
     const errors = {};
     const today = new Date();
     
-    // Helper to safely trim
+    // Helper to safely trim and check for empty strings
     const trimData = (str) => (str ? str.trim() : '');
 
     switch (slideId) {
         case 'basics':
-            if (isTutor && !trimData(data.bio)) errors.bio = 'Bio is required for tutors.';
-            if (!isTutor && !trimData(data.bio)) errors.bio = 'Please tell us a bit about yourself.';
-            if (trimData(data.bio).length > 500) errors.bio = 'Bio must be under 500 characters.';
+            if (isTutor && !trimData(data.bio)) {
+                errors.bio = 'Bio is required for Tutors.';
+            } else if (trimData(data.bio).length > 500) {
+                errors.bio = 'Bio must be under 500 characters.';
+            }
             break;
 
         case 'demographics':
@@ -69,7 +71,7 @@ export const validateSlide = (slideId, data, files, isTutor) => {
             if (!trimData(data.learningNeeds)) {
                 errors.learningNeeds = 'Learning needs are required.';
             } else if (trimData(data.learningNeeds).length < 10) {
-                errors.learningNeeds = 'Please provide a more detailed description.';
+                errors.learningNeeds = 'Please provide a meaningful description.';
             }
             break;
 
@@ -88,7 +90,7 @@ export const validateSlide = (slideId, data, files, isTutor) => {
         case 'tutor_identity':
             if (!trimData(data.nicNumber)) {
                 errors.nicNumber = 'NIC is required.';
-            } else if (!/^([0-9]{9}[x|X|v|V]|[0-9]{12})$/.test(trimData(data.nicNumber))) {
+            } else if (!/^([0-9]{9}[vVxX]|[0-9]{12})$/.test(trimData(data.nicNumber))) {
                 errors.nicNumber = 'Must be a valid Sri Lankan NIC.';
             }
             if (!files.nicFront) errors.nicFront = 'NIC Front image is required.';

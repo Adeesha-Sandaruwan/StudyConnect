@@ -31,12 +31,12 @@ const profileSchema = mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: ['Male', 'Female', 'Other', 'Prefer not to say'],
-      required: true
+      enum: ['Male', 'Female', 'Other', 'Prefer not to say', ''],
+      default: ''
     },
     nicNumber: {
       type: String,
-      required: true
+      // Removed required: true - Frontend validates this for tutors only
     },
     emergencyContact: {
       name: { type: String, required: true },
@@ -62,7 +62,6 @@ const profileSchema = mongoose.Schema(
     certificates: {
       type: [String],
       default: []
-      // certificates field is an array of strings (e.g., file paths or URLs) with a default empty array
     },
     verificationStatus: {
       type: String,
@@ -71,12 +70,15 @@ const profileSchema = mongoose.Schema(
     },
     gradeLevel: {
       type: String,
+      required: true // Required for both Tutors (what they teach) and Students (current level)
     },
     schoolOrUniversity: {
       type: String,
+      required: true // Required for both
     },
     learningNeeds: {
       type: String,
+      // Removed required: true - Frontend validates this for students only
     }
   },
   {

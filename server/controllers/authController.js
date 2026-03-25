@@ -74,6 +74,7 @@ const loginUser = async (req, res) => {// Extracting the email and password from
 
 const googleAuth = async (req, res) => {// Extracting the token from the request body
   const accessToken = req.body.access_token || req.body.token;// Fetching user info directly from Google using the access token
+  const requestedRole = req.body.role; // Fetching the role selected on the frontend
 
   try {
     const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
@@ -97,12 +98,18 @@ const googleAuth = async (req, res) => {// Extracting the token from the request
         //  with their existing account and save the changes to the database
       }
     } else {// If no user with the provided email exists, create a new user with the extracted information from the Google token
+      
+      let safeRole = requestedRole;// Ensuring that the role is either 'student' or 'tutor'
+      if (requestedRole === 'admin' || (requestedRole !== 'student' && requestedRole !== 'tutor')) {
+          safeRole = 'student';
+      }
+
       user = await User.create({
         name,
         email,
         googleId: sub,
         avatar: picture,
-        role: 'student',
+        role: safeRole,
         password: Date.now().toString(36) + Math.random().toString(36).substr(2)// Generating a random password for the new user
       });//
     }
