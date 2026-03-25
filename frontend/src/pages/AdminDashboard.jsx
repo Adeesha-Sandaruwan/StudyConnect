@@ -8,7 +8,9 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
     
     const [activeTab, setActiveTab] = useState('kyc');
-    const [pendingProfiles, setPendingProfiles] = useState([]);
+    const [kycStatus, setKycStatus] = useState('pending'); // 'pending', 'verified', 'rejected'
+    const [kycProfiles, setKycProfiles] = useState([]);
+    
     const [allUsers, setAllUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
@@ -16,6 +18,9 @@ const AdminDashboard = () => {
     const [viewProfile, setViewProfile] = useState(null);
     const [editUser, setEditUser] = useState(null);
     const [editFormData, setEditFormData] = useState({ name: '', email: '', role: '' });
+    
+    const [showAddAdmin, setShowAddAdmin] = useState(false);
+    const [addAdminData, setAddAdminData] = useState({ name: '', email: '', password: '' });
 
     useEffect(() => {
         if (!user) return;
@@ -24,15 +29,15 @@ const AdminDashboard = () => {
             return;
         }
         fetchData();
-    }, [activeTab, user, navigate]);
+    }, [activeTab, kycStatus, user, navigate]);
 
     const fetchData = async () => {
         setIsLoading(true);
         setError('');
         try {
             if (activeTab === 'kyc') {
-                const res = await api.get('/profiles/admin/pending');
-                setPendingProfiles(res.data.profiles || []);
+                const res = await api.get(`/profiles/admin/pending?status=${kycStatus}`);
+                setKycProfiles(res.data.profiles || []);
             } else {
                 const res = await api.get('/users');
                 setAllUsers(res.data.users || []);
@@ -49,7 +54,7 @@ const AdminDashboard = () => {
         
         try {
             await api.put(`/profiles/admin/verify/${profileId}`, { status });
-            setPendingProfiles(prev => prev.filter(p => p._id !== profileId));
+            setKycProfiles(prev => prev.filter(p => p._id !== profileId));
             setViewProfile(null);
         } catch (err) {
             alert(err.response?.data?.message || 'Failed to update profile status.');
@@ -58,18 +63,12 @@ const AdminDashboard = () => {
 
     const handleDeleteUser = async (userId) => {
         if (!window.confirm('Are you sure you want to permanently delete this user?')) return;
-        
         try {
             await api.delete(`/users/${userId}`);
             setAllUsers(prev => prev.filter(u => u._id !== userId));
         } catch (err) {
             alert(err.response?.data?.message || 'Failed to delete user.');
         }
-    };
-
-    const openEditUser = (u) => {
-        setEditFormData({ name: u.name, email: u.email, role: u.role });
-        setEditUser(u);
     };
 
     const handleUpdateUser = async (e) => {
@@ -80,6 +79,19 @@ const AdminDashboard = () => {
             setEditUser(null);
         } catch (err) {
             alert(err.response?.data?.message || 'Failed to update user.');
+        }
+    };
+
+    const handleCreateAdmin = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await api.post('/users/admin', addAdminData);
+            setAllUsers([...allUsers, res.data]);
+            setShowAddAdmin(false);
+            setAddAdminData({ name: '', email: '', password: '' });
+            alert("New Admin created successfully!");
+        } catch (err) {
+            alert(err.response?.data?.message || 'Failed to create admin.');
         }
     };
 
@@ -116,7 +128,7 @@ const AdminDashboard = () => {
                             onClick={() => setActiveTab('kyc')}
                             className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'kyc' ? 'bg-white text-[#5b7cfa] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                         >
-                            Pending KYC ({activeTab === 'kyc' ? pendingProfiles.length : '...'})
+                            KYC Approvals
                         </button>
                         <button 
                             onClick={() => setActiveTab('users')}
@@ -133,124 +145,145 @@ const AdminDashboard = () => {
                     </div>
                 )}
 
-                <div className="bg-white rounded-3xl shadow-sm overflow-hidden min-h-[500px]">
-                    {isLoading ? (
-                        <div className="flex justify-center items-center h-[400px]">
-                            <div className="w-12 h-12 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                    ) : (
-                        <div className="w-full overflow-x-auto">
-                            {activeTab === 'kyc' && (
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
-                                            <th className="p-5 font-bold">User Info</th>
-                                            <th className="p-5 font-bold">Role / Level</th>
-                                            <th className="p-5 font-bold">Applied On</th>
-                                            <th className="p-5 font-bold text-center">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {pendingProfiles.length === 0 ? (
-                                            <tr><td colSpan="4" className="text-center p-8 text-gray-500 font-medium">No pending profiles to review.</td></tr>
-                                        ) : (
-                                            pendingProfiles.map(profile => (
-                                                <tr key={profile._id} className="hover:bg-gray-50/50 transition-colors">
-                                                    <td className="p-5">
-                                                        <div className="flex items-center gap-3">
-                                                            {profile.user?.avatar ? (
-                                                                <img src={profile.user.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+                <div className="bg-white rounded-3xl shadow-sm overflow-hidden min-h-[600px] flex flex-col">
+                    
+                    {/* Dynamic Toolbar */}
+                    <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row gap-4 justify-between items-center">
+                        {activeTab === 'kyc' ? (
+                            <div className="flex gap-2">
+                                <button onClick={() => setKycStatus('pending')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${kycStatus === 'pending' ? 'bg-yellow-100 text-yellow-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>⏳ Pending</button>
+                                <button onClick={() => setKycStatus('verified')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${kycStatus === 'verified' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>✅ Approved</button>
+                                <button onClick={() => setKycStatus('rejected')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${kycStatus === 'rejected' ? 'bg-red-100 text-red-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>❌ Rejected</button>
+                            </div>
+                        ) : (
+                            <div className="flex justify-end w-full">
+                                <button onClick={() => setShowAddAdmin(true)} className="bg-gray-800 text-white hover:bg-gray-900 px-6 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-md">
+                                    + Add New Admin
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="w-full overflow-x-auto flex-1">
+                        {isLoading ? (
+                            <div className="flex justify-center items-center h-[400px]">
+                                <div className="w-12 h-12 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        ) : (
+                            <>
+                                {activeTab === 'kyc' && (
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
+                                                <th className="p-5 font-bold">User Info</th>
+                                                <th className="p-5 font-bold">Role / Level</th>
+                                                <th className="p-5 font-bold">Applied On</th>
+                                                <th className="p-5 font-bold text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {kycProfiles.length === 0 ? (
+                                                <tr><td colSpan="4" className="text-center p-8 text-gray-500 font-medium">No {kycStatus} profiles found.</td></tr>
+                                            ) : (
+                                                kycProfiles.map(profile => (
+                                                    <tr key={profile._id} className="hover:bg-gray-50/50 transition-colors">
+                                                        <td className="p-5">
+                                                            <div className="flex items-center gap-3">
+                                                                {profile.user?.avatar ? (
+                                                                    <img src={profile.user.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+                                                                ) : (
+                                                                    <div className="w-10 h-10 rounded-full bg-[#5b7cfa]/10 flex items-center justify-center text-[#5b7cfa] font-bold">
+                                                                        {profile.user?.name?.charAt(0) || '?'}
+                                                                    </div>
+                                                                )}
+                                                                <div>
+                                                                    <p className="font-bold text-gray-800">{profile.user?.name || 'Unknown'}</p>
+                                                                    <p className="text-xs text-gray-500">{profile.user?.email}</p>
+                                                                    <p className="text-xs text-gray-400 mt-0.5">{profile.phoneNumber} • {profile.city}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-5">
+                                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${profile.user?.role === 'tutor' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                                {profile.user?.role || 'Unknown'}
+                                                            </span>
+                                                            <p className="text-sm font-semibold text-gray-700 mt-2">{profile.schoolOrUniversity}</p>
+                                                            <p className="text-xs text-gray-500">{profile.gradeLevel}</p>
+                                                        </td>
+                                                        <td className="p-5">
+                                                            <span className="text-sm text-gray-600">{new Date(profile.createdAt).toLocaleDateString()}</span>
+                                                        </td>
+                                                        <td className="p-5 text-center">
+                                                            <button onClick={() => setViewProfile(profile)} className="bg-[#5b7cfa] text-white hover:bg-[#4a6be0] px-6 py-2 rounded-lg font-bold text-sm transition-colors shadow-sm">
+                                                                Review Documents
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                )}
+
+                                {activeTab === 'users' && (
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
+                                                <th className="p-5 font-bold">User Details</th>
+                                                <th className="p-5 font-bold">Role</th>
+                                                <th className="p-5 font-bold text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {allUsers.length === 0 ? (
+                                                <tr><td colSpan="3" className="text-center p-8 text-gray-500 font-medium">No users found.</td></tr>
+                                            ) : (
+                                                allUsers.map(u => (
+                                                    <tr key={u._id} className="hover:bg-gray-50/50 transition-colors">
+                                                        <td className="p-5 flex items-center gap-3">
+                                                            {u.avatar ? (
+                                                                <img src={u.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
                                                             ) : (
-                                                                <div className="w-10 h-10 rounded-full bg-[#5b7cfa]/10 flex items-center justify-center text-[#5b7cfa] font-bold">
-                                                                    {profile.user?.name?.charAt(0) || '?'}
+                                                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                                                                    {u.name?.charAt(0) || '?'}
                                                                 </div>
                                                             )}
                                                             <div>
-                                                                <p className="font-bold text-gray-800">{profile.user?.name || 'Unknown'}</p>
-                                                                <p className="text-xs text-gray-500">{profile.user?.email}</p>
-                                                                <p className="text-xs text-gray-400 mt-0.5">{profile.phoneNumber} • {profile.city}</p>
+                                                                <p className="font-bold text-gray-800">{u.name}</p>
+                                                                <p className="text-xs text-gray-500">{u.email}</p>
+                                                                <p className="text-xs text-gray-400 mt-0.5 font-mono">ID: {u._id}</p>
                                                             </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-5">
-                                                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${profile.user?.role === 'tutor' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {profile.user?.role || 'Unknown'}
-                                                        </span>
-                                                        <p className="text-sm font-semibold text-gray-700 mt-2">{profile.schoolOrUniversity}</p>
-                                                        <p className="text-xs text-gray-500">{profile.gradeLevel}</p>
-                                                    </td>
-                                                    <td className="p-5">
-                                                        <span className="text-sm text-gray-600">{new Date(profile.createdAt).toLocaleDateString()}</span>
-                                                    </td>
-                                                    <td className="p-5 text-center">
-                                                        <button onClick={() => setViewProfile(profile)} className="bg-[#5b7cfa] text-white hover:bg-[#4a6be0] px-6 py-2 rounded-lg font-bold text-sm transition-colors shadow-sm">
-                                                            Review Documents
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            )}
-
-                            {activeTab === 'users' && (
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
-                                            <th className="p-5 font-bold">User Details</th>
-                                            <th className="p-5 font-bold">Role</th>
-                                            <th className="p-5 font-bold text-center">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {allUsers.length === 0 ? (
-                                            <tr><td colSpan="3" className="text-center p-8 text-gray-500 font-medium">No users found.</td></tr>
-                                        ) : (
-                                            allUsers.map(u => (
-                                                <tr key={u._id} className="hover:bg-gray-50/50 transition-colors">
-                                                    <td className="p-5 flex items-center gap-3">
-                                                        {u.avatar ? (
-                                                            <img src={u.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
-                                                        ) : (
-                                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                                                                {u.name?.charAt(0) || '?'}
-                                                            </div>
-                                                        )}
-                                                        <div>
-                                                            <p className="font-bold text-gray-800">{u.name}</p>
-                                                            <p className="text-xs text-gray-500">{u.email}</p>
-                                                            <p className="text-xs text-gray-400 mt-0.5 font-mono">ID: {u._id}</p>
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-5">
-                                                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${u.role === 'admin' ? 'bg-gray-800 text-white' : u.role === 'tutor' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {u.role}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-5">
-                                                        <div className="flex justify-center gap-2">
-                                                            <button onClick={() => openEditUser(u)} className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg font-bold text-sm transition-colors">
-                                                                Edit
-                                                            </button>
-                                                            {u.role !== 'admin' && (
-                                                                <button onClick={() => handleDeleteUser(u._id)} className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors">
-                                                                    Delete
+                                                        </td>
+                                                        <td className="p-5">
+                                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${u.role === 'admin' ? 'bg-gray-800 text-white' : u.role === 'tutor' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                                {u.role}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-5">
+                                                            <div className="flex justify-center gap-2">
+                                                                <button onClick={() => { setEditFormData({ name: u.name, email: u.email, role: u.role }); setEditUser(u); }} className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg font-bold text-sm transition-colors">
+                                                                    Edit
                                                                 </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
-                    )}
+                                                                {u.role !== 'admin' && (
+                                                                    <button onClick={() => handleDeleteUser(u._id)} className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors">
+                                                                        Delete
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 
+            {/* Document Review Modal */}
             {viewProfile && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -320,6 +353,9 @@ const AdminDashboard = () => {
                             <button onClick={() => handleVerifyProfile(viewProfile._id, 'rejected')} className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-6 py-3 rounded-xl font-bold transition-colors">
                                 Reject Profile
                             </button>
+                            <button onClick={() => handleVerifyProfile(viewProfile._id, 'pending')} className="bg-yellow-50 text-yellow-600 hover:bg-yellow-100 hover:text-yellow-700 px-6 py-3 rounded-xl font-bold transition-colors">
+                                Mark as Pending
+                            </button>
                             <button onClick={() => handleVerifyProfile(viewProfile._id, 'verified')} className="bg-green-500 text-white hover:bg-green-600 px-8 py-3 rounded-xl font-bold transition-colors shadow-md hover:shadow-lg hover:-translate-y-0.5">
                                 Approve Profile
                             </button>
@@ -328,6 +364,7 @@ const AdminDashboard = () => {
                 </div>
             )}
 
+            {/* Edit User Modal */}
             {editUser && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
@@ -355,6 +392,36 @@ const AdminDashboard = () => {
                             <div className="mt-4 flex gap-3">
                                 <button type="button" onClick={() => setEditUser(null)} className="flex-1 bg-gray-100 text-gray-700 px-4 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors">Cancel</button>
                                 <button type="submit" className="flex-1 bg-[#5b7cfa] text-white px-4 py-3 rounded-xl font-bold hover:bg-[#4a6be0] transition-colors shadow-md">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Create Admin Modal */}
+            {showAddAdmin && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-900 text-white">
+                            <h2 className="text-xl font-extrabold">Create New Admin</h2>
+                            <button onClick={() => setShowAddAdmin(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+                        </div>
+                        <form onSubmit={handleCreateAdmin} className="p-6 flex flex-col gap-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Name</label>
+                                <input type="text" value={addAdminData.name} onChange={(e) => setAddAdminData({...addAdminData, name: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-gray-800" required />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
+                                <input type="email" value={addAdminData.email} onChange={(e) => setAddAdminData({...addAdminData, email: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-gray-800" required />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Password</label>
+                                <input type="password" value={addAdminData.password} onChange={(e) => setAddAdminData({...addAdminData, password: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-gray-800" required minLength="6" />
+                            </div>
+                            <div className="mt-4 flex gap-3">
+                                <button type="button" onClick={() => setShowAddAdmin(false)} className="flex-1 bg-gray-100 text-gray-700 px-4 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors">Cancel</button>
+                                <button type="submit" className="flex-1 bg-gray-800 text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-900 transition-colors shadow-md">Create Admin</button>
                             </div>
                         </form>
                     </div>

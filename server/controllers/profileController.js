@@ -167,33 +167,29 @@ const getAllProfiles = async (req, res) => {
   }
 };
 
-
 const getPendingProfiles = async (req, res) => {
   try {
-    // Implement pagination by reading page and limit from query parameters
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    // Calculate the number of documents to skip based on the current page and limit
+    const limit = parseInt(req.query.limit) || 50; 
     const skip = (page - 1) * limit;
 
-    // Build the query object to filter profiles with pending verification status
-    const query = { verificationStatus: 'pending' };
+    // FIX: Dynamically read status instead of hardcoding 'pending'
+    const status = req.query.status || 'pending';
+    const query = { verificationStatus: status };
 
     const profiles = await Profile.find(query)
-    // Populate the user field with name, email, and role for each profile
-      .populate('user', ['name', 'email', 'role'])
+      .populate('user', ['name', 'email', 'role', 'avatar'])
       .skip(skip)
       .limit(limit);
 
     const total = await Profile.countDocuments(query);
-  
 
     res.json({
       profiles,
       page,
       pages: Math.ceil(total / limit),
       total
-    });// Return the pending profiles along with pagination information
+    });
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server Error');
@@ -257,6 +253,7 @@ const deleteProfile = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
 
 export { 
   getCurrentProfile, 

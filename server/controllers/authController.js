@@ -311,10 +311,28 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// NEW: Dedicated function for Admins to create other Admins securely without logging themselves out
+const createAdminUser = async (req, res) => {
+  const { name, email, password } = req.body;
+  try {
+    const userExists = await User.findOne({ email });
+    if (userExists) return res.status(400).json({ message: 'User already exists' });
+
+    const user = await User.create({ name, email, password, role: 'admin' });
+
+    // We DO NOT generate a token here, so the current admin stays logged in
+    res.status(201).json({ _id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export {
   registerUser,
   loginUser,
   googleAuth,
+  createAdminUser,
   logoutUser,
   getUsers,
   getUserById,

@@ -9,7 +9,8 @@ import {
   deleteUser,
   updateUser,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  createAdminUser
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';// Import the protect middleware to secure routes
 import { admin } from '../middleware/adminMiddleware.js';// Import the admin middleware to restrict access to admin users
@@ -31,5 +32,8 @@ router.get('/', protect, admin, getUsers);
 router.get('/:id', protect, admin, getUserById);
 router.put('/:id', protect, admin, updateUser);
 router.delete('/:id', protect, admin, deleteUser);
+
+// NEW: Protected route to create an admin
+router.post('/admin', protect, admin, createAdminUser);
 
 export default router;
