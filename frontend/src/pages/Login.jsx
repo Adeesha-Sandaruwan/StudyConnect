@@ -8,7 +8,7 @@ import api from '../services/api';
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [googleRole, setGoogleRole] = useState('student'); // State for Google Auth role
+    const [googleRole, setGoogleRole] = useState('student');
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState(null);
     const { login } = useContext(AuthContext);
@@ -28,7 +28,10 @@ const Login = () => {
 
         try {
             const result = await login(email, password);
-            if (result.hasProfile) {
+            
+            if (result.role === 'admin') {
+                navigate('/admin');
+            } else if (result.hasProfile) {
                 navigate('/');
             } else {
                 navigate('/onboarding');
@@ -41,10 +44,16 @@ const Login = () => {
     const handleGoogleAuth = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             try {
-                await api.post('/users/google', { 
+                const res = await api.post('/users/google', { 
                     access_token: tokenResponse.access_token,
-                    role: googleRole // Send the selected role
+                    role: googleRole
                 });
+
+                if (res.data.role === 'admin') {
+                    window.location.href = '/admin';
+                    return;
+                }
+
                 try {
                     await api.get('/profiles/me');
                     window.location.href = '/';
@@ -111,7 +120,6 @@ const Login = () => {
             <div className="w-full mt-6 md:mt-8 flex flex-col items-center mb-auto md:mb-0 pb-16 md:pb-0">
                 <span className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wider">or login with social platforms</span>
                 
-                {/* Role Selector specifically for Google Auth */}
                 <div className="w-full max-w-[280px] mb-3 relative group">
                     <select 
                         value={googleRole}
