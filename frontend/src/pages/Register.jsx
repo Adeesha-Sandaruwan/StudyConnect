@@ -6,7 +6,8 @@ import { validateRegisterForm } from '../utils/validation';
 import api from '../services/api';
 
 const Register = () => {
-    const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'Student' });
+    const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'student' });
+    const [googleRole, setGoogleRole] = useState('student'); // Dedicated state for Google Auth role
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState(null);
     const { register } = useContext(AuthContext);
@@ -37,7 +38,11 @@ const Register = () => {
     const handleGoogleAuth = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             try {
-                await api.post('/users/google', { access_token: tokenResponse.access_token });
+                await api.post('/users/google', { 
+                    access_token: tokenResponse.access_token,
+                    role: googleRole // Use the explicitly selected Google role
+                });
+                
                 try {
                     await api.get('/profiles/me');
                     window.location.href = '/';
@@ -109,8 +114,8 @@ const Register = () => {
                         onChange={handleChange}
                         className="bg-gray-50 border border-gray-200 text-base md:text-sm text-gray-600 px-4 py-3 rounded-lg w-full outline-none focus:ring-2 focus:ring-[#5b7cfa] hover:border-gray-300 transition-all duration-200 shadow-sm appearance-none cursor-pointer"
                     >
-                        <option value="Student">Student</option>
-                        <option value="Tutor">Tutor</option>
+                        <option value="student">Student</option>
+                        <option value="tutor">Tutor</option>
                     </select>
                     <svg className="absolute right-4 top-3.5 w-4 h-4 text-gray-400 group-focus-within:text-[#5b7cfa] transition-colors duration-200 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
@@ -121,7 +126,21 @@ const Register = () => {
             </form>
 
             <div className="w-full mt-5 md:mt-6 flex flex-col items-center mb-auto md:mb-0 pb-16 md:pb-0">
-                <span className="text-xs text-gray-400 mb-3 font-semibold uppercase tracking-wider">or register with social platforms</span>
+                <span className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wider">or register with social platforms</span>
+                
+                {/* Dedicated Dropdown for Google Auth */}
+                <div className="w-full max-w-[280px] mb-3 relative group">
+                    <select 
+                        value={googleRole}
+                        onChange={(e) => setGoogleRole(e.target.value)}
+                        className="bg-gray-50 border border-gray-200 text-xs text-gray-500 px-4 py-2 rounded-full w-full outline-none focus:ring-2 focus:ring-[#1a73e8] hover:border-gray-300 transition-all shadow-sm appearance-none cursor-pointer"
+                    >
+                        <option value="student">Register as Student</option>
+                        <option value="tutor">Register as Tutor</option>
+                    </select>
+                    <svg className="absolute right-3 top-2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+
                 <button 
                     type="button"
                     onClick={() => handleGoogleAuth()}

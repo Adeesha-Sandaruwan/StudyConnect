@@ -8,6 +8,7 @@ import api from '../services/api';
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [googleRole, setGoogleRole] = useState('student'); // State for Google Auth role
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState(null);
     const { login } = useContext(AuthContext);
@@ -40,7 +41,10 @@ const Login = () => {
     const handleGoogleAuth = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             try {
-                await api.post('/users/google', { access_token: tokenResponse.access_token });
+                await api.post('/users/google', { 
+                    access_token: tokenResponse.access_token,
+                    role: googleRole // Send the selected role
+                });
                 try {
                     await api.get('/profiles/me');
                     window.location.href = '/';
@@ -105,7 +109,21 @@ const Login = () => {
             </form>
 
             <div className="w-full mt-6 md:mt-8 flex flex-col items-center mb-auto md:mb-0 pb-16 md:pb-0">
-                <span className="text-xs text-gray-400 mb-4 font-semibold uppercase tracking-wider">or login with social platforms</span>
+                <span className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wider">or login with social platforms</span>
+                
+                {/* Role Selector specifically for Google Auth */}
+                <div className="w-full max-w-[280px] mb-3 relative group">
+                    <select 
+                        value={googleRole}
+                        onChange={(e) => setGoogleRole(e.target.value)}
+                        className="bg-gray-50 border border-gray-200 text-xs text-gray-500 px-4 py-2 rounded-full w-full outline-none focus:ring-2 focus:ring-[#1a73e8] hover:border-gray-300 transition-all shadow-sm appearance-none cursor-pointer"
+                    >
+                        <option value="student">Login as Student</option>
+                        <option value="tutor">Login as Tutor</option>
+                    </select>
+                    <svg className="absolute right-3 top-2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+
                 <button 
                     type="button"
                     onClick={() => handleGoogleAuth()}
