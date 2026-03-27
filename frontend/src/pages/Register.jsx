@@ -38,14 +38,20 @@ const Register = () => {
     const handleGoogleAuth = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             try {
-                await api.post('/users/google', { 
+                const res = await api.post('/users/google', { 
                     access_token: tokenResponse.access_token,
-                    role: googleRole // Use the explicitly selected Google role
+                    role: googleRole 
                 });
                 
+                const currentRole = res.data.role.toLowerCase();
+
                 try {
                     await api.get('/profiles/me');
-                    window.location.href = '/';
+                    if (currentRole === 'tutor') {
+                        window.location.href = '/tutor-dashboard';
+                    } else {
+                        window.location.href = '/student-dashboard';
+                    }
                 } catch {
                     window.location.href = '/onboarding';
                 }
@@ -55,7 +61,7 @@ const Register = () => {
         },
         onError: () => setError('Google popup closed or failed.')
     });
-
+    
     return (
         <div className="flex flex-col items-center justify-center h-full w-full px-6 sm:px-10 md:px-14 bg-white py-12 md:py-0 overflow-y-auto">
             <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-gray-800 tracking-tight mt-auto md:mt-0">Registration</h1>
