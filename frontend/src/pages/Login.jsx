@@ -31,10 +31,12 @@ const Login = () => {
             
             if (result.role === 'admin') {
                 navigate('/admin');
-            } else if (result.hasProfile) {
-                navigate('/');
-            } else {
+            } else if (!result.hasProfile) {
                 navigate('/onboarding');
+            } else if (result.role === 'tutor' || result.role === 'Tutor') {
+                navigate('/tutor-dashboard');
+            } else {
+                navigate('/student-dashboard');
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
@@ -49,16 +51,22 @@ const Login = () => {
                     role: googleRole
                 });
 
-                if (res.data.role === 'admin') {
+                const currentRole = res.data.role.toLowerCase();
+
+                if (currentRole === 'admin') {
                     window.location.href = '/admin';
                     return;
                 }
 
                 try {
-                    await api.get('/profiles/me');
-                    window.location.href = '/';
+                    await api.get('/profiles/me'); // Check if profile exists
+                    if (currentRole === 'tutor') {
+                        window.location.href = '/tutor-dashboard';
+                    } else {
+                        window.location.href = '/student-dashboard';
+                    }
                 } catch {
-                    window.location.href = '/onboarding';
+                    window.location.href = '/onboarding'; // No profile = go to onboarding
                 }
             } catch {
                 setError('Google authentication failed on the server.');
