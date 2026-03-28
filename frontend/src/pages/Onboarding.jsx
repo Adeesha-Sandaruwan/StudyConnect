@@ -1,12 +1,10 @@
 import { useState, useContext, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { validateSlide, validateFile } from '../utils/onboardingValidation';
 import api from '../services/api';
 
 const Onboarding = () => {
     const { user } = useContext(AuthContext);
-    const navigate = useNavigate();
     
     const isTutor = user?.role === 'tutor' || user?.role === 'Tutor';
 
@@ -53,6 +51,15 @@ const Onboarding = () => {
     const handleTextChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
         if (slideErrors[e.target.name]) setSlideErrors({ ...slideErrors, [e.target.name]: null });
+    };
+
+    // FIX: Actually use this function to handle redirects
+    const handleOnboardingComplete = () => {
+        if (isTutor) {
+            window.location.href = '/tutor-dashboard';
+        } else {
+            window.location.href = '/student-dashboard';
+        }
     };
 
     const handleFileChange = (e) => {
@@ -120,7 +127,8 @@ const Onboarding = () => {
             await api.post('/profiles', submitData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            navigate('/');
+            // FIX: Redirect to specific dashboard upon completion
+            handleOnboardingComplete();
         } catch (err) {
             setGlobalError(err.response?.data?.message || 'Failed to submit profile. Please try again.');
             setIsLoading(false);
@@ -346,7 +354,8 @@ const Onboarding = () => {
                 {/* Footer Controls */}
                 <div className="p-6 sm:px-12 sm:pb-8 sm:pt-4 bg-gray-50/50 flex justify-between items-center border-t border-gray-100 mt-auto">
                     {currentSlideIndex === 0 ? (
-                        <button onClick={() => navigate('/')} className="text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors">
+                        // FIX: Attached the redirect function to the Skip button
+                        <button onClick={handleOnboardingComplete} className="text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors">
                             Skip for now
                         </button>
                     ) : (
