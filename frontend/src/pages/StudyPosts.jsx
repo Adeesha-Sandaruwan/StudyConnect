@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import CreatePostModal from '../components/CreatePostModal'; // NEW IMPORT
+import CreatePostModal from '../components/CreatePostModal';
 
 const StudyPosts = () => {
     const [posts, setPosts] = useState([]);
@@ -13,7 +13,7 @@ const StudyPosts = () => {
     const [searchInput, setSearchInput] = useState('');
     const [subjectTag, setSubjectTag] = useState('');
 
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // NEW STATE
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const SUBJECTS = [
         'Mathematics', 'Physics', 'Chemistry', 'Biology', 
@@ -31,7 +31,8 @@ const StudyPosts = () => {
             if (keyword) query += `&keyword=${encodeURIComponent(keyword)}`;
             if (subjectTag) query += `&subjectTag=${encodeURIComponent(subjectTag)}`;
 
-            const res = await api.get(`/posts${query}`);
+            // FIX: Pointing exactly to your backend's mount path
+            const res = await api.get(`/studyposts${query}`);
             setPosts(res.data.posts);
             setTotalPages(res.data.pages);
         } catch (error) {
@@ -52,16 +53,14 @@ const StudyPosts = () => {
         setPage(1); 
     };
 
-    // NEW: Function to handle silent refresh when a post is created
     const handlePostCreated = () => {
-        setPage(1); // Jump back to page 1 to see the new post
-        fetchPosts(); // Refresh the feed silently
+        setPage(1); 
+        fetchPosts(); 
     };
 
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 font-sans">
             
-            {/* Inject the Modal */}
             <CreatePostModal 
                 isOpen={isCreateModalOpen} 
                 onClose={() => setIsCreateModalOpen(false)} 
@@ -98,7 +97,7 @@ const StudyPosts = () => {
                     </select>
 
                     <button 
-                        onClick={() => setIsCreateModalOpen(true)} // WIRED UP
+                        onClick={() => setIsCreateModalOpen(true)} 
                         className="bg-[#5b7cfa] text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-[#4a6be0] hover:-translate-y-0.5 transition-all whitespace-nowrap"
                     >
                         + Create Post
@@ -106,7 +105,6 @@ const StudyPosts = () => {
                 </div>
             </div>
 
-            {/* Post Grid (Same as before) */}
             {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                     <div className="w-12 h-12 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div>

@@ -51,17 +51,16 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
         });
 
         try {
-            await api.post('/posts', submitData, {
+            // FIX: Pointing exactly to your backend's mount path
+            await api.post('/studyposts', submitData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             
-            // Reset form and tell the parent to refresh the feed
             setFormData({ title: '', description: '', subjectTag: '' });
             setFiles([]);
             onPostCreated(); 
             onClose();
         } catch (err) {
-            // This will catch your 3rd-party Profanity API rejection message!
             setError(err.response?.data?.message || 'Failed to create post. Please try again.');
         } finally {
             setIsLoading(false);
@@ -115,7 +114,6 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
                                 <span className="text-xs text-gray-500 block mt-1">or drag and drop files here</span>
                             </div>
                             
-                            {/* File Preview Chips */}
                             {files.length > 0 && (
                                 <div className="mt-3 flex flex-wrap gap-2">
                                     {files.map((file, index) => (
