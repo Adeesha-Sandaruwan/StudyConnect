@@ -1,17 +1,13 @@
-import { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
-import { AuthContext } from '../context/AuthContext';
 import { validateRegisterForm } from '../utils/validation';
 import api from '../services/api';
 
 const Register = () => {
     const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'student' });
-    const [googleRole, setGoogleRole] = useState('student'); // Dedicated state for Google Auth role
+    const [googleRole, setGoogleRole] = useState('student');
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState(null);
-    const { register } = useContext(AuthContext);
-    const navigate = useNavigate();
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -28,8 +24,8 @@ const Register = () => {
         }
 
         try {
-            await register(formData);
-            navigate('/onboarding');
+            await api.post('/users/register', formData);
+            window.location.href = '/onboarding';
         } catch (err) {
             setError(err.response?.data?.message || 'Registration failed. Please try again.');
         }

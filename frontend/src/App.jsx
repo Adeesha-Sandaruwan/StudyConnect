@@ -9,6 +9,7 @@ import Onboarding from './pages/Onboarding';
 import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import TutorDashboard from './pages/TutorDashboard';
+import Profile from './pages/Profile';
 
 // MOVED OUTSIDE: The Security Guard now lives on its own so it doesn't get re-rendered endlessly
 const ProtectedRoute = ({ children }) => {
@@ -50,7 +51,7 @@ function App() {
                     <Route path="/tutor-dashboard" element={<ProtectedRoute><TutorDashboard /></ProtectedRoute>} />
                     <Route path="/posts" element={<ProtectedRoute><div className="p-8 text-center font-bold text-gray-500">Study Posts Module (Coming Soon)</div></ProtectedRoute>} />
                     <Route path="/notifications" element={<ProtectedRoute><div className="p-8 text-center font-bold text-gray-500">Notifications Module (Coming Soon)</div></ProtectedRoute>} />
-                    <Route path="/profile" element={<ProtectedRoute><div className="p-8 text-center font-bold text-gray-500">User Profile Module (Coming Soon)</div></ProtectedRoute>} />
+                    <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 </Routes>
             </div>
         </div>
