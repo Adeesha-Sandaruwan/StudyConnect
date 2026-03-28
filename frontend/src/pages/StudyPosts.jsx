@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import CreatePostModal from '../components/CreatePostModal'; // NEW IMPORT
 
 const StudyPosts = () => {
     const [posts, setPosts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     
-    // Pagination & Filters State
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [keyword, setKeyword] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const [subjectTag, setSubjectTag] = useState('');
+
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // NEW STATE
 
     const SUBJECTS = [
         'Mathematics', 'Physics', 'Chemistry', 'Biology', 
@@ -25,7 +27,6 @@ const StudyPosts = () => {
     const fetchPosts = async () => {
         setIsLoading(true);
         try {
-            // Building the query string exactly as your backend expects it
             let query = `?page=${page}&limit=9`;
             if (keyword) query += `&keyword=${encodeURIComponent(keyword)}`;
             if (subjectTag) query += `&subjectTag=${encodeURIComponent(subjectTag)}`;
@@ -43,18 +44,30 @@ const StudyPosts = () => {
     const handleSearch = (e) => {
         e.preventDefault();
         setKeyword(searchInput);
-        setPage(1); // Reset to page 1 on new search
+        setPage(1); 
     };
 
     const handleSubjectChange = (e) => {
         setSubjectTag(e.target.value);
-        setPage(1); // Reset to page 1 on new filter
+        setPage(1); 
+    };
+
+    // NEW: Function to handle silent refresh when a post is created
+    const handlePostCreated = () => {
+        setPage(1); // Jump back to page 1 to see the new post
+        fetchPosts(); // Refresh the feed silently
     };
 
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 font-sans">
             
-            {/* Header & Controls */}
+            {/* Inject the Modal */}
+            <CreatePostModal 
+                isOpen={isCreateModalOpen} 
+                onClose={() => setIsCreateModalOpen(false)} 
+                onPostCreated={handlePostCreated} 
+            />
+
             <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8 mb-8 flex flex-col lg:flex-row justify-between gap-6 items-center">
                 <div className="w-full lg:w-auto text-center lg:text-left">
                     <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">Study Feed</h1>
@@ -70,9 +83,7 @@ const StudyPosts = () => {
                             onChange={(e) => setSearchInput(e.target.value)}
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-3 text-sm focus:ring-2 focus:ring-[#5b7cfa] outline-none transition-all"
                         />
-                        <button type="submit" className="absolute right-3 top-3 text-gray-400 hover:text-[#5b7cfa]">
-                            🔍
-                        </button>
+                        <button type="submit" className="absolute right-3 top-3 text-gray-400 hover:text-[#5b7cfa]">🔍</button>
                     </form>
                     
                     <select 
@@ -86,13 +97,16 @@ const StudyPosts = () => {
                         ))}
                     </select>
 
-                    <button className="bg-[#5b7cfa] text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-[#4a6be0] hover:-translate-y-0.5 transition-all whitespace-nowrap">
+                    <button 
+                        onClick={() => setIsCreateModalOpen(true)} // WIRED UP
+                        className="bg-[#5b7cfa] text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-[#4a6be0] hover:-translate-y-0.5 transition-all whitespace-nowrap"
+                    >
                         + Create Post
                     </button>
                 </div>
             </div>
 
-            {/* Post Grid */}
+            {/* Post Grid (Same as before) */}
             {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                     <div className="w-12 h-12 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div>
@@ -107,8 +121,6 @@ const StudyPosts = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {posts.map(post => (
                         <Link to={`/posts/${post._id}`} key={post._id} className="bg-white rounded-3xl shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col h-full border border-transparent hover:border-blue-50">
-                            
-                            {/* Card Header: User Info */}
                             <div className="flex items-center gap-3 mb-4">
                                 {post.user?.avatar ? (
                                     <img src={post.user.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
@@ -123,7 +135,6 @@ const StudyPosts = () => {
                                 </div>
                             </div>
 
-                            {/* Card Body: Content */}
                             <div className="flex-1">
                                 <span className="inline-block bg-blue-50 text-[#5b7cfa] px-3 py-1 rounded-full text-xs font-bold mb-3">
                                     {post.subjectTag || 'General'}
@@ -132,7 +143,6 @@ const StudyPosts = () => {
                                 <p className="text-gray-600 text-sm line-clamp-3">{post.description}</p>
                             </div>
 
-                            {/* Card Footer: Metrics */}
                             <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center text-sm font-semibold text-gray-500">
                                 <div className="flex items-center gap-4">
                                     <span className="flex items-center gap-1">
@@ -153,24 +163,11 @@ const StudyPosts = () => {
                 </div>
             )}
 
-            {/* Pagination Controls */}
             {!isLoading && totalPages > 1 && (
                 <div className="flex justify-center items-center gap-4 mt-10">
-                    <button 
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className={`px-4 py-2 rounded-xl font-bold transition-all ${page === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white shadow-sm text-gray-700 hover:text-[#5b7cfa]'}`}
-                    >
-                        Prev
-                    </button>
+                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`px-4 py-2 rounded-xl font-bold transition-all ${page === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white shadow-sm text-gray-700 hover:text-[#5b7cfa]'}`}>Prev</button>
                     <span className="text-sm font-bold text-gray-500">Page {page} of {totalPages}</span>
-                    <button 
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                        className={`px-4 py-2 rounded-xl font-bold transition-all ${page === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white shadow-sm text-gray-700 hover:text-[#5b7cfa]'}`}
-                    >
-                        Next
-                    </button>
+                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={`px-4 py-2 rounded-xl font-bold transition-all ${page === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white shadow-sm text-gray-700 hover:text-[#5b7cfa]'}`}>Next</button>
                 </div>
             )}
         </div>
