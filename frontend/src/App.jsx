@@ -12,10 +12,10 @@ import TutorDashboard from './pages/TutorDashboard';
 import Profile from './pages/Profile';
 import StudyPosts from './pages/StudyPosts';
 import SinglePost from './pages/SinglePost';
+import Notifications from './pages/Notifications'; // FIX: Imported the Notifications page
 
-// MOVED OUTSIDE: The Security Guard now lives on its own so it doesn't get re-rendered endlessly
 const ProtectedRoute = ({ children }) => {
-    const { user } = useContext(AuthContext); // It grabs the user context itself
+    const { user } = useContext(AuthContext); 
     if (!user) {
         return <Navigate to="/login" replace />;
     }
@@ -53,8 +53,10 @@ function App() {
                     <Route path="/tutor-dashboard" element={<ProtectedRoute><TutorDashboard /></ProtectedRoute>} />
                     <Route path="/posts" element={<ProtectedRoute><StudyPosts /></ProtectedRoute>} />
                     <Route path="/posts/:id" element={<ProtectedRoute><SinglePost /></ProtectedRoute>} />
-                    <Route path="/notifications" element={<ProtectedRoute><div className="p-8 text-center font-bold text-gray-500">Notifications Module (Coming Soon)</div></ProtectedRoute>} />
                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                    
+                    {/* FIX: Replaced the placeholder div with the actual Notifications component */}
+                    <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 </Routes>
             </div>
         </div>
