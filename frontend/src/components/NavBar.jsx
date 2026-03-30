@@ -1,13 +1,24 @@
-import { useState, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 
-const NavLinks = ({ homeLink, currentPath, closeMenu }) => (
+// Passed unreadCount as a prop so both Mobile and Desktop menus get the badge
+const NavLinks = ({ homeLink, currentPath, closeMenu, unreadCount }) => (
     <>
         <Link to={homeLink} className={`font-bold transition-colors ${currentPath === homeLink ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Dashboard</Link>
         <Link to="/posts" className={`font-bold transition-colors ${currentPath === '/posts' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Study Posts</Link>
-        <Link to="/notifications" className={`font-bold transition-colors ${currentPath === '/notifications' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Notifications</Link>
+        
+        {/* Notifications Link with Dynamic Badge */}
+        <Link to="/notifications" className={`relative font-bold transition-colors flex items-center gap-1.5 ${currentPath === '/notifications' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
+            Notifications
+            {unreadCount > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+            )}
+        </Link>
+        
         <Link to="/profile" className={`font-bold transition-colors ${currentPath === '/profile' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Profile</Link>
     </>
 );
@@ -17,6 +28,24 @@ const NavBar = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Silent fetch to count unread notifications
+    useEffect(() => {
+        if (user) {
+            const fetchUnreadCount = async () => {
+                try {
+                    const res = await api.get('/notifications');
+                    const unread = res.data.filter(n => !n.isRead).length;
+                    setUnreadCount(unread);
+                } catch (error) {
+                    console.error('Failed to fetch unread count', error);
+                }
+            };
+            
+            fetchUnreadCount();
+        }
+    }, [user, location.pathname]); // Re-runs whenever the user navigates so the badge stays accurate!
 
     const hideOnPaths = ['/login', '/register', '/onboarding', '/forgot-password'];
     if (!user || hideOnPaths.some(path => location.pathname.startsWith(path))) {
@@ -48,7 +77,7 @@ const NavBar = () => {
                     </div>
 
                     <div className="hidden md:flex items-center space-x-8">
-                        <NavLinks homeLink={homeLink} currentPath={location.pathname} closeMenu={() => setIsMobileMenuOpen(false)} />
+                        <NavLinks homeLink={homeLink} currentPath={location.pathname} closeMenu={() => setIsMobileMenuOpen(false)} unreadCount={unreadCount} />
                         <div className="border-l border-gray-200 h-6 mx-2"></div>
                         <div className="flex items-center gap-3">
                             <span className="text-sm font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-full uppercase tracking-wide">
@@ -77,7 +106,7 @@ const NavBar = () => {
             {isMobileMenuOpen && (
                 <div className="md:hidden bg-white border-t border-gray-100 shadow-lg absolute w-full left-0">
                     <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
-                        <NavLinks homeLink={homeLink} currentPath={location.pathname} closeMenu={() => setIsMobileMenuOpen(false)} />
+                        <NavLinks homeLink={homeLink} currentPath={location.pathname} closeMenu={() => setIsMobileMenuOpen(false)} unreadCount={unreadCount} />
                         <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
                             <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Logged in as {user.role}</span>
                             <button onClick={handleLogout} className="text-red-600 font-bold text-sm">
