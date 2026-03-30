@@ -47,6 +47,7 @@ const TutorLessonPage = () => {
     const [error, setError] = useState('');
     const [pdfFile, setPdfFile] = useState(null);
     const [onlyPdf, setOnlyPdf] = useState(null);
+    const [successAlert, setSuccessAlert] = useState({ open: false, message: '' });
 
     const [title, setTitle] = useState('');
     const [subject, setSubject] = useState('');
@@ -143,6 +144,11 @@ const TutorLessonPage = () => {
             const updated = await updateSubjectContent(id, buildPayload(), pdfFile || undefined);
             setPdfFile(null);
             setPdfList(lessonPdfsFromLesson(updated));
+            setSuccessAlert({ open: true, message: 'Saved! Redirecting to dashboard…' });
+
+            window.setTimeout(() => {
+                navigate('/tutor-dashboard');
+            }, 1300);
         } catch (err) {
             const msg =
                 err.response?.data?.message ||
@@ -212,6 +218,26 @@ const TutorLessonPage = () => {
 
     return (
         <div className="min-h-screen relative">
+            {successAlert.open ? (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+                    <div className="w-full max-w-md rounded-3xl bg-white/95 border border-emerald-200 shadow-2xl p-6">
+                        <div className="flex items-center gap-3">
+                            <div className="h-12 w-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M20 6L9 17L4 12" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </div>
+                            <div className="min-w-0">
+                                <div className="text-lg font-extrabold text-slate-900">Changes saved</div>
+                                <div className="text-sm font-medium text-slate-600 mt-1">{successAlert.message}</div>
+                            </div>
+                        </div>
+                        <div className="mt-4 h-2 rounded-full bg-emerald-50 overflow-hidden">
+                            <div className="h-full w-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 animate-[pulse_1.1s_ease-in-out_infinite]" />
+                        </div>
+                    </div>
+                </div>
+            ) : null}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#eef2f6] via-violet-50/40 to-indigo-50/50" />
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
                 <div className="flex flex-col lg:flex-row lg:items-start gap-8">
