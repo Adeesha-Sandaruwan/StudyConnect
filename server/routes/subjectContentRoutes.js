@@ -20,6 +20,7 @@ import {
   deleteSubjectContent,
   uploadPdfToContent,
   viewSubjectContentPdf,
+  viewSubjectContentPdfByIndex,
 } from "../controllers/subjectContentController.js";
 
 const router = express.Router();
@@ -39,6 +40,7 @@ router.post(
 );
 
 router.get("/my", protect, allowRoles("tutor", "admin"), getMySubjectContents);
+router.get("/:id/pdf/:pdfIndex", protect, viewSubjectContentPdfByIndex);
 router.get("/:id/pdf", protect, viewSubjectContentPdf);
 router.get("/:id", protect, allowRoles("tutor", "admin"), getSubjectContentById);
 

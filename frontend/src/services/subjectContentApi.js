@@ -71,8 +71,10 @@ function buildSubjectContentFormData(payload, pdfFile) {
     return fd;
 }
 
-export function getSubjectPdfWindowUrl(contentId) {
+/** Open PDF by 0-based index (uses authenticated redirect on the API). */
+export function getSubjectPdfWindowUrl(contentId, pdfIndex = 0) {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
     const trimmed = base.replace(/\/$/, '');
-    return `${trimmed}${root}/${contentId}/pdf`;
+    const i = Number.isFinite(Number(pdfIndex)) ? Number(pdfIndex) : 0;
+    return `${trimmed}${root}/${contentId}/pdf/${i}`;
 }

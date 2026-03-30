@@ -10,6 +10,7 @@ import {
 } from '../services/subjectContentApi';
 import ModuleAIAssistant from '../components/tutor/ModuleAIAssistant';
 import { modulePath } from '../utils/subjectModules';
+import { lessonPdfsFromLesson } from '../utils/lessonPdfs';
 
 const emptyResources = {
     quizFormLink: '',
@@ -63,7 +64,7 @@ const TutorLessonPage = () => {
     const [meetingLink, setMeetingLink] = useState('');
     const [referenceText, setReferenceText] = useState('');
     const [videoText, setVideoText] = useState('');
-    const [hasPdfUrl, setHasPdfUrl] = useState(false);
+    const [pdfList, setPdfList] = useState([]);
 
     useEffect(() => {
         let cancelled = false;
@@ -90,7 +91,7 @@ const TutorLessonPage = () => {
                 setMeetingLink(r.meetingLink || '');
                 setReferenceText((r.referenceLinks || []).join('\n'));
                 setVideoText((r.videoLinks || []).join('\n'));
-                setHasPdfUrl(Boolean(r.pdfUrl));
+                setPdfList(lessonPdfsFromLesson(data));
             } catch {
                 if (!cancelled) setError('Lesson not found or you do not have access.');
             } finally {
@@ -120,6 +121,11 @@ const TutorLessonPage = () => {
         status,
         resources: {
             ...emptyResources,
+            pdfFiles: pdfList.map((f) => ({
+                url: f.url,
+                publicId: f.publicId || '',
+                name: f.name || '',
+            })),
             quizFormLink,
             worksheetLink,
             answerSheetLink,
@@ -134,9 +140,9 @@ const TutorLessonPage = () => {
         setSaving(true);
         setError('');
         try {
-            await updateSubjectContent(id, buildPayload(), pdfFile || undefined);
+            const updated = await updateSubjectContent(id, buildPayload(), pdfFile || undefined);
             setPdfFile(null);
-            setHasPdfUrl(true);
+            setPdfList(lessonPdfsFromLesson(updated));
         } catch (err) {
             const msg =
                 err.response?.data?.message ||
@@ -154,9 +160,9 @@ const TutorLessonPage = () => {
         setSaving(true);
         setError('');
         try {
-            await uploadSubjectPdf(id, onlyPdf);
+            const res = await uploadSubjectPdf(id, onlyPdf);
             setOnlyPdf(null);
-            setHasPdfUrl(true);
+            if (res?.content) setPdfList(lessonPdfsFromLesson(res.content));
         } catch (err) {
             const msg = err.response?.data?.message || 'PDF upload failed.';
             setError(String(msg));
@@ -175,8 +181,12 @@ const TutorLessonPage = () => {
         }
     };
 
-    const openPdf = () => {
-        window.open(getSubjectPdfWindowUrl(id), '_blank', 'noopener,noreferrer');
+    const updatePdfLabel = (index, name) => {
+        setPdfList((prev) => prev.map((f, i) => (i === index ? { ...f, name } : f)));
+    };
+
+    const removePdfAt = (index) => {
+        setPdfList((prev) => prev.filter((_, i) => i !== index));
     };
 
     if (loading) {
@@ -342,7 +352,7 @@ const TutorLessonPage = () => {
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div className="sm:col-span-2">
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                                            Attach PDF with main form save
+                                            Attach PDF with main form save (adds one more file)
                                         </label>
                                         <input
                                             type="file"
@@ -356,39 +366,76 @@ const TutorLessonPage = () => {
                                             </p>
                                         ) : null}
                                     </div>
-                                    <div className="sm:col-span-2 rounded-2xl bg-slate-50 border border-slate-100 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                                        <div className="flex-1 text-xs text-slate-600">
-                                            {hasPdfUrl ? (
-                                                <span className="font-semibold text-emerald-700">PDF attached.</span>
-                                            ) : (
-                                                <span>No PDF yet.</span>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {hasPdfUrl ? (
+                                    <div className="sm:col-span-2 rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                            <p className="text-xs font-bold text-slate-700">PDF notes ({pdfList.length})</p>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <input
+                                                    type="file"
+                                                    accept="application/pdf"
+                                                    onChange={(e) => setOnlyPdf(e.target.files?.[0] || null)}
+                                                    className="text-xs max-w-[200px]"
+                                                />
                                                 <button
                                                     type="button"
-                                                    onClick={openPdf}
-                                                    className="text-xs font-bold text-white bg-indigo-600 px-3 py-2 rounded-xl"
+                                                    onClick={handlePdfOnly}
+                                                    disabled={!onlyPdf || saving}
+                                                    className="text-xs font-bold bg-slate-800 text-white px-3 py-2 rounded-xl disabled:opacity-50"
                                                 >
-                                                    Open PDF
+                                                    Upload PDF now
                                                 </button>
-                                            ) : null}
-                                            <input
-                                                type="file"
-                                                accept="application/pdf"
-                                                onChange={(e) => setOnlyPdf(e.target.files?.[0] || null)}
-                                                className="text-xs max-w-[200px]"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={handlePdfOnly}
-                                                disabled={!onlyPdf || saving}
-                                                className="text-xs font-bold bg-slate-800 text-white px-3 py-2 rounded-xl disabled:opacity-50"
-                                            >
-                                                Upload only PDF
-                                            </button>
+                                            </div>
                                         </div>
+                                        {pdfList.length === 0 ? (
+                                            <p className="text-xs text-slate-500">No PDFs yet. Upload above or attach with Save.</p>
+                                        ) : (
+                                            <ul className="space-y-2">
+                                                {pdfList.map((file, idx) => (
+                                                    <li
+                                                        key={`${file.url}-${idx}`}
+                                                        className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl bg-white border border-slate-200/80 px-3 py-2"
+                                                    >
+                                                        <div className="flex-1 min-w-0 space-y-1">
+                                                            <label className="block text-[10px] font-bold uppercase text-slate-400">
+                                                                Label (visible to students)
+                                                            </label>
+                                                            <input
+                                                                value={file.name || ''}
+                                                                onChange={(e) => updatePdfLabel(idx, e.target.value)}
+                                                                className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
+                                                                placeholder={`PDF ${idx + 1}`}
+                                                            />
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2 shrink-0">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    window.open(
+                                                                        getSubjectPdfWindowUrl(id, idx),
+                                                                        '_blank',
+                                                                        'noopener,noreferrer'
+                                                                    )
+                                                                }
+                                                                className="text-xs font-bold text-white bg-indigo-600 px-3 py-2 rounded-xl"
+                                                            >
+                                                                Open
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removePdfAt(idx)}
+                                                                className="text-xs font-bold text-red-600 bg-red-50 px-3 py-2 rounded-xl border border-red-100"
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                        <p className="text-[11px] text-slate-500">
+                                            Removing a row only updates after you click <strong>Save changes</strong>. Upload now
+                                            adds immediately via Cloudinary.
+                                        </p>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">

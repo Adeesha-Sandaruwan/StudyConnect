@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { fetchPublishedSubjectContents, getSubjectPdfWindowUrl } from '../services/subjectContentApi';
 import { studentModulePath } from '../utils/subjectModules';
 import StudentLessonResources from '../components/student/StudentLessonResources';
+import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
 
 const StudentLessonPage = () => {
     const { user } = useContext(AuthContext);
@@ -49,6 +50,8 @@ const StudentLessonPage = () => {
         lesson && tid
             ? studentModulePath(tid, lesson.grade, lesson.subject)
             : '/student-dashboard';
+
+    const pdfButtons = lesson ? getLessonPdfDisplayList(lesson) : [];
 
     return (
         <div className="min-h-screen relative overflow-hidden">
@@ -100,16 +103,25 @@ const StudentLessonPage = () => {
                                         </p>
                                     </div>
                                 </div>
-                                {lesson.resources?.pdfUrl ? (
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            window.open(getSubjectPdfWindowUrl(lesson._id), '_blank', 'noopener,noreferrer')
-                                        }
-                                        className="shrink-0 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 rounded-xl shadow-md shadow-indigo-500/20"
-                                    >
-                                        Open PDF notes
-                                    </button>
+                                {pdfButtons.length ? (
+                                    <div className="flex flex-wrap gap-2 justify-end">
+                                        {pdfButtons.map((p) => (
+                                            <button
+                                                key={p.index}
+                                                type="button"
+                                                onClick={() =>
+                                                    window.open(
+                                                        getSubjectPdfWindowUrl(lesson._id, p.index),
+                                                        '_blank',
+                                                        'noopener,noreferrer'
+                                                    )
+                                                }
+                                                className="shrink-0 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 rounded-xl shadow-md shadow-indigo-500/20"
+                                            >
+                                                Open: {p.label}
+                                            </button>
+                                        ))}
+                                    </div>
                                 ) : null}
                             </div>
                         </div>

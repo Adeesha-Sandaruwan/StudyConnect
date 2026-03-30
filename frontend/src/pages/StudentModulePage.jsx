@@ -2,6 +2,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { fetchPublishedSubjectContents } from '../services/subjectContentApi';
+import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
 const StudentModulePage = () => {
     const { user } = useContext(AuthContext);
     const { creatorId, grade: gradeParam, subjectSlug } = useParams();
@@ -122,7 +123,9 @@ const StudentModulePage = () => {
                 ) : (
                     <ul className="space-y-3">
                         <p className="text-xs text-slate-500 mb-1">Tap a week to open the full lesson.</p>
-                        {lessons.map((lesson) => (
+                                {lessons.map((lesson) => {
+                            const lessonPdfs = getLessonPdfDisplayList(lesson);
+                            return (
                             <li key={lesson._id}>
                                 <Link
                                     to={`/student-dashboard/lesson/${lesson._id}`}
@@ -144,8 +147,12 @@ const StudentModulePage = () => {
                                                           day: 'numeric',
                                                       })
                                                     : ''}
-                                                {lesson.resources?.pdfUrl ? (
-                                                    <span className="text-indigo-600 font-semibold"> · PDF</span>
+                                                {lessonPdfs.length ? (
+                                                    <span className="text-indigo-600 font-semibold">
+                                                        {' '}
+                                                        · {lessonPdfs.length} PDF
+                                                        {lessonPdfs.length === 1 ? '' : 's'}
+                                                    </span>
                                                 ) : null}
                                             </p>
                                         </div>
@@ -153,7 +160,8 @@ const StudentModulePage = () => {
                                     <span className="shrink-0 text-xs font-bold text-indigo-600 sm:pr-2">View lesson →</span>
                                 </Link>
                             </li>
-                        ))}
+                        );
+                        })}
                     </ul>
                 )}
             </div>

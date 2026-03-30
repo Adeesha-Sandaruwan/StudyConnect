@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { fetchMySubjectContents } from '../services/subjectContentApi';
 import ModuleAIAssistant from '../components/tutor/ModuleAIAssistant';
+import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
 const TutorModulePage = () => {
     const { user } = useContext(AuthContext);
     const { grade: gradeParam, subjectSlug } = useParams();
@@ -127,7 +128,9 @@ const TutorModulePage = () => {
                             </div>
                         ) : (
                             <ul className="space-y-3">
-                                {lessons.map((lesson) => (
+                                {lessons.map((lesson) => {
+                                    const tutorPdfs = getLessonPdfDisplayList(lesson);
+                                    return (
                                     <li
                                         key={lesson._id}
                                         className="group rounded-2xl border border-white/50 bg-white/75 backdrop-blur-md shadow-sm hover:shadow-md hover:border-indigo-200/80 transition-all"
@@ -157,9 +160,10 @@ const TutorModulePage = () => {
                                                 >
                                                     {lesson.status}
                                                 </span>
-                                                {lesson.resources?.pdfUrl ? (
+                                                {tutorPdfs.length ? (
                                                     <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg">
-                                                        PDF
+                                                        {tutorPdfs.length} PDF
+                                                        {tutorPdfs.length === 1 ? '' : 's'}
                                                     </span>
                                                 ) : null}
                                                 <Link
@@ -171,7 +175,8 @@ const TutorModulePage = () => {
                                             </div>
                                         </div>
                                     </li>
-                                ))}
+                                );
+                                })}
                             </ul>
                         )}
                     </div>
