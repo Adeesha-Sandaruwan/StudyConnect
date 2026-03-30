@@ -137,6 +137,18 @@ export const normalizeSubjectContentBody = (req, res, next) => {
     normalized.resources.videoLinks = toArray(normalized.resources.videoLinks);
   }
 
+  if (normalized.resources && Object.prototype.hasOwnProperty.call(normalized.resources, "pdfFiles")) {
+    let pf = normalized.resources.pdfFiles;
+    if (typeof pf === "string") {
+      try {
+        pf = JSON.parse(pf);
+      } catch {
+        pf = [];
+      }
+    }
+    normalized.resources.pdfFiles = Array.isArray(pf) ? pf : [];
+  }
+
   req.body = normalized;
   next();
 };
@@ -232,6 +244,14 @@ const baseContentValidators = [
     .optional({ nullable: true })
     .custom(isValidUrl)
     .withMessage("Each video link must be a valid URL"),
+  body("resources.pdfFiles")
+    .optional({ nullable: true })
+    .isArray()
+    .withMessage("resources.pdfFiles must be an array"),
+  body("resources.pdfFiles.*.url")
+    .optional({ nullable: true })
+    .custom(isValidUrl)
+    .withMessage("Each PDF entry must have a valid url"),
 ];
 
 export const validateSubjectContentCreate = [

@@ -1,10 +1,175 @@
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
+import { fetchPublishedSubjectContents } from '../services/subjectContentApi';
+import { groupPublishedByTutorModule, studentModulePath } from '../utils/subjectModules';
+
 const StudentDashboard = () => {
+    const { user } = useContext(AuthContext);
+    const [modules, setModules] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [subjectQuery, setSubjectQuery] = useState('');
+    const [gradeFilter, setGradeFilter] = useState('');
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const raw = await fetchPublishedSubjectContents();
+            setModules(groupPublishedByTutorModule(Array.isArray(raw) ? raw : []));
+        } catch {
+            setError('Could not load tutor modules.');
+            setModules([]);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    const filtered = useMemo(() => {
+        const sq = subjectQuery.trim().toLowerCase();
+        const gf = gradeFilter === '' ? null : Number(gradeFilter);
+
+        return modules.filter((m) => {
+            if (gf !== null && !Number.isNaN(gf) && m.grade !== gf) return false;
+            if (sq && !String(m.subject).toLowerCase().includes(sq)) return false;
+            return true;
+        });
+    }, [modules, subjectQuery, gradeFilter]);
+
+    if (user && user.role !== 'student') {
+        const dest = user.role === 'tutor' ? '/tutor-dashboard' : '/admin';
+        return <Navigate to={dest} replace />;
+    }
+
     return (
-        <div className="min-h-screen bg-[#eef2f6] flex items-center justify-center p-6">
-            <div className="bg-white p-10 rounded-3xl shadow-sm text-center max-w-lg w-full">
-                <span className="text-6xl mb-4 block">🎓</span>
-                <h1 className="text-2xl font-extrabold text-gray-800 mb-2">Student Dashboard</h1>
-                <p className="text-gray-500 text-sm">This module is currently being developed by another team member.</p>
+        <div className="min-h-screen relative overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(14,165,233,0.12),transparent),radial-gradient(ellipse_60%_40%_at_100%_30%,rgba(99,102,241,0.1),transparent)]" />
+            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
+                <header className="mb-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+                    <div className="space-y-3 max-w-2xl">
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">Student hub</p>
+                        <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                            Explore{' '}
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-indigo-600">
+                                tutor modules
+                            </span>
+                        </h1>
+                        <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                            Published lessons from your tutors, grouped by subject and grade. Each card shows who is teaching so
+                            you can follow the right pathway.
+                        </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                        <div>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Subject</label>
+                            <input
+                                type="search"
+                                value={subjectQuery}
+                                onChange={(e) => setSubjectQuery(e.target.value)}
+                                placeholder="e.g. ICT"
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm w-full sm:w-44 focus:outline-none focus:ring-2 focus:ring-sky-400/40"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Grade</label>
+                            <select
+                                value={gradeFilter}
+                                onChange={(e) => setGradeFilter(e.target.value)}
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm w-full sm:w-32 focus:outline-none focus:ring-2 focus:ring-sky-400/40"
+                            >
+                                <option value="">All</option>
+                                {Array.from({ length: 13 }, (_, i) => i + 1).map((g) => (
+                                    <option key={g} value={g}>
+                                        {g}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </header>
+
+                {loading ? (
+                    <div className="rounded-3xl border border-slate-200/60 bg-white/50 backdrop-blur p-16 text-center text-slate-500 font-medium animate-pulse">
+                        Loading published modules…
+                    </div>
+                ) : error ? (
+                    <div className="rounded-2xl border border-red-100 bg-red-50 text-red-800 px-4 py-3 text-sm">{error}</div>
+                ) : filtered.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 backdrop-blur p-12 text-center">
+                        <div className="text-4xl mb-3">📖</div>
+                        <h2 className="text-lg font-extrabold text-slate-900 mb-2">No modules to show yet</h2>
+                        <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+                            {modules.length === 0
+                                ? 'When tutors publish lessons, they will appear here with the tutor’s name.'
+                                : 'Try adjusting your subject or grade filters.'}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
+                        {filtered.map((mod) => {
+                            const href = studentModulePath(mod.tutorId, mod.grade, mod.subject);
+                            const pubCount = mod.lessons.length;
+                            const accent = (mod.tutorId.length + mod.grade) % 4;
+                            const rims = [
+                                'from-sky-500 to-blue-600',
+                                'from-indigo-500 to-violet-600',
+                                'from-teal-500 to-emerald-600',
+                                'from-amber-500 to-rose-500',
+                            ];
+                            return (
+                                <article
+                                    key={`${mod.tutorId}-${mod.subject}-${mod.grade}`}
+                                    className="group rounded-3xl border border-white/60 bg-white/80 backdrop-blur-md shadow-lg shadow-slate-900/5 hover:shadow-xl hover:shadow-sky-500/10 transition-all duration-300 overflow-hidden flex flex-col"
+                                >
+                                    <div className={`h-1 bg-gradient-to-r ${rims[accent]} opacity-90`} />
+                                    <div className="p-6 flex flex-col flex-1">
+                                        <div className="flex items-start gap-3 mb-4">
+                                            {mod.tutorAvatar ? (
+                                                <img
+                                                    src={mod.tutorAvatar}
+                                                    alt=""
+                                                    className="h-12 w-12 rounded-2xl object-cover shrink-0 ring-2 ring-white shadow"
+                                                />
+                                            ) : (
+                                                <div className="h-12 w-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-lg font-black shrink-0">
+                                                    {mod.tutorName.slice(0, 1).toUpperCase()}
+                                                </div>
+                                            )}
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-0.5">
+                                                    Tutor
+                                                </p>
+                                                <p className="font-extrabold text-slate-900 leading-snug truncate">
+                                                    {mod.tutorName}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <h3 className="text-lg font-extrabold text-slate-800 mb-1">{mod.subject}</h3>
+                                        <p className="text-xs font-bold text-sky-700 bg-sky-50 border border-sky-100 inline-flex rounded-lg px-2.5 py-1 w-fit mb-3">
+                                            Grade {mod.grade}
+                                        </p>
+                                        <p className="text-xs text-slate-600 flex-1 leading-relaxed mb-5">
+                                            {pubCount} published week{pubCount === 1 ? '' : 's'}
+                                            <span className="text-slate-400"> · </span>
+                                            latest: <span className="font-semibold text-slate-800">{mod.lessons[mod.lessons.length - 1]?.title}</span>
+                                        </p>
+                                        <Link
+                                            to={href}
+                                            className="mt-auto text-center rounded-xl bg-slate-900 text-white text-sm font-bold py-3 hover:bg-slate-800 transition-colors"
+                                        >
+                                            View module
+                                        </Link>
+                                    </div>
+                                </article>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );

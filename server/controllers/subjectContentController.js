@@ -34,6 +34,54 @@ const buildPdfDataFromFile = (file) => {
   };
 };
 
+const normalizePdfFilesArray = (raw) => {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item) => item && typeof item === "object")
+    .map((item) => ({
+      url: String(item.url ?? "").trim(),
+      publicId: String(item.publicId ?? "").trim(),
+      name: String(item.name ?? "").trim(),
+    }))
+    .filter((item) => item.url);
+};
+
+const getAllPdfUrlsFromResources = (resources) => {
+  const res = resources || {};
+  const urls = [];
+  if (Array.isArray(res.pdfFiles) && res.pdfFiles.length) {
+    for (const f of res.pdfFiles) {
+      if (f && f.url) urls.push(f.url);
+    }
+  }
+  if (urls.length === 0 && res.pdfUrl) urls.push(res.pdfUrl);
+  return urls;
+};
+
+const syncLegacyPdfFields = (resources) => {
+  // If the document only has the legacy single PDF fields (pdfUrl/pdfPublicId),
+  // convert them into pdfFiles so multi-PDF uploads don't accidentally drop the old PDF.
+  const filesFromArray = normalizePdfFilesArray(resources?.pdfFiles);
+  const legacyUrl = resources?.pdfUrl ? String(resources.pdfUrl).trim() : "";
+  const legacyPublicId = resources?.pdfPublicId ? String(resources.pdfPublicId).trim() : "";
+
+  const files =
+    filesFromArray.length > 0
+      ? filesFromArray
+      : legacyUrl
+        ? [{ url: legacyUrl, publicId: legacyPublicId, name: "PDF notes" }]
+        : [];
+
+  resources.pdfFiles = files;
+  if (files.length > 0) {
+    resources.pdfUrl = files[0].url;
+    resources.pdfPublicId = files[0].publicId || "";
+  } else {
+    resources.pdfUrl = "";
+    resources.pdfPublicId = "";
+  }
+};
+
 /**
  * Helper function to safely pick resource fields from request body
  * Ensures default empty values if fields are missing
@@ -69,6 +117,12 @@ const pickResourceFields = (resources, withDefaults = false) => {
   setIfPresent("pdfUrl", "");
   setIfPresent("pdfPublicId", "");
 
+  if (Object.prototype.hasOwnProperty.call(source, "pdfFiles")) {
+    out.pdfFiles = normalizePdfFilesArray(source.pdfFiles);
+  } else if (withDefaults) {
+    out.pdfFiles = [];
+  }
+
   return out;
 };
 
@@ -84,9 +138,13 @@ export const createSubjectContent = async (req, res) => {
     const { pdfUrl, pdfPublicId, hasPdf } = buildPdfDataFromFile(req.file);
 
     if (hasPdf) {
-      payload.resources.pdfUrl = pdfUrl;
-      payload.resources.pdfPublicId = pdfPublicId;
+      const name = req.file.originalname || req.file.name || "";
+      payload.resources.pdfFiles = [
+        ...normalizePdfFilesArray(payload.resources.pdfFiles),
+        { url: pdfUrl, publicId: pdfPublicId, name },
+      ];
     }
+    syncLegacyPdfFields(payload.resources);
 
     const content = await SubjectContent.create({
       ...payload,
@@ -207,9 +265,21 @@ export const updateSubjectContent = async (req, res) => {
 
     const { pdfUrl, pdfPublicId, hasPdf } = buildPdfDataFromFile(req.file);
     if (hasPdf) {
-      content.resources.pdfUrl = pdfUrl;
-      content.resources.pdfPublicId = pdfPublicId;
+      const name = req.file.originalname || req.file.name || "";
+      let existing = normalizePdfFilesArray(content.resources?.pdfFiles);
+      // Preserve legacy single-PDF data when this document hasn't been migrated yet.
+      if (!existing.length && content.resources?.pdfUrl) {
+        existing = [
+          {
+            url: content.resources.pdfUrl,
+            publicId: content.resources.pdfPublicId || "",
+            name: "PDF notes",
+          },
+        ];
+      }
+      content.resources.pdfFiles = [...existing, { url: pdfUrl, publicId: pdfPublicId, name }];
     }
+    syncLegacyPdfFields(content.resources);
 
     delete payload.resources;
     Object.assign(content, payload);
@@ -276,8 +346,21 @@ export const uploadPdfToContent = async (req, res) => {
       return res.status(400).json({ message: "Failed to upload PDF" });
     }
 
-    content.resources.pdfUrl = pdfUrl;
-    content.resources.pdfPublicId = pdfPublicId;
+    const name = req.file.originalname || req.file.name || "";
+    const entry = { url: pdfUrl, publicId: pdfPublicId, name };
+    let existing = normalizePdfFilesArray(content.resources?.pdfFiles);
+    // Preserve legacy single-PDF data when this document hasn't been migrated yet.
+    if (!existing.length && content.resources?.pdfUrl) {
+      existing = [
+        {
+          url: content.resources.pdfUrl,
+          publicId: content.resources.pdfPublicId || "",
+          name: "PDF notes",
+        },
+      ];
+    }
+    content.resources.pdfFiles = [...existing, entry];
+    syncLegacyPdfFields(content.resources);
 
     await content.save();
 
@@ -292,21 +375,24 @@ export const uploadPdfToContent = async (req, res) => {
 };
 
 /**
- * View PDF by content id
- * GET /api/subject-content/:id/pdf
+ * View PDF by content id and index (0-based)
+ * GET /api/subject-content/:id/pdf/:pdfIndex
  */
-export const viewSubjectContentPdf = async (req, res) => {
+export const viewSubjectContentPdfByIndex = async (req, res) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const { id, pdfIndex } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
       return res.status(404).json({ message: "Content not found" });
     }
 
-    const content = await SubjectContent.findById(req.params.id);
+    const content = await SubjectContent.findById(id);
     if (!content) {
       return res.status(404).json({ message: "Content not found" });
     }
 
-    if (!content.resources?.pdfUrl) {
+    const urls = getAllPdfUrlsFromResources(content.resources);
+    const idx = parseInt(pdfIndex, 10);
+    if (Number.isNaN(idx) || idx < 0 || idx >= urls.length) {
       return res.status(404).json({ message: "PDF not found" });
     }
 
@@ -322,7 +408,45 @@ export const viewSubjectContentPdf = async (req, res) => {
       }
     }
 
-    return res.redirect(content.resources.pdfUrl);
+    return res.redirect(urls[idx]);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * View PDF by content id (first file — legacy)
+ * GET /api/subject-content/:id/pdf
+ */
+export const viewSubjectContentPdf = async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ message: "Content not found" });
+    }
+
+    const content = await SubjectContent.findById(req.params.id);
+    if (!content) {
+      return res.status(404).json({ message: "Content not found" });
+    }
+
+    const urls = getAllPdfUrlsFromResources(content.resources);
+    if (!urls.length) {
+      return res.status(404).json({ message: "PDF not found" });
+    }
+
+    if (req.user.role === "student") {
+      if (content.status !== "published") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+    } else {
+      const isOwner = content.createdBy.toString() === req.user._id.toString();
+      const isAdmin = req.user.role === "admin";
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+    }
+
+    return res.redirect(urls[0]);
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -357,10 +481,12 @@ export const askAI = async (req, res) => {
     const week = await SubjectContent.findById(id);
     if (!week) return res.status(404).json({ message: "Week not found" });
 
-    // 2 Extract PDF text if available
-    const pdfText = week.resources?.pdfUrl
-      ? await getPdfText(week.resources.pdfUrl)
-      : "";
+    // 2 Extract PDF text if available (all uploaded PDFs)
+    const pdfUrls = getAllPdfUrlsFromResources(week.resources);
+    let pdfText = "";
+    for (const url of pdfUrls) {
+      pdfText += `${await getPdfText(url)}\n\n`;
+    }
 
     // 3 Combine all context
     const context = `

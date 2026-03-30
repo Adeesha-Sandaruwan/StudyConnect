@@ -9,30 +9,32 @@ import ResetPassword from './pages/ResetPassword';
 import Onboarding from './pages/Onboarding';
 import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
+import StudentModulePage from './pages/StudentModulePage';
+import StudentLessonPage from './pages/StudentLessonPage';
 import TutorDashboard from './pages/TutorDashboard';
+import TutorModulePage from './pages/TutorModulePage';
+import TutorLessonPage from './pages/TutorLessonPage';
 import Profile from './pages/Profile';
 import StudyPosts from './pages/StudyPosts';
 import SinglePost from './pages/SinglePost';
 import Notifications from './pages/Notifications';
 
-// 1. Basic Security: Checks if logged in
 const ProtectedRoute = ({ children }) => {
-    const { user } = useContext(AuthContext); 
+    const { user } = useContext(AuthContext);
     if (!user) {
         return <Navigate to="/login" replace />;
     }
     return children;
 };
 
-// 2. STRICT Security: Checks if logged in AND Verified by Admin
 const VerifiedRoute = ({ children }) => {
     const { user } = useContext(AuthContext);
-    const [isVerified, setIsVerified] = useState(null); 
+    const [isVerified, setIsVerified] = useState(null);
 
     useEffect(() => {
         if (user?.role === 'admin') return;
 
-        let isMounted = true; 
+        let isMounted = true;
 
         const checkVerification = async () => {
             try {
@@ -40,7 +42,6 @@ const VerifiedRoute = ({ children }) => {
                 if (isMounted) {
                     setIsVerified(res.data.verificationStatus === 'verified');
                 }
-            // FIX: Removed the unused 'err' variable. ES6 allows empty catch blocks!
             } catch {
                 if (isMounted) setIsVerified(false);
             }
@@ -97,7 +98,13 @@ function App() {
                     <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
 
                     <Route path="/student-dashboard" element={<ProtectedRoute><VerifiedRoute><StudentDashboard /></VerifiedRoute></ProtectedRoute>} />
+                    <Route path="/student-dashboard/lesson/:lessonId" element={<ProtectedRoute><VerifiedRoute><StudentLessonPage /></VerifiedRoute></ProtectedRoute>} />
+                    <Route path="/student-dashboard/module/:creatorId/:grade/:subjectSlug" element={<ProtectedRoute><VerifiedRoute><StudentModulePage /></VerifiedRoute></ProtectedRoute>} />
+                    
                     <Route path="/tutor-dashboard" element={<ProtectedRoute><VerifiedRoute><TutorDashboard /></VerifiedRoute></ProtectedRoute>} />
+                    <Route path="/tutor-dashboard/lesson/:id" element={<ProtectedRoute><VerifiedRoute><TutorLessonPage /></VerifiedRoute></ProtectedRoute>} />
+                    <Route path="/tutor-dashboard/module/:grade/:subjectSlug" element={<ProtectedRoute><VerifiedRoute><TutorModulePage /></VerifiedRoute></ProtectedRoute>} />
+                    
                     <Route path="/posts" element={<ProtectedRoute><VerifiedRoute><StudyPosts /></VerifiedRoute></ProtectedRoute>} />
                     <Route path="/posts/:id" element={<ProtectedRoute><VerifiedRoute><SinglePost /></VerifiedRoute></ProtectedRoute>} />
                     <Route path="/notifications" element={<ProtectedRoute><VerifiedRoute><Notifications /></VerifiedRoute></ProtectedRoute>} />

@@ -7,6 +7,14 @@ import mongoose from "mongoose";
  * Example module: (Tutor A, Grade 10, ICT) -> Week 1..N documents
  */
 
+const pdfFileEntrySchema = new mongoose.Schema(
+  {
+    url: { type: String, default: "" },
+    publicId: { type: String, default: "" },
+    name: { type: String, default: "" },
+  },
+  { _id: false }
+);
 
 const subjectContentSchema = new mongoose.Schema(
   {
@@ -20,8 +28,9 @@ const subjectContentSchema = new mongoose.Schema(
     contentText: { type: String, default: "", maxlength: 7000 }, //  week content details
 
     resources: {
-      pdfUrl: { type: String, default: "" },        //  notes PDF URL (Cloudinary)
-      pdfPublicId: { type: String, default: "" },   // optional: for delete from cloud
+      pdfUrl: { type: String, default: "" },        // mirrors first pdfFiles[0] for backward compatibility
+      pdfPublicId: { type: String, default: "" },
+      pdfFiles: { type: [pdfFileEntrySchema], default: [] },
       referenceLinks: { type: [String], default: [] },
       videoLinks: { type: [String], default: [] },
       quizFormLink: { type: String, default: "" },
