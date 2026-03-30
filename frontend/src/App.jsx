@@ -9,6 +9,8 @@ import Onboarding from './pages/Onboarding';
 import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import TutorDashboard from './pages/TutorDashboard';
+import TutorModulePage from './pages/TutorModulePage';
+import TutorLessonPage from './pages/TutorLessonPage';
 import Profile from './pages/Profile';
 import StudyPosts from './pages/StudyPosts';
 import SinglePost from './pages/SinglePost';
@@ -50,6 +52,8 @@ function App() {
                     <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
                     <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
                     <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+                    <Route path="/tutor-dashboard/lesson/:id" element={<ProtectedRoute><TutorLessonPage /></ProtectedRoute>} />
+                    <Route path="/tutor-dashboard/module/:grade/:subjectSlug" element={<ProtectedRoute><TutorModulePage /></ProtectedRoute>} />
                     <Route path="/tutor-dashboard" element={<ProtectedRoute><TutorDashboard /></ProtectedRoute>} />
                     <Route path="/posts" element={<ProtectedRoute><StudyPosts /></ProtectedRoute>} />
                     <Route path="/posts/:id" element={<ProtectedRoute><SinglePost /></ProtectedRoute>} />
