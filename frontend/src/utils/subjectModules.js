@@ -24,3 +24,51 @@ export function groupContentsByModule(contents) {
 export function modulePath(grade, subject) {
     return `/tutor-dashboard/module/${grade}/${encodeURIComponent(subject.trim())}`;
 }
+
+function tutorIdOf(lesson) {
+    const c = lesson?.createdBy;
+    if (!c) return '';
+    return String(c._id ?? c);
+}
+
+/** Group published lessons: one card per tutor + subject + grade */
+export function groupPublishedByTutorModule(contents) {
+    const map = new Map();
+
+    for (const item of contents || []) {
+        const tid = tutorIdOf(item);
+        if (!tid) continue;
+
+        const key = `${tid}__${String(item.subject).trim().toLowerCase()}__${Number(item.grade)}`;
+        if (!map.has(key)) {
+            const c = item.createdBy;
+            map.set(key, {
+                tutorId: tid,
+                tutorName: typeof c === 'object' && c?.name ? c.name : 'Tutor',
+                tutorAvatar: typeof c === 'object' && c?.avatar ? c.avatar : '',
+                subject: item.subject,
+                grade: Number(item.grade),
+                lessons: [],
+            });
+        }
+        map.get(key).lessons.push(item);
+    }
+
+    return Array.from(map.values())
+        .map((m) => ({
+            ...m,
+            lessons: [...m.lessons].sort((a, b) => a.weekNumber - b.weekNumber || new Date(a.lessonDate) - new Date(b.lessonDate)),
+        }))
+        .sort(
+            (a, b) =>
+                a.tutorName.localeCompare(b.tutorName) ||
+                a.grade - b.grade ||
+                a.subject.localeCompare(b.subject)
+        );
+}
+
+export function studentModulePath(tutorId, grade, subject) {
+    const id = encodeURIComponent(String(tutorId).trim());
+    const g = Number(grade);
+    return `/student-dashboard/module/${id}/${g}/${encodeURIComponent(String(subject).trim())}`;
+}

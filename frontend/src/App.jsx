@@ -8,6 +8,8 @@ import ResetPassword from './pages/ResetPassword';
 import Onboarding from './pages/Onboarding';
 import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
+import StudentModulePage from './pages/StudentModulePage';
+import StudentLessonPage from './pages/StudentLessonPage';
 import TutorDashboard from './pages/TutorDashboard';
 import TutorModulePage from './pages/TutorModulePage';
 import TutorLessonPage from './pages/TutorLessonPage';
@@ -51,6 +53,8 @@ function App() {
                     {/* Wrap all internal pages with the ProtectedRoute */}
                     <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
                     <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                    <Route path="/student-dashboard/lesson/:lessonId" element={<ProtectedRoute><StudentLessonPage /></ProtectedRoute>} />
+                    <Route path="/student-dashboard/module/:creatorId/:grade/:subjectSlug" element={<ProtectedRoute><StudentModulePage /></ProtectedRoute>} />
                     <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
                     <Route path="/tutor-dashboard/lesson/:id" element={<ProtectedRoute><TutorLessonPage /></ProtectedRoute>} />
                     <Route path="/tutor-dashboard/module/:grade/:subjectSlug" element={<ProtectedRoute><TutorModulePage /></ProtectedRoute>} />

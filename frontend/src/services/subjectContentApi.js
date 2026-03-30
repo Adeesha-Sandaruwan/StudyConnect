@@ -7,6 +7,12 @@ export async function fetchMySubjectContents() {
     return data;
 }
 
+/** Published lessons (students / explore). Optional filters: grade, subject, weekNumber */
+export async function fetchPublishedSubjectContents(params = {}) {
+    const { data } = await api.get(root, { params });
+    return data;
+}
+
 export async function fetchSubjectContentById(id) {
     const { data } = await api.get(`${root}/${id}`);
     return data;
