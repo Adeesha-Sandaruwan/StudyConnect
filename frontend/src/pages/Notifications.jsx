@@ -11,14 +11,28 @@ const Notifications = () => {
     useEffect(() => {
         fetchNotifications();
     }, []);
-
+    
     const fetchNotifications = async () => {
         setIsLoading(true);
         try {
             const res = await api.get('/notifications');
+            
+            // 1. Set the initial fetched notifications
             setNotifications(res.data);
+
+            // 2. The Auto-Clear Magic
+            const unreadNotifs = res.data.filter(n => !n.isRead);
+            if (unreadNotifs.length > 0) {
+                // Fire off read requests to the backend silently without making the user wait
+                unreadNotifs.forEach(notif => {
+                    api.put(`/notifications/${notif._id}/read`).catch(console.error);
+                });
+                
+                // Instantly update the local state so the UI (and the NavBar on the next click) registers them as read
+                setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+            }
+
         } catch (err) {
-            // FIX: Actually utilizing the 'err' variable to pull the exact backend error message
             setError(err.response?.data?.message || 'Failed to load notifications.');
         } finally {
             setIsLoading(false);
