@@ -19,6 +19,7 @@ import SinglePost from './pages/SinglePost';
 import Notifications from './pages/Notifications';
 import HomePage from './pages/HomePage';
 
+
 const ProtectedRoute = ({ children }) => {
     const { user } = useContext(AuthContext);
     if (!user) {

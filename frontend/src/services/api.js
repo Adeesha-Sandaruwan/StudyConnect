@@ -8,8 +8,16 @@ const api = axios.create({
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        const publicPaths = ['/login', '/register'];
-        const isPublicPath = publicPaths.includes(window.location.pathname);
+        // FIX: Added the root Homepage ('/') to the exact match list
+        const publicPaths = ['/login', '/register', '/'];
+        const currentPath = window.location.pathname;
+
+        // FIX: Added .startsWith() to safely catch dynamic reset-password tokens
+        const isPublicPath = 
+            publicPaths.includes(currentPath) || 
+            currentPath.startsWith('/resetpassword') || 
+            currentPath.startsWith('/reset-password') ||
+            currentPath.startsWith('/forgot-password');
 
         if (error.response && error.response.status === 401 && !isPublicPath) {
             window.location.href = '/login';

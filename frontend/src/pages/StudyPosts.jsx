@@ -5,9 +5,10 @@ import api from '../services/api';
 import CreatePostModal from '../components/CreatePostModal';
 
 const StudyPosts = () => {
-    const { user } = useContext(AuthContext); // Bring user in to highlight their active votes
+    const { user } = useContext(AuthContext);
     const [posts, setPosts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isVerified, setIsVerified] = useState(false);
     
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -21,6 +22,22 @@ const StudyPosts = () => {
         'Mathematics', 'Physics', 'Chemistry', 'Biology', 
         'Computer Science', 'Languages', 'Business', 'Other'
     ];
+
+    useEffect(() => {
+        const checkVerification = async () => {
+            if (user?.role === 'admin') {
+                setIsVerified(true);
+                return;
+            }
+            try {
+                const res = await api.get('/profiles/me');
+                setIsVerified(res.data.verificationStatus === 'verified');
+            } catch {
+                setIsVerified(false);
+            }
+        };
+        checkVerification();
+    }, [user]);
 
     useEffect(() => {
         fetchPosts();
@@ -37,7 +54,7 @@ const StudyPosts = () => {
             setPosts(res.data.posts);
             setTotalPages(res.data.pages);
         } catch (error) {
-            console.error("Failed to fetch posts:", error);
+            console.error(error);
         } finally {
             setIsLoading(false);
         }
@@ -59,17 +76,17 @@ const StudyPosts = () => {
         fetchPosts(); 
     };
 
-    // NEW: Handle Upvote/Downvote directly from the feed
     const handleVote = async (e, postId, type) => {
-        e.preventDefault(); // Prevents the <Link> from triggering navigation
+        e.preventDefault();
+        if (!isVerified) {
+            alert('You must complete onboarding and be verified by an admin to vote.');
+            return;
+        }
         try {
             const res = await api.put(`/studyposts/${postId}/${type}`);
-            // Optimistically update the local state so the UI feels instantaneous
-            setPosts(posts.map(p => 
-                p._id === postId ? { ...p, upvotes: res.data.upvotes, downvotes: res.data.downvotes } : p
-            ));
+            setPosts(posts.map(p => p._id === postId ? { ...p, upvotes: res.data.upvotes, downvotes: res.data.downvotes } : p));
         } catch (err) {
-            console.error(`Failed to ${type} post:`, err);
+            console.error(err);
         }
     };
 
@@ -94,9 +111,11 @@ const StudyPosts = () => {
                         {SUBJECTS.map(sub => <option key={sub} value={sub}>{sub}</option>)}
                     </select>
 
-                    <button onClick={() => setIsCreateModalOpen(true)} className="bg-[#5b7cfa] text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-[#4a6be0] hover:-translate-y-0.5 transition-all whitespace-nowrap">
-                        + Create Post
-                    </button>
+                    {isVerified && (
+                        <button onClick={() => setIsCreateModalOpen(true)} className="bg-[#5b7cfa] text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-[#4a6be0] hover:-translate-y-0.5 transition-all whitespace-nowrap">
+                            + Create Post
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -140,7 +159,6 @@ const StudyPosts = () => {
                                     <p className="text-gray-600 text-sm line-clamp-3">{post.description}</p>
                                 </div>
 
-                                {/* NEW: Interactive Footer */}
                                 <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center text-sm font-semibold text-gray-500">
                                     <div className="flex items-center gap-2">
                                         <button onClick={(e) => handleVote(e, post._id, 'upvote')} className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${hasUpvoted ? 'bg-green-100 text-green-700' : 'hover:bg-gray-100'}`}>
