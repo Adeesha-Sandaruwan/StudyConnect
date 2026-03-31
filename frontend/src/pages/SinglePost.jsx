@@ -12,14 +12,28 @@ const SinglePost = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+    const [isVerified, setIsVerified] = useState(false);
 
     const [answerText, setAnswerText] = useState('');
     const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
     const [answerError, setAnswerError] = useState('');
 
     useEffect(() => {
+        const checkVerification = async () => {
+            if (user?.role === 'admin') {
+                setIsVerified(true);
+                return;
+            }
+            try {
+                const res = await api.get('/profiles/me');
+                setIsVerified(res.data.verificationStatus === 'verified');
+            } catch {
+                setIsVerified(false);
+            }
+        };
+        checkVerification();
         fetchPost();
-    }, [id]);
+    }, [id, user]);
 
     const fetchPost = async () => {
         setIsLoading(true);
@@ -27,18 +41,22 @@ const SinglePost = () => {
             const res = await api.get(`/studyposts/${id}`);
             setPost(res.data);
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to load the study post. It may have been deleted.');
+            setError(err.response?.data?.message || 'Failed to load the study post.');
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleVote = async (type) => {
+        if (!isVerified) {
+            alert('You must complete onboarding and be verified by an admin to vote.');
+            return;
+        }
         try {
             const res = await api.put(`/studyposts/${id}/${type}`);
             setPost(prev => ({ ...prev, upvotes: res.data.upvotes, downvotes: res.data.downvotes }));
         } catch (err) {
-            console.error(`Failed to ${type} post:`, err);
+            console.error(err);
         }
     };
 
@@ -54,7 +72,7 @@ const SinglePost = () => {
 
     const handleAddAnswer = async (e) => {
         e.preventDefault();
-        if (!answerText.trim()) return;
+        if (!isVerified || !answerText.trim()) return;
         setAnswerError('');
         setIsSubmittingAnswer(true);
 
@@ -78,7 +96,6 @@ const SinglePost = () => {
             await api.delete(`/studyposts/${id}/answer/${answerId}`);
             setPost(prev => ({ ...prev, answers: prev.answers.filter(a => a._id !== answerId) }));
         } catch (err) {
-            // FIX: Actually use the 'err' variable here!
             alert(err.response?.data?.message || 'Failed to delete answer.');
         }
     };
@@ -88,14 +105,7 @@ const SinglePost = () => {
     const isPdf = (url) => url?.toLowerCase().includes('.pdf');
 
     if (isLoading) return <div className="min-h-[80vh] flex justify-center items-center"><div className="w-12 h-12 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div></div>;
-    
-    if (error || !post) return (
-        <div className="max-w-3xl mx-auto p-8 mt-12 bg-white rounded-3xl shadow-sm text-center">
-            <span className="text-5xl mb-4 block">🚫</span>
-            <h2 className="text-2xl font-bold text-gray-800">{error || 'Post not found'}</h2>
-            <button onClick={() => navigate('/posts')} className="mt-6 bg-[#5b7cfa] text-white px-6 py-2.5 rounded-xl font-bold hover:bg-[#4a6be0]">← Back to Feed</button>
-        </div>
-    );
+    if (error || !post) return <div className="max-w-3xl mx-auto p-8 mt-12 bg-white rounded-3xl shadow-sm text-center"><span className="text-5xl mb-4 block">🚫</span><h2 className="text-2xl font-bold text-gray-800">{error || 'Post not found'}</h2><button onClick={() => navigate('/posts')} className="mt-6 bg-[#5b7cfa] text-white px-6 py-2.5 rounded-xl font-bold hover:bg-[#4a6be0]">← Back to Feed</button></div>;
 
     const canDeletePost = user?._id === post.user?._id || user?.role === 'admin';
     const hasUpvoted = post.upvotes?.includes(user?._id);
@@ -238,16 +248,16 @@ const SinglePost = () => {
             
             <div className="mt-8">
                 {answerError && <p className="text-red-500 text-sm font-bold ml-6 mb-2">⚠️ {answerError}</p>}
-                <form onSubmit={handleAddAnswer} className="bg-white p-2 pl-6 rounded-full shadow-sm border border-gray-200 flex items-center focus-within:ring-2 focus-within:ring-[#5b7cfa] transition-all">
+                <form onSubmit={handleAddAnswer} className={`bg-white p-2 pl-6 rounded-full shadow-sm border border-gray-200 flex items-center transition-all ${isVerified ? 'focus-within:ring-2 focus-within:ring-[#5b7cfa]' : 'opacity-70 bg-gray-50'}`}>
                     <input 
                         type="text" 
-                        placeholder="Type your answer here..." 
+                        placeholder={isVerified ? "Type your answer here..." : "⚠️ You must complete onboarding & be verified to post answers."}
                         value={answerText}
                         onChange={(e) => setAnswerText(e.target.value)}
-                        className="flex-1 bg-transparent outline-none text-sm font-medium" 
-                        disabled={isSubmittingAnswer}
+                        className="flex-1 bg-transparent outline-none text-sm font-medium disabled:cursor-not-allowed" 
+                        disabled={!isVerified || isSubmittingAnswer}
                     />
-                    <button type="submit" disabled={isSubmittingAnswer || !answerText.trim()} className={`bg-[#5b7cfa] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-md transition-colors ${isSubmittingAnswer || !answerText.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#4a6be0]'}`}>
+                    <button type="submit" disabled={!isVerified || isSubmittingAnswer || !answerText.trim()} className={`px-6 py-2.5 rounded-full font-bold text-sm shadow-md transition-colors ${!isVerified || isSubmittingAnswer || !answerText.trim() ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#5b7cfa] text-white hover:bg-[#4a6be0]'}`}>
                         {isSubmittingAnswer ? 'Posting...' : 'Post Answer'}
                     </button>
                 </form>
