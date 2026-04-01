@@ -16,9 +16,14 @@ const HomePage = () => {
     const SUBJECTS = [
         "Mathematics", "Physics", "Computer Science", "Biology", 
         "Chemistry", "Business", "Economics", "Languages",
-        "History", "Literature", "Engineering", "Medicine",
-        "Mathematics", "Physics", "Computer Science", "Biology", 
-        "Chemistry", "Business", "Economics", "Languages"
+        "History", "Literature", "Engineering", "Medicine"
+    ];
+
+    const HERO_IMAGES = [
+        "https://ideogram.ai/assets/image/balanced/response/HnJniNonRbWqdNdhAqHCeA",
+        "https://ideogram.ai/assets/image/balanced/response/647i1IedRtqehclVQTxr3w",
+        "https://ideogram.ai/assets/image/balanced/response/V6iW_6RRQNGxsHmyrWhpDg",
+        "https://ideogram.ai/assets/image/balanced/response/8GGG0Hz_QV2dCsURUlEv1A"
     ];
 
     const scrollToSection = (sectionId) => {
@@ -40,19 +45,15 @@ const HomePage = () => {
         <div className="min-h-screen bg-[#eef2f6] font-sans overflow-x-hidden flex flex-col">
             <style>
                 {`
-                    @keyframes scroll {
-                        0% { transform: translateX(0); }
-                        100% { transform: translateX(-50%); }
-                    }
-                    .animate-marquee {
-                        display: flex;
-                        width: 200%;
-                        animation: scroll 25s linear infinite;
-                    }
-                    .animate-marquee:hover {
-                        animation-play-state: paused;
-                    }
                     html { scroll-behavior: smooth; }
+                    @keyframes float {
+                        0% { transform: translateY(0px); }
+                        50% { transform: translateY(-12px); }
+                        100% { transform: translateY(0px); }
+                    }
+                    .animate-float {
+                        animation: float 6s ease-in-out infinite;
+                    }
                 `}
             </style>
 
@@ -131,53 +132,74 @@ const HomePage = () => {
 
             <div className="h-20"></div>
 
-            <section id="home" className="flex flex-col justify-center items-center text-center px-4 sm:px-6 pt-16 pb-24 lg:pt-32 z-10 relative">
-                <span className="inline-flex items-center gap-2 bg-white text-[#5b7cfa] px-5 py-2 rounded-full text-sm font-extrabold tracking-wide mb-8 shadow-sm border border-blue-100 relative z-10">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    A Community-Driven Volunteer Platform
-                </span>
-                
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 tracking-tight max-w-5xl leading-tight relative z-10">
-                    Empowering students through <br className="hidden md:block" />
-                    <span className="text-[#5b7cfa]">shared knowledge.</span>
-                </h1>
-                
-                <p className="mt-8 text-lg md:text-xl text-gray-500 max-w-3xl relative z-10 leading-relaxed">
-                    Join our network of dedicated volunteer educators and ambitious learners. Give back by tutoring, ask questions when you are stuck, and build a brighter academic future together for free.
-                </p>
-                
-                <div className="mt-12 flex flex-col sm:flex-row gap-4 relative z-10">
-                    {user ? (
-                        <Link to={getDashboardLink()} className="bg-[#5b7cfa] text-white px-8 py-4 rounded-full font-extrabold text-lg shadow-xl hover:bg-[#4a6be0] transition-colors">
-                            Go to your Dashboard →
-                        </Link>
-                    ) : (
-                        <>
-                            <Link to="/register" className="bg-[#5b7cfa] text-white px-8 py-4 rounded-full font-extrabold text-lg shadow-xl hover:bg-[#4a6be0] transition-colors">
-                                Become a Volunteer
+            <section id="home" className="flex flex-col lg:flex-row justify-center items-center px-4 sm:px-6 lg:px-12 pt-16 pb-24 lg:pt-32 z-10 relative max-w-7xl mx-auto gap-12">
+                <div className="flex-1 text-center lg:text-left">
+                    <span className="inline-flex items-center gap-2 bg-white text-[#5b7cfa] px-5 py-2 rounded-full text-sm font-extrabold tracking-wide mb-8 shadow-sm border border-blue-100">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        A Community-Driven Volunteer Platform
+                    </span>
+                    
+                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 tracking-tight leading-tight mb-8">
+                        Empowering students through <br className="hidden md:block" />
+                        <span className="text-[#5b7cfa]">shared knowledge.</span>
+                    </h1>
+                    
+                    <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto lg:mx-0 leading-relaxed mb-10">
+                        Join our network of dedicated volunteer educators and ambitious learners. Give back by tutoring, ask questions when you are stuck, and build a brighter academic future together for free.
+                    </p>
+                    
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        {user ? (
+                            <Link to={getDashboardLink()} className="bg-[#5b7cfa] text-white px-8 py-4 rounded-full font-extrabold text-lg shadow-md hover:bg-[#4a6be0] transition-colors text-center">
+                                Go to your Dashboard →
                             </Link>
-                            <button onClick={() => scrollToSection('about')} className="bg-white text-gray-800 border-2 border-gray-200 px-8 py-4 rounded-full font-extrabold text-lg hover:border-[#5b7cfa] hover:text-[#5b7cfa] transition-colors">
-                                Discover More
-                            </button>
-                        </>
-                    )}
+                        ) : (
+                            <>
+                                <Link to="/register" className="bg-[#5b7cfa] text-white px-8 py-4 rounded-full font-extrabold text-lg shadow-md hover:bg-[#4a6be0] transition-colors text-center">
+                                    Become a Volunteer
+                                </Link>
+                                <button onClick={() => scrollToSection('about')} className="bg-white text-gray-800 border-2 border-gray-200 px-8 py-4 rounded-full font-extrabold text-lg hover:border-[#5b7cfa] hover:text-[#5b7cfa] transition-colors text-center">
+                                    Discover More
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex-1 w-full max-w-2xl">
+                    <div className="grid grid-cols-2 gap-4 h-[400px] sm:h-[500px]">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex-1 rounded-3xl overflow-hidden shadow-xl border-4 border-white animate-float" style={{ animationDelay: '0s' }}>
+                                <img src={HERO_IMAGES[0]} alt="Volunteer Tutoring" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 rounded-3xl overflow-hidden shadow-xl border-4 border-white animate-float" style={{ animationDelay: '2s' }}>
+                                <img src={HERO_IMAGES[1]} alt="Community Learning" className="w-full h-full object-cover" />
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-4 pt-8">
+                            <div className="flex-1 rounded-3xl overflow-hidden shadow-xl border-4 border-white animate-float" style={{ animationDelay: '1s' }}>
+                                <img src={HERO_IMAGES[2]} alt="Online Education" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 rounded-3xl overflow-hidden shadow-xl border-4 border-white animate-float" style={{ animationDelay: '3s' }}>
+                                <img src={HERO_IMAGES[3]} alt="Student Success" className="w-full h-full object-cover" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            <div className="bg-white py-16 border-y border-gray-100 overflow-hidden relative shadow-sm">
-                <div className="absolute left-0 top-0 w-48 h-full bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-                <div className="absolute right-0 top-0 w-48 h-full bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-                
-                <p className="text-center text-sm font-extrabold text-gray-400 uppercase tracking-widest mb-10">Volunteers available across diverse fields</p>
-                
-                <div className="animate-marquee gap-6 items-center flex">
-                    {SUBJECTS.map((subject, idx) => (
-                        <div key={idx} className="flex items-center justify-center bg-[#f8fafc] border border-gray-100 text-gray-800 px-10 py-5 rounded-3xl font-extrabold text-lg whitespace-nowrap shadow-sm min-w-[220px]">
-                            {subject}
-                        </div>
-                    ))}
+            <div className="bg-white py-16 border-y border-gray-100 shadow-sm px-4">
+                <div className="max-w-7xl mx-auto">
+                    <p className="text-center text-sm font-extrabold text-gray-400 uppercase tracking-widest mb-10">Volunteers available across diverse fields</p>
+                    <div className="flex flex-wrap justify-center gap-4">
+                        {SUBJECTS.map((subject, idx) => (
+                            <div key={idx} className="bg-[#f8fafc] border border-gray-100 text-gray-700 px-6 py-3 rounded-full font-bold text-sm shadow-sm transition-colors hover:border-[#5b7cfa] hover:text-[#5b7cfa] cursor-default">
+                                {subject}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -192,8 +214,8 @@ const HomePage = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                    <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:border-blue-100 hover:shadow-lg transition-all">
-                        <div className="w-16 h-16 bg-blue-50 text-[#5b7cfa] rounded-2xl flex items-center justify-center mb-8">
+                    <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:border-blue-100 hover:shadow-md transition-all group">
+                        <div className="w-16 h-16 bg-blue-50 text-[#5b7cfa] rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
                             <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
@@ -202,8 +224,8 @@ const HomePage = () => {
                         <p className="text-gray-500 leading-relaxed text-lg">Post challenging questions, attach your study materials, and let our community of volunteers break down the solutions step-by-step.</p>
                     </div>
                     
-                    <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:border-purple-100 hover:shadow-lg transition-all">
-                        <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-8">
+                    <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:border-purple-100 hover:shadow-md transition-all group">
+                        <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
                             <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
@@ -212,8 +234,8 @@ const HomePage = () => {
                         <p className="text-gray-500 leading-relaxed text-lg">To protect the integrity of our platform, all volunteer tutors undergo an administrative verification process to ensure high-quality mentorship.</p>
                     </div>
                     
-                    <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:border-green-100 hover:shadow-lg transition-all">
-                        <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-8">
+                    <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:border-green-100 hover:shadow-md transition-all group">
+                        <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
                             <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                             </svg>
@@ -234,7 +256,7 @@ const HomePage = () => {
                     
                     <a 
                         href="mailto:support@studyconnect.edu" 
-                        className="inline-flex items-center gap-4 bg-[#f8fafc] border-2 border-gray-100 hover:border-[#5b7cfa] px-10 py-6 rounded-3xl transition-all group shadow-sm hover:shadow-md"
+                        className="inline-flex items-center gap-4 bg-[#f8fafc] border-2 border-gray-100 hover:border-[#5b7cfa] px-10 py-6 rounded-3xl transition-all group shadow-sm hover:shadow-md hover:-translate-y-1"
                     >
                         <div className="w-14 h-14 bg-[#5b7cfa] text-white rounded-2xl flex items-center justify-center">
                             <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
