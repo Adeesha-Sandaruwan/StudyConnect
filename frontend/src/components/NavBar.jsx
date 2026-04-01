@@ -3,13 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 
-// Passed unreadCount as a prop so both Mobile and Desktop menus get the badge
 const NavLinks = ({ homeLink, currentPath, closeMenu, unreadCount }) => (
     <>
+        <Link to="/" className={`font-bold transition-colors ${currentPath === '/' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Home</Link>
         <Link to={homeLink} className={`font-bold transition-colors ${currentPath === homeLink ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Dashboard</Link>
         <Link to="/posts" className={`font-bold transition-colors ${currentPath === '/posts' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Study Posts</Link>
         
-        {/* Notifications Link with Dynamic Badge */}
         <Link to="/notifications" className={`relative font-bold transition-colors flex items-center gap-1.5 ${currentPath === '/notifications' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
             Notifications
             {unreadCount > 0 && (
@@ -30,7 +29,6 @@ const NavBar = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
 
-    // Silent fetch to count unread notifications
     useEffect(() => {
         if (user) {
             const fetchUnreadCount = async () => {
@@ -45,7 +43,7 @@ const NavBar = () => {
             
             fetchUnreadCount();
         }
-    }, [user, location.pathname]); // Re-runs whenever the user navigates so the badge stays accurate!
+    }, [user, location.pathname]);
 
     const hideOnPaths = ['/login', '/register', '/onboarding', '/forgot-password'];
     if (!user || hideOnPaths.some(path => location.pathname.startsWith(path))) {
@@ -71,7 +69,7 @@ const NavBar = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16">
                     <div className="flex items-center">
-                        <Link to={homeLink} className="text-2xl font-extrabold text-[#5b7cfa] tracking-tight">
+                        <Link to="/" className="text-2xl font-extrabold text-[#5b7cfa] tracking-tight">
                             StudyConnect
                         </Link>
                     </div>
