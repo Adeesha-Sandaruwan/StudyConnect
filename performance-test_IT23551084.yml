@@ -1,0 +1,14 @@
+config:
+  target: "http://localhost:5000"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      rampTo: 30
+      name: "Simulated Student Load"
+scenarios:
+  - name: "Health Check Ping"
+    flow:
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
