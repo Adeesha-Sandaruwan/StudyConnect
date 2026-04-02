@@ -7,6 +7,13 @@ import TutorHeroImage from '../assets/tutor-hero.svg';
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
+const buildLessonDateTime = (date, time) => {
+    if (!date) return '';
+    const iso = time ? `${date}T${time}` : date;
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+};
+
 const TutorDashboard = () => {
     const { user } = useContext(AuthContext);
     const [searchParams, setSearchParams] = useSearchParams();
@@ -25,6 +32,7 @@ const TutorDashboard = () => {
     const [grade, setGrade] = useState(10);
     const [weekNumber, setWeekNumber] = useState(1);
     const [lessonDate, setLessonDate] = useState(todayInput());
+    const [lessonTime, setLessonTime] = useState('09:00');
     const [description, setDescription] = useState('');
     const [contentText, setContentText] = useState('');
     const [homework, setHomework] = useState('');
@@ -70,6 +78,7 @@ const TutorDashboard = () => {
         setGrade(10);
         setWeekNumber(1);
         setLessonDate(todayInput());
+        setLessonTime('09:00');
         setDescription('');
         setContentText('');
         setHomework('');
@@ -94,7 +103,7 @@ const TutorDashboard = () => {
                 moduleType,
                 grade: moduleType === 'course' ? 0 : Number(grade),
                 weekNumber: Number(weekNumber),
-                lessonDate: lessonDate ? new Date(lessonDate).toISOString() : '',
+                lessonDate: buildLessonDateTime(lessonDate, moduleType === 'school' ? lessonTime : ''),
                 description,
                 contentText,
                 homework,
@@ -422,6 +431,22 @@ const TutorDashboard = () => {
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/40"
                                     />
                                 </div>
+                                {moduleType === 'school' ? (
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Time</label>
+                                        <input
+                                            type="time"
+                                            required
+                                            value={lessonTime}
+                                            onChange={(e) => setLessonTime(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/40"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                        Course modules do not use live online classes; recording-only content is preferred.
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Status</label>

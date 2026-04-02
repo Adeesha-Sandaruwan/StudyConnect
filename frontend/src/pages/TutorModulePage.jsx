@@ -1,11 +1,12 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { fetchMySubjectContents } from '../services/subjectContentApi';
 import ModuleAIAssistant from '../components/tutor/ModuleAIAssistant';
 import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
 const TutorModulePage = () => {
     const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
     const { grade: gradeParam, subjectSlug } = useParams();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -166,12 +167,17 @@ const TutorModulePage = () => {
                                                         {tutorPdfs.length === 1 ? '' : 's'}
                                                     </span>
                                                 ) : null}
-                                                <Link
-                                                    to={`/tutor-dashboard/lesson/${lesson._id}`}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (lesson._id) {
+                                                            navigate(`/tutor-dashboard/lesson/${String(lesson._id)}`);
+                                                        }
+                                                    }}
                                                     className="rounded-xl bg-slate-900 text-white text-xs font-bold px-4 py-2 hover:bg-slate-800 transition-colors"
                                                 >
                                                     Edit week
-                                                </Link>
+                                                </button>
                                             </div>
                                         </div>
                                     </li>

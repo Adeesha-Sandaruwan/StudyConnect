@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { fetchPublishedSubjectContents } from '../services/subjectContentApi';
 import ModuleAIAssistant from '../components/tutor/ModuleAIAssistant';
+import { formatLessonDateTime } from '../utils/subjectModules';
 import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
 const StudentModulePage = () => {
     const { user } = useContext(AuthContext);
@@ -157,13 +158,7 @@ const StudentModulePage = () => {
                                                                     {lesson.title}
                                                                 </h2>
                                                                 <p className="text-sm text-slate-500">
-                                                                    {lesson.lessonDate
-                                                                        ? new Date(lesson.lessonDate).toLocaleDateString(undefined, {
-                                                                              year: 'numeric',
-                                                                              month: 'short',
-                                                                              day: 'numeric',
-                                                                          })
-                                                                        : ''}
+                                                                    {lesson.lessonDate ? formatLessonDateTime(lesson.lessonDate, true) : ''}
                                                                     {lessonPdfs.length ? (
                                                                         <span className="text-indigo-600 font-semibold">
                                                                             {' '}

@@ -25,6 +25,24 @@ export function modulePath(grade, subject) {
     return `/tutor-dashboard/module/${grade}/${encodeURIComponent(subject.trim())}`;
 }
 
+export function formatLessonDateTime(dateString, includeTime = false) {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    if (Number.isNaN(d.getTime())) return '';
+    const options = {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    };
+    if (includeTime) {
+        options.hour = '2-digit';
+        options.minute = '2-digit';
+        options.hour12 = false;
+    }
+    return d.toLocaleString(undefined, options);
+}
+
 function tutorIdOf(lesson) {
     const c = lesson?.createdBy;
     if (!c) return '';

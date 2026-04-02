@@ -2,7 +2,7 @@ import { useCallback, useContext, useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { fetchPublishedSubjectContents, getSubjectPdfWindowUrl } from '../services/subjectContentApi';
-import { studentModulePath } from '../utils/subjectModules';
+import { studentModulePath, formatLessonDateTime } from '../utils/subjectModules';
 import StudentLessonResources from '../components/student/StudentLessonResources';
 import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
 
@@ -92,12 +92,7 @@ const StudentLessonPage = () => {
                                             {lesson.lessonDate ? (
                                                 <>
                                                     <span className="text-slate-400"> · </span>
-                                                    {new Date(lesson.lessonDate).toLocaleDateString(undefined, {
-                                                        weekday: 'short',
-                                                        year: 'numeric',
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                    })}
+                                                    {formatLessonDateTime(lesson.lessonDate, true)}
                                                 </>
                                             ) : null}
                                         </p>

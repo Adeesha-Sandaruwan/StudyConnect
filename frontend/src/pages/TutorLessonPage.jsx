@@ -28,6 +28,20 @@ function toDateInput(iso) {
     return d.toISOString().slice(0, 10);
 }
 
+function toTimeInput(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toISOString().slice(11, 16);
+}
+
+function buildLessonDateTime(date, time) {
+    if (!date) return '';
+    const iso = time ? `${date}T${time}` : date;
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+}
+
 function splitLinks(text) {
     if (!text || !String(text).trim()) return [];
     const lines = String(text)
@@ -55,6 +69,7 @@ const TutorLessonPage = () => {
     const [grade, setGrade] = useState(10);
     const [weekNumber, setWeekNumber] = useState(1);
     const [lessonDate, setLessonDate] = useState('');
+    const [lessonTime, setLessonTime] = useState('09:00');
     const [description, setDescription] = useState('');
     const [contentText, setContentText] = useState('');
     const [homework, setHomework] = useState('');
@@ -83,6 +98,7 @@ const TutorLessonPage = () => {
                 setGrade(Number(data.grade) || 0);
                 setWeekNumber(Number(data.weekNumber) || 1);
                 setLessonDate(toDateInput(data.lessonDate));
+                setLessonTime(toTimeInput(data.lessonDate));
                 setDescription(data.description || '');
                 setContentText(data.contentText || '');
                 setHomework(data.homework || '');
@@ -118,7 +134,7 @@ const TutorLessonPage = () => {
         moduleType,
         grade: moduleType === 'course' ? 0 : Number(grade),
         weekNumber: Number(weekNumber),
-        lessonDate: lessonDate ? new Date(lessonDate).toISOString() : '',
+        lessonDate: buildLessonDateTime(lessonDate, moduleType === 'school' ? lessonTime : ''),
         description,
         contentText,
         homework,
@@ -197,6 +213,12 @@ const TutorLessonPage = () => {
     const removePdfAt = (index) => {
         setPdfList((prev) => prev.filter((_, i) => i !== index));
     };
+
+    useEffect(() => {
+        if (moduleType === 'course') {
+            setMeetingLink('');
+        }
+    }, [moduleType]);
 
     if (loading) {
         return (
@@ -347,6 +369,22 @@ const TutorLessonPage = () => {
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
                                     />
                                 </div>
+                                {moduleType === 'school' ? (
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Class time</label>
+                                        <input
+                                            type="time"
+                                            required
+                                            value={lessonTime}
+                                            onChange={(e) => setLessonTime(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                        Course modules are recording-only and do not use a live meeting time.
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
                                     <select
@@ -494,17 +532,23 @@ const TutorLessonPage = () => {
                                             placeholder="https://"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                                            Meeting link
-                                        </label>
-                                        <input
-                                            value={meetingLink}
-                                            onChange={(e) => setMeetingLink(e.target.value)}
-                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none"
-                                            placeholder="https://"
-                                        />
-                                    </div>
+                                    {moduleType === 'school' ? (
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                                                Meeting link
+                                            </label>
+                                            <input
+                                                value={meetingLink}
+                                                onChange={(e) => setMeetingLink(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none"
+                                                placeholder="https://"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="sm:col-span-2 rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                            Course modules are recording-only and do not use live meeting links. Add video links instead.
+                                        </div>
+                                    )}
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                                             Worksheet URL

@@ -2,7 +2,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { fetchPublishedSubjectContents } from '../services/subjectContentApi';
-import { groupPublishedByTutorModule, studentModulePath } from '../utils/subjectModules';
+import { groupPublishedByTutorModule, studentModulePath, formatLessonDateTime } from '../utils/subjectModules';
 
 const StudentDashboard = () => {
     const { user } = useContext(AuthContext);
@@ -155,17 +155,32 @@ const StudentDashboard = () => {
                                             </div>
                                         </div>
                                         <h3 className="text-lg font-extrabold text-slate-800 mb-1">{mod.subject}</h3>
-                                        <p
-                                            className={`text-xs font-bold inline-flex rounded-lg px-2.5 py-1 w-fit mb-3 ${
-                                                mod.grade === 0
-                                                    ? 'text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-100'
-                                                    : 'text-sky-700 bg-sky-50 border border-sky-100'
-                                            }`}
-                                        >
-                                            {mod.grade === 0 ? 'Course module' : `Grade ${mod.grade}`}
-                                        </p>
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            <p
+                                                className={`text-xs font-bold inline-flex rounded-lg px-2.5 py-1 w-fit ${
+                                                    mod.grade === 0
+                                                        ? 'text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-100'
+                                                        : 'text-sky-700 bg-sky-50 border border-sky-100'
+                                                }`}
+                                            >
+                                                {mod.grade === 0 ? 'Course module' : `Grade ${mod.grade}`}
+                                            </p>
+                                            {mod.grade === 0 ? (
+                                                <span className="text-xs font-bold inline-flex rounded-lg px-2.5 py-1 text-fuchsia-700 bg-fuchsia-100/80 border border-fuchsia-200">
+                                                    Recording only
+                                                </span>
+                                            ) : null}
+                                        </div>
                                         <p className="text-xs text-slate-600 flex-1 leading-relaxed mb-5">
-                                            {pubCount} published week{pubCount === 1 ? '' : 's'}
+                                            {mod.grade === 0 ? (
+                                                'Published content without live class schedule.'
+                                            ) : (
+                                                <>
+                                                    Next class: <span className="font-semibold text-slate-800">
+                                                        {formatLessonDateTime(mod.lessons[mod.lessons.length - 1]?.lessonDate, true) || 'TBA'}
+                                                    </span>
+                                                </>
+                                            )}
                                             <span className="text-slate-400"> · </span>
                                             latest: <span className="font-semibold text-slate-800">{mod.lessons[mod.lessons.length - 1]?.title}</span>
                                         </p>
