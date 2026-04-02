@@ -32,10 +32,14 @@ const StudentDashboard = () => {
 
     const filtered = useMemo(() => {
         const sq = subjectQuery.trim().toLowerCase();
-        const gf = gradeFilter === '' ? null : Number(gradeFilter);
 
         return modules.filter((m) => {
-            if (gf !== null && !Number.isNaN(gf) && m.grade !== gf) return false;
+            if (gradeFilter === 'course') {
+                if (m.grade !== 0) return false;
+            } else {
+                const gf = gradeFilter === '' ? null : Number(gradeFilter);
+                if (gf !== null && !Number.isNaN(gf) && m.grade !== gf) return false;
+            }
             if (sq && !String(m.subject).toLowerCase().includes(sq)) return false;
             return true;
         });
@@ -76,16 +80,17 @@ const StudentDashboard = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Grade</label>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Grade / type</label>
                             <select
                                 value={gradeFilter}
                                 onChange={(e) => setGradeFilter(e.target.value)}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm w-full sm:w-32 focus:outline-none focus:ring-2 focus:ring-sky-400/40"
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm w-full sm:w-40 focus:outline-none focus:ring-2 focus:ring-sky-400/40"
                             >
                                 <option value="">All</option>
+                                <option value="course">Course modules</option>
                                 {Array.from({ length: 13 }, (_, i) => i + 1).map((g) => (
                                     <option key={g} value={g}>
-                                        {g}
+                                        Grade {g}
                                     </option>
                                 ))}
                             </select>
@@ -150,7 +155,13 @@ const StudentDashboard = () => {
                                             </div>
                                         </div>
                                         <h3 className="text-lg font-extrabold text-slate-800 mb-1">{mod.subject}</h3>
-                                        <p className="text-xs font-bold text-sky-700 bg-sky-50 border border-sky-100 inline-flex rounded-lg px-2.5 py-1 w-fit mb-3">
+                                        <p
+                                            className={`text-xs font-bold inline-flex rounded-lg px-2.5 py-1 w-fit mb-3 ${
+                                                mod.grade === 0
+                                                    ? 'text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-100'
+                                                    : 'text-sky-700 bg-sky-50 border border-sky-100'
+                                            }`}
+                                        >
                                             {mod.grade === 0 ? 'Course module' : `Grade ${mod.grade}`}
                                         </p>
                                         <p className="text-xs text-slate-600 flex-1 leading-relaxed mb-5">
