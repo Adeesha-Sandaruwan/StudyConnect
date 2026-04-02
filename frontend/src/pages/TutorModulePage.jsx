@@ -85,7 +85,7 @@ const TutorModulePage = () => {
                                     {subject}
                                 </h1>
                                 <span className="mb-1.5 inline-flex items-center rounded-full bg-slate-900 text-white text-xs font-bold px-3 py-1">
-                                    Grade {grade}
+                                    {grade === 0 ? 'Course module' : `Grade ${grade}`}
                                 </span>
                             </div>
                             <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">

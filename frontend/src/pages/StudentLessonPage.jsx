@@ -82,7 +82,7 @@ const StudentLessonPage = () => {
                                     </span>
                                     <div className="min-w-0">
                                         <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                                            {lesson.subject} · Grade {lesson.grade}
+                                            {lesson.subject} · {lesson.grade === 0 ? 'Course module' : `Grade ${lesson.grade}`}
                                         </p>
                                         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
                                             {lesson.title}

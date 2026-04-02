@@ -55,6 +55,7 @@ function buildSubjectContentFormData(payload, pdfFile) {
 
     fd.append('title', p.title ?? '');
     fd.append('subject', p.subject ?? '');
+    fd.append('moduleType', p.moduleType ?? 'school');
     fd.append('grade', String(p.grade ?? ''));
     fd.append('weekNumber', String(p.weekNumber ?? ''));
     fd.append('lessonDate', p.lessonDate ?? '');

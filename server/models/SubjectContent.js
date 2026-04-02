@@ -20,7 +20,13 @@ const subjectContentSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 120 }, // lesson title shown in UI
     subject: { type: String, required: true, trim: true }, // ICT, Maths...
-    grade: { type: Number, required: true, min: 1, max: 13 }, // 10
+    moduleType: {
+      type: String,
+      enum: ["school", "course"],
+      default: "school",
+      required: true,
+    },
+    grade: { type: Number, min: 0, max: 13 }, // 10 or 0 for course modules
     weekNumber: { type: Number, required: true, min: 1, max: 52 },
     lessonDate: { type: Date, required: true }, //  date
 

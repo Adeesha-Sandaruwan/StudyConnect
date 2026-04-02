@@ -21,6 +21,7 @@ const TutorDashboard = () => {
 
     const [title, setTitle] = useState('');
     const [subject, setSubject] = useState('');
+    const [moduleType, setModuleType] = useState('school');
     const [grade, setGrade] = useState(10);
     const [weekNumber, setWeekNumber] = useState(1);
     const [lessonDate, setLessonDate] = useState(todayInput());
@@ -65,6 +66,7 @@ const TutorDashboard = () => {
     const resetCreateForm = () => {
         setTitle('');
         setSubject('');
+        setModuleType('school');
         setGrade(10);
         setWeekNumber(1);
         setLessonDate(todayInput());
@@ -89,7 +91,8 @@ const TutorDashboard = () => {
             const payload = {
                 title,
                 subject,
-                grade: Number(grade),
+                moduleType,
+                grade: moduleType === 'course' ? 0 : Number(grade),
                 weekNumber: Number(weekNumber),
                 lessonDate: lessonDate ? new Date(lessonDate).toISOString() : '',
                 description,
@@ -272,7 +275,7 @@ const TutorDashboard = () => {
                                                     {mod.subject}
                                                 </h3>
                                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-1">
-                                                    Grade {mod.grade}
+                                                    {mod.grade === 0 ? 'Course module' : `Grade ${mod.grade}`}
                                                 </p>
                                             </div>
                                             <span className="shrink-0 rounded-xl bg-slate-100 text-slate-800 text-[11px] font-black px-2.5 py-1">
@@ -357,7 +360,7 @@ const TutorDashboard = () => {
                                     placeholder="e.g. Introduction to databases"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Subject</label>
                                     <input
@@ -365,21 +368,38 @@ const TutorDashboard = () => {
                                         value={subject}
                                         onChange={(e) => setSubject(e.target.value)}
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/40"
-                                        placeholder="AL ICT"
+                                        placeholder="AL ICT or MERN Stack"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Grade</label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={13}
-                                        required
-                                        value={grade}
-                                        onChange={(e) => setGrade(e.target.value)}
+                                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Module type</label>
+                                    <select
+                                        value={moduleType}
+                                        onChange={(e) => setModuleType(e.target.value)}
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/40"
-                                    />
+                                    >
+                                        <option value="school">School Module</option>
+                                        <option value="course">Course Module</option>
+                                    </select>
                                 </div>
+                                {moduleType === 'school' ? (
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Grade</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={13}
+                                            required
+                                            value={grade}
+                                            onChange={(e) => setGrade(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/40"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                        Course modules skip school grade selection and are shared as general course content.
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Week #</label>
                                     <input

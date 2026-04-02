@@ -107,7 +107,9 @@ const StudentModulePage = () => {
                         <div className="min-w-0 flex-1">
                             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                                 {subject}
-                                <span className="text-slate-400 font-bold text-lg sm:text-xl ml-2">· Grade {grade}</span>
+                                <span className="text-slate-400 font-bold text-lg sm:text-xl ml-2">
+                                    · {grade === 0 ? 'Course module' : `Grade ${grade}`}
+                                </span>
                             </h1>
                             <p className="text-sm text-slate-600 mt-2">
                                 <span className="font-bold text-slate-800">{meta.tutorName || 'Tutor'}</span>

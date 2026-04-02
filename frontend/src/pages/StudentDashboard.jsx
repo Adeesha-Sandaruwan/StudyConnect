@@ -151,7 +151,7 @@ const StudentDashboard = () => {
                                         </div>
                                         <h3 className="text-lg font-extrabold text-slate-800 mb-1">{mod.subject}</h3>
                                         <p className="text-xs font-bold text-sky-700 bg-sky-50 border border-sky-100 inline-flex rounded-lg px-2.5 py-1 w-fit mb-3">
-                                            Grade {mod.grade}
+                                            {mod.grade === 0 ? 'Course module' : `Grade ${mod.grade}`}
                                         </p>
                                         <p className="text-xs text-slate-600 flex-1 leading-relaxed mb-5">
                                             {pubCount} published week{pubCount === 1 ? '' : 's'}

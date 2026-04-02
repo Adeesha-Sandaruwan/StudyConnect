@@ -51,6 +51,7 @@ const TutorLessonPage = () => {
 
     const [title, setTitle] = useState('');
     const [subject, setSubject] = useState('');
+    const [moduleType, setModuleType] = useState('school');
     const [grade, setGrade] = useState(10);
     const [weekNumber, setWeekNumber] = useState(1);
     const [lessonDate, setLessonDate] = useState('');
@@ -78,7 +79,8 @@ const TutorLessonPage = () => {
                 if (cancelled) return;
                 setTitle(data.title || '');
                 setSubject(data.subject || '');
-                setGrade(Number(data.grade) || 10);
+                setModuleType(data.moduleType || (Number(data.grade) === 0 ? 'course' : 'school'));
+                setGrade(Number(data.grade) || 0);
                 setWeekNumber(Number(data.weekNumber) || 1);
                 setLessonDate(toDateInput(data.lessonDate));
                 setDescription(data.description || '');
@@ -113,7 +115,8 @@ const TutorLessonPage = () => {
     const buildPayload = () => ({
         title,
         subject,
-        grade: Number(grade),
+        moduleType,
+        grade: moduleType === 'course' ? 0 : Number(grade),
         weekNumber: Number(weekNumber),
         lessonDate: lessonDate ? new Date(lessonDate).toISOString() : '',
         description,
@@ -294,17 +297,34 @@ const TutorLessonPage = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Grade</label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={13}
-                                        required
-                                        value={grade}
-                                        onChange={(e) => setGrade(e.target.value)}
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Module type</label>
+                                    <select
+                                        value={moduleType}
+                                        onChange={(e) => setModuleType(e.target.value)}
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
-                                    />
+                                    >
+                                        <option value="school">School Module</option>
+                                        <option value="course">Course Module</option>
+                                    </select>
                                 </div>
+                                {moduleType === 'school' ? (
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Grade</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={13}
+                                            required
+                                            value={grade}
+                                            onChange={(e) => setGrade(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                        Course modules skip grade selection and publish as general course content.
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Week number</label>
                                     <input
