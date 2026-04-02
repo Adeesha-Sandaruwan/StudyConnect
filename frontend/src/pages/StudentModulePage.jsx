@@ -144,17 +144,17 @@ const StudentModulePage = () => {
                                                 <li key={lesson._id}>
                                                     <Link
                                                         to={`/student-dashboard/lesson/${lesson._id}`}
-                                                        className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-5 py-4 rounded-2xl border border-slate-200/80 bg-white/90 backdrop-blur-sm shadow-sm hover:border-indigo-300 hover:shadow-md hover:bg-white transition-all group"
+                                                        className="flex flex-col sm:flex-row sm:items-center gap-4 px-5 sm:px-6 py-5 rounded-3xl border border-slate-200/90 bg-white/95 backdrop-blur-sm shadow-sm hover:border-indigo-300 hover:shadow-lg hover:bg-white transition-all group"
                                                     >
-                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                            <span className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white text-sm font-black group-hover:scale-105 transition-transform">
+                                                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                                                            <span className="shrink-0 inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-600 text-white text-base font-black group-hover:scale-105 transition-transform">
                                                                 W{lesson.weekNumber}
                                                             </span>
                                                             <div className="min-w-0">
-                                                                <h2 className="font-bold text-slate-900 truncate group-hover:text-indigo-700 transition-colors">
+                                                                <h2 className="font-bold text-slate-900 text-lg truncate group-hover:text-indigo-700 transition-colors">
                                                                     {lesson.title}
                                                                 </h2>
-                                                                <p className="text-xs text-slate-500">
+                                                                <p className="text-sm text-slate-500">
                                                                     {lesson.lessonDate
                                                                         ? new Date(lesson.lessonDate).toLocaleDateString(undefined, {
                                                                               year: 'numeric',
@@ -185,8 +185,8 @@ const StudentModulePage = () => {
                         </div>
 
                         {lessons.length > 0 ? (
-                            <div className="w-full lg:w-[340px] shrink-0 lg:sticky lg:top-24 space-y-3">
-                                <div className="rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur px-3 py-3 shadow-sm">
+                            <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0 lg:sticky lg:top-24 space-y-4">
+                                <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur px-4 py-4 shadow-sm">
                                     <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                                         Assistant context
                                     </label>

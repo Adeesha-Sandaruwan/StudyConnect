@@ -127,22 +127,22 @@ const TutorModulePage = () => {
                                 </Link>
                             </div>
                         ) : (
-                            <ul className="space-y-3">
+                            <ul className="space-y-4">
                                 {lessons.map((lesson) => {
                                     const tutorPdfs = getLessonPdfDisplayList(lesson);
                                     return (
                                     <li
                                         key={lesson._id}
-                                        className="group rounded-2xl border border-white/50 bg-white/75 backdrop-blur-md shadow-sm hover:shadow-md hover:border-indigo-200/80 transition-all"
+                                        className="group rounded-3xl border border-white/70 bg-white/90 backdrop-blur-md shadow-sm hover:shadow-lg hover:border-indigo-200/80 transition-all overflow-hidden"
                                     >
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 sm:p-5">
-                                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                <div className="shrink-0 h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-sm font-black">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 sm:p-6">
+                                            <div className="flex items-center gap-4 min-w-0 flex-1">
+                                                <div className="shrink-0 h-16 w-16 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-base font-black">
                                                     W{lesson.weekNumber}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <h2 className="font-bold text-slate-900 truncate">{lesson.title}</h2>
-                                                    <p className="text-xs text-slate-500 truncate">
+                                                    <h2 className="font-bold text-slate-900 text-lg truncate">{lesson.title}</h2>
+                                                    <p className="text-sm text-slate-500 truncate">
                                                         {lesson.description
                                                             ? lesson.description.slice(0, 80) +
                                                               (lesson.description.length > 80 ? '…' : '')
@@ -181,9 +181,9 @@ const TutorModulePage = () => {
                         )}
                     </div>
 
-                    <div className="w-full lg:w-[340px] shrink-0 space-y-3">
+                    <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0 space-y-4">
                         {lessons.length > 0 ? (
-                            <div className="rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur px-3 py-3 shadow-sm">
+                            <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur px-4 py-4 shadow-sm">
                                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                                     Assistant context
                                 </label>
