@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { fetchPublishedSubjectContents } from '../services/subjectContentApi';
+import { fetchPublishedSubjectContents, fetchModuleAnnouncements } from '../services/subjectContentApi';
 import ModuleAIAssistant from '../components/tutor/ModuleAIAssistant';
 import { formatLessonDateTime } from '../utils/subjectModules';
 import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
@@ -14,6 +14,9 @@ const StudentModulePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [meta, setMeta] = useState({ tutorName: '', subject: '', grade: null });
+    const [announcements, setAnnouncements] = useState([]);
+    const [annLoading, setAnnLoading] = useState(false);
+    const [annError, setAnnError] = useState('');
     const [aiLessonId, setAiLessonId] = useState('');
     const [completedLessonIds, setCompletedLessonIds] = useState(() => getCompletedLessonIds());
 
@@ -70,9 +73,66 @@ const StudentModulePage = () => {
         }
     }, [grade, subject, decodedCreatorId]);
 
+    const moduleType = useMemo(() => {
+        if (lessons.length && lessons[0].moduleType) return lessons[0].moduleType;
+        return grade === 0 ? 'course' : 'school';
+    }, [lessons, grade]);
+
+    const formatAnnouncement = (text) => {
+        if (!text) return null;
+
+        const tokens = [];
+        const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|==(.*?)==)/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = regex.exec(text))) {
+            if (match.index > lastIndex) {
+                tokens.push(text.slice(lastIndex, match.index));
+            }
+            if (match[2]) {
+                tokens.push(<strong key={lastIndex}>{match[2]}</strong>);
+            } else if (match[3]) {
+                tokens.push(<em key={lastIndex}>{match[3]}</em>);
+            } else if (match[4]) {
+                tokens.push(
+                    <span key={lastIndex} className="bg-yellow-100 text-yellow-900 px-1 rounded-sm font-semibold">
+                        {match[4]}
+                    </span>
+                );
+            }
+            lastIndex = match.index + match[0].length;
+        }
+
+        if (lastIndex < text.length) {
+            tokens.push(text.slice(lastIndex));
+        }
+
+        return tokens;
+    };
+
+    const loadAnnouncements = useCallback(async () => {
+        if (Number.isNaN(grade) || !subject.trim()) return;
+        setAnnLoading(true);
+        setAnnError('');
+        try {
+            const data = await fetchModuleAnnouncements({ grade, subject, moduleType });
+            setAnnouncements(Array.isArray(data) ? data : []);
+        } catch {
+            setAnnError('Could not load announcements');
+            setAnnouncements([]);
+        } finally {
+            setAnnLoading(false);
+        }
+    }, [grade, subject, moduleType]);
+
     useEffect(() => {
         if (!Number.isNaN(grade) && subject.trim() && decodedCreatorId) load();
     }, [load, grade, subject, decodedCreatorId]);
+
+    useEffect(() => {
+        loadAnnouncements();
+    }, [loadAnnouncements]);
 
     useEffect(() => {
         if (lessons.length && !aiLessonId) {
@@ -139,8 +199,31 @@ const StudentModulePage = () => {
                                     </div>
                                 </div>
                             ) : null}
-                        </div>
-                    </div>
+
+                            <section className="mt-5 px-3 py-3 border border-indigo-100 bg-indigo-50 rounded-2xl">
+                                <h3 className="text-sm font-bold text-indigo-900 mb-1">Announcements</h3>
+                                {annLoading ? (
+                                    <div className="text-xs text-slate-500">Loading announcements…</div>
+                                ) : annError ? (
+                                    <div className="text-xs text-red-700">{annError}</div>
+                                ) : announcements.length === 0 ? (
+                                    <div className="text-xs text-slate-500">No announcements yet.</div>
+                                ) : (
+                                    <ul className="space-y-2">
+                                        {announcements.map((a) => (
+                                            <li key={a._id} className="text-xs text-indigo-900">
+                                                <div className="rounded-md border border-indigo-200 bg-white px-2 py-1">
+                                                    {formatAnnouncement(a.message)}
+                                                </div>
+                                                <div className="text-[10px] text-slate-400">
+                                                    by {a.createdBy?.name || 'Admin'} • {new Date(a.createdAt).toLocaleDateString()}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </section>
+                        </div>                    </div>
                 </header>
 
                 {loading ? (

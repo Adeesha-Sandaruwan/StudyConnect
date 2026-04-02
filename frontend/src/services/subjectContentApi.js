@@ -47,6 +47,28 @@ export async function askSubjectContentAI(contentId, question) {
     return data;
 }
 
+const announcementRoot = '/module-announcements';
+
+export async function fetchModuleAnnouncements({ grade, subject, moduleType }) {
+    const { data } = await api.get(announcementRoot, { params: { grade, subject, moduleType } });
+    return data;
+}
+
+export async function createModuleAnnouncement(payload) {
+    const { data } = await api.post(announcementRoot, payload);
+    return data;
+}
+
+export async function updateModuleAnnouncement(id, payload) {
+    const { data } = await api.put(`${announcementRoot}/${id}`, payload);
+    return data;
+}
+
+export async function deleteModuleAnnouncement(id) {
+    const { data } = await api.delete(`${announcementRoot}/${id}`);
+    return data;
+}
+
 function buildSubjectContentFormData(payload, pdfFile) {
     const fd = new FormData();
     const p = { ...payload };
