@@ -62,9 +62,12 @@ const TutorDashboard = () => {
         const g = searchParams.get('grade');
         const open = searchParams.get('newWeek');
         if (open && s && g) {
+            const numericGrade = Number(g);
+            const isCourse = numericGrade === 0;
             setCreateOpen(true);
             setSubject(decodeURIComponent(s));
-            setGrade(Number(g) || 10);
+            setGrade(isCourse ? 0 : numericGrade || 10);
+            setModuleType(isCourse ? 'course' : 'school');
             setSearchParams({}, { replace: true });
         }
     }, [searchParams, setSearchParams]);
