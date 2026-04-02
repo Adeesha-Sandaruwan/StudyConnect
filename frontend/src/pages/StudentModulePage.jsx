@@ -5,6 +5,7 @@ import { fetchPublishedSubjectContents } from '../services/subjectContentApi';
 import ModuleAIAssistant from '../components/tutor/ModuleAIAssistant';
 import { formatLessonDateTime } from '../utils/subjectModules';
 import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
+import { getCompletedLessonIds, getModuleCompletion } from '../utils/progressStorage';
 const StudentModulePage = () => {
     const { user } = useContext(AuthContext);
     const { creatorId, grade: gradeParam, subjectSlug } = useParams();
@@ -14,6 +15,7 @@ const StudentModulePage = () => {
     const [error, setError] = useState('');
     const [meta, setMeta] = useState({ tutorName: '', subject: '', grade: null });
     const [aiLessonId, setAiLessonId] = useState('');
+    const [completedLessonIds, setCompletedLessonIds] = useState(() => getCompletedLessonIds());
 
     const grade = Number(gradeParam);
     const subject = useMemo(() => {
@@ -79,6 +81,10 @@ const StudentModulePage = () => {
         if (!lessons.length) setAiLessonId('');
     }, [lessons, aiLessonId]);
 
+    useEffect(() => {
+        setCompletedLessonIds(getCompletedLessonIds());
+    }, [lessons.length]);
+
     if (user && user.role !== 'student') {
         const dest = user.role === 'tutor' ? '/tutor-dashboard' : '/admin';
         return <Navigate to={dest} replace />;
@@ -117,6 +123,22 @@ const StudentModulePage = () => {
                                 <span className="text-slate-400"> · </span>
                                 {lessons.length} published week{lessons.length === 1 ? '' : 's'}
                             </p>
+                            {lessons.length ? (
+                                <div className="mt-4 text-sm">
+                                    <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
+                                        <span>
+                                            {getModuleCompletion(lessons, completedLessonIds).completedCount} / {lessons.length} done
+                                        </span>
+                                        <span>{getModuleCompletion(lessons, completedLessonIds).percent}%</span>
+                                    </div>
+                                    <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full bg-indigo-600"
+                                            style={{ width: `${getModuleCompletion(lessons, completedLessonIds).percent}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
                     </div>
                 </header>
@@ -154,9 +176,20 @@ const StudentModulePage = () => {
                                                                 W{lesson.weekNumber}
                                                             </span>
                                                             <div className="min-w-0">
-                                                                <h2 className="font-bold text-slate-900 text-lg truncate group-hover:text-indigo-700 transition-colors">
-                                                                    {lesson.title}
-                                                                </h2>
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <h2 className="font-bold text-slate-900 text-lg truncate group-hover:text-indigo-700 transition-colors">
+                                                                        {lesson.title}
+                                                                    </h2>
+                                                                    <span
+                                                                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                                                            completedLessonIds.includes(String(lesson._id))
+                                                                                ? 'bg-emerald-100 text-emerald-700'
+                                                                                : 'bg-slate-100 text-slate-600'
+                                                                        }`}
+                                                                    >
+                                                                        {completedLessonIds.includes(String(lesson._id)) ? 'Done' : 'Pending'}
+                                                                    </span>
+                                                                </div>
                                                                 <p className="text-sm text-slate-500">
                                                                     {lesson.lessonDate ? formatLessonDateTime(lesson.lessonDate, true) : ''}
                                                                     {lessonPdfs.length ? (

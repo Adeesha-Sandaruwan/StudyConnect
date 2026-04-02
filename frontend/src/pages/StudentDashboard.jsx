@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { fetchPublishedSubjectContents } from '../services/subjectContentApi';
 import { groupPublishedByTutorModule, studentModulePath, formatLessonDateTime } from '../utils/subjectModules';
+import { getCompletedLessonIds, getModuleCompletion } from '../utils/progressStorage';
 
 const StudentDashboard = () => {
     const { user } = useContext(AuthContext);
@@ -11,6 +12,7 @@ const StudentDashboard = () => {
     const [error, setError] = useState('');
     const [subjectQuery, setSubjectQuery] = useState('');
     const [gradeFilter, setGradeFilter] = useState('');
+    const [completedLessonIds, setCompletedLessonIds] = useState(() => getCompletedLessonIds());
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -29,6 +31,10 @@ const StudentDashboard = () => {
     useEffect(() => {
         load();
     }, [load]);
+
+    useEffect(() => {
+        setCompletedLessonIds(getCompletedLessonIds());
+    }, []);
 
     const filtered = useMemo(() => {
         const sq = subjectQuery.trim().toLowerCase();
@@ -184,6 +190,29 @@ const StudentDashboard = () => {
                                             <span className="text-slate-400"> · </span>
                                             latest: <span className="font-semibold text-slate-800">{mod.lessons[mod.lessons.length - 1]?.title}</span>
                                         </p>
+                                        {mod.lessons.length > 0 ? (
+                                            <div className="mb-4">
+                                                {(() => {
+                                                    const progress = getModuleCompletion(mod.lessons, completedLessonIds);
+                                                    return (
+                                                        <>
+                                                            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
+                                                                <span>
+                                                                    {progress.completedCount} / {progress.total} lessons done
+                                                                </span>
+                                                                <span>{progress.percent}%</span>
+                                                            </div>
+                                                            <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                                                                <div
+                                                                    className="h-full rounded-full bg-indigo-600"
+                                                                    style={{ width: `${progress.percent}%` }}
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })()}
+                                            </div>
+                                        ) : null}
                                         <Link
                                             to={href}
                                             className="mt-auto text-center rounded-xl bg-slate-900 text-white text-sm font-bold py-3 hover:bg-slate-800 transition-colors"

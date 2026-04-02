@@ -5,6 +5,7 @@ import { fetchPublishedSubjectContents, getSubjectPdfWindowUrl } from '../servic
 import { studentModulePath, formatLessonDateTime } from '../utils/subjectModules';
 import StudentLessonResources from '../components/student/StudentLessonResources';
 import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
+import { isLessonCompleted, setLessonCompleted } from '../utils/progressStorage';
 
 const StudentLessonPage = () => {
     const { user } = useContext(AuthContext);
@@ -12,6 +13,7 @@ const StudentLessonPage = () => {
     const [lesson, setLesson] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [completed, setCompleted] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -33,6 +35,12 @@ const StudentLessonPage = () => {
     useEffect(() => {
         if (lessonId) load();
     }, [lessonId, load]);
+
+    useEffect(() => {
+        if (lesson && lesson._id) {
+            setCompleted(isLessonCompleted(lesson._id));
+        }
+    }, [lesson]);
 
     if (user && user.role !== 'student') {
         const dest = user.role === 'tutor' ? '/tutor-dashboard' : '/admin';
@@ -87,7 +95,7 @@ const StudentLessonPage = () => {
                                         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
                                             {lesson.title}
                                         </h1>
-                                        <p className="text-sm text-slate-600 mt-2">
+                                        <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-600">
                                             <span className="font-bold text-slate-800">{tutorName}</span>
                                             {lesson.lessonDate ? (
                                                 <>
@@ -95,8 +103,27 @@ const StudentLessonPage = () => {
                                                     {formatLessonDateTime(lesson.lessonDate, true)}
                                                 </>
                                             ) : null}
-                                        </p>
+                                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${completed ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+                                                {completed ? 'Completed' : 'Not completed'}
+                                            </span>
+                                        </div>
                                     </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (!lesson || !lesson._id) return;
+                                            setCompleted((prev) => {
+                                                const next = !prev;
+                                                setLessonCompleted(lesson._id, next);
+                                                return next;
+                                            });
+                                        }}
+                                        className={`rounded-2xl px-4 py-2 text-sm font-bold transition-colors ${completed ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                                    >
+                                        {completed ? 'Mark as not done' : 'Mark as done'}
+                                    </button>
                                 </div>
                                 {pdfButtons.length ? (
                                     <div className="flex flex-wrap gap-2 justify-end">
