@@ -8,7 +8,7 @@ import {
     formatLessonDateTime,
     getNearestLesson,
 } from '../utils/subjectModules';
-import { getCompletedLessonIds, getModuleCompletion } from '../utils/progressStorage';
+import { getCompletedLessonIds, getModuleCompletion, subscribeToLessonCompletion } from '../utils/progressStorage';
 
 const StudentDashboard = () => {
     const { user } = useContext(AuthContext);
@@ -17,7 +17,7 @@ const StudentDashboard = () => {
     const [error, setError] = useState('');
     const [subjectQuery, setSubjectQuery] = useState('');
     const [gradeFilter, setGradeFilter] = useState('');
-    const [completedLessonIds, setCompletedLessonIds] = useState(() => getCompletedLessonIds());
+    const [completedLessonIds, setCompletedLessonIds] = useState([]);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -38,8 +38,13 @@ const StudentDashboard = () => {
     }, [load]);
 
     useEffect(() => {
-        setCompletedLessonIds(getCompletedLessonIds());
-    }, []);
+        setCompletedLessonIds(getCompletedLessonIds(user?._id));
+    }, [user]);
+
+    useEffect(() => {
+        if (!user?._id) return;
+        return subscribeToLessonCompletion(user._id, setCompletedLessonIds);
+    }, [user]);
 
     const filtered = useMemo(() => {
         const sq = subjectQuery.trim().toLowerCase();
@@ -76,7 +81,7 @@ const StudentDashboard = () => {
                         </h1>
                         <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                             Published lessons from your tutors, grouped by subject and grade. Each card shows who is teaching so
-                            you can follow the right pathway.
+                            you can quickly continue where you left off.
                         </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 shrink-0">
@@ -205,7 +210,7 @@ const StudentDashboard = () => {
                                         {mod.lessons.length > 0 ? (
                                             <div className="mb-4">
                                                 {(() => {
-                                                    const progress = getModuleCompletion(mod.lessons, completedLessonIds);
+                                                    const progress = getModuleCompletion(mod.lessons, user?._id, completedLessonIds);
                                                     return (
                                                         <>
                                                             <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">

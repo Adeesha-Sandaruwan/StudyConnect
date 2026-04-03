@@ -5,7 +5,7 @@ import { fetchPublishedSubjectContents, fetchModuleAnnouncements } from '../serv
 import ModuleAIAssistant from '../components/tutor/ModuleAIAssistant';
 import { formatLessonDateTime } from '../utils/subjectModules';
 import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
-import { getCompletedLessonIds, getModuleCompletion } from '../utils/progressStorage';
+import { getCompletedLessonIds, getModuleCompletion, subscribeToLessonCompletion } from '../utils/progressStorage';
 const StudentModulePage = () => {
     const { user } = useContext(AuthContext);
     const { creatorId, grade: gradeParam, subjectSlug } = useParams();
@@ -18,7 +18,7 @@ const StudentModulePage = () => {
     const [annLoading, setAnnLoading] = useState(false);
     const [annError, setAnnError] = useState('');
     const [aiLessonId, setAiLessonId] = useState('');
-    const [completedLessonIds, setCompletedLessonIds] = useState(() => getCompletedLessonIds());
+        const [completedLessonIds, setCompletedLessonIds] = useState([]);
 
     const grade = Number(gradeParam);
     const subject = useMemo(() => {
@@ -36,6 +36,12 @@ const StudentModulePage = () => {
             return creatorId || '';
         }
     }, [creatorId]);
+
+    useEffect(() => {
+        if (user?._id) {
+            setCompletedLessonIds(getCompletedLessonIds(user._id));
+        }
+    }, [user]);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -142,8 +148,13 @@ const StudentModulePage = () => {
     }, [lessons, aiLessonId]);
 
     useEffect(() => {
-        setCompletedLessonIds(getCompletedLessonIds());
-    }, [lessons.length]);
+            setCompletedLessonIds(getCompletedLessonIds(user?._id));
+        }, [lessons.length, user]);
+
+    useEffect(() => {
+        if (!user?._id) return;
+        return subscribeToLessonCompletion(user._id, setCompletedLessonIds);
+    }, [user]);
 
     if (user && user.role !== 'student') {
         const dest = user.role === 'tutor' ? '/tutor-dashboard' : '/admin';
@@ -187,14 +198,14 @@ const StudentModulePage = () => {
                                 <div className="mt-4 text-sm">
                                     <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
                                         <span>
-                                            {getModuleCompletion(lessons, completedLessonIds).completedCount} / {lessons.length} done
+                                                {getModuleCompletion(lessons, user?._id, completedLessonIds).completedCount} / {lessons.length} done
                                         </span>
-                                        <span>{getModuleCompletion(lessons, completedLessonIds).percent}%</span>
+                                            <span>{getModuleCompletion(lessons, user?._id, completedLessonIds).percent}%</span>
                                     </div>
                                     <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
                                         <div
                                             className="h-full rounded-full bg-indigo-600"
-                                            style={{ width: `${getModuleCompletion(lessons, completedLessonIds).percent}%` }}
+                                                style={{ width: `${getModuleCompletion(lessons, user?._id, completedLessonIds).percent}%` }}
                                         />
                                     </div>
                                 </div>

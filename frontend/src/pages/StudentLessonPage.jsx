@@ -38,9 +38,9 @@ const StudentLessonPage = () => {
 
     useEffect(() => {
         if (lesson && lesson._id) {
-            setCompleted(isLessonCompleted(lesson._id));
+            setCompleted(isLessonCompleted(lesson._id, user?._id));
         }
-    }, [lesson]);
+    }, [lesson, user]);
 
     if (user && user.role !== 'student') {
         const dest = user.role === 'tutor' ? '/tutor-dashboard' : '/admin';
@@ -116,7 +116,7 @@ const StudentLessonPage = () => {
                                             if (!lesson || !lesson._id) return;
                                             setCompleted((prev) => {
                                                 const next = !prev;
-                                                setLessonCompleted(lesson._id, next);
+                                                    setLessonCompleted(lesson._id, next, user?._id);
                                                 return next;
                                             });
                                         }}
