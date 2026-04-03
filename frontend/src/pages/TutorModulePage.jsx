@@ -1,16 +1,31 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { fetchMySubjectContents } from '../services/subjectContentApi';
+import {
+    fetchMySubjectContents,
+    fetchModuleAnnouncements,
+    createModuleAnnouncement,
+    updateModuleAnnouncement,
+    deleteModuleAnnouncement,
+} from '../services/subjectContentApi';
 import ModuleAIAssistant from '../components/tutor/ModuleAIAssistant';
 import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
 const TutorModulePage = () => {
     const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
     const { grade: gradeParam, subjectSlug } = useParams();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [aiLessonId, setAiLessonId] = useState('');
+
+    const [announcements, setAnnouncements] = useState([]);
+    const [annLoading, setAnnLoading] = useState(false);
+    const [annError, setAnnError] = useState('');
+    const [newAnnouncement, setNewAnnouncement] = useState('');
+    const [savingAnnouncement, setSavingAnnouncement] = useState(false);
+    const [editingAnnouncementId, setEditingAnnouncementId] = useState(null);
+    const [editingAnnouncementText, setEditingAnnouncementText] = useState('');
 
     const grade = Number(gradeParam);
     const subject = useMemo(() => {
@@ -49,6 +64,63 @@ const TutorModulePage = () => {
             .sort((a, b) => a.weekNumber - b.weekNumber);
     }, [items, grade, subject]);
 
+    const moduleType = useMemo(
+        () => lessons?.[0]?.moduleType || (grade === 0 ? 'course' : 'school'),
+        [lessons, grade]
+    );
+
+    const formatAnnouncement = (text) => {
+        if (!text) return null;
+
+        const tokens = [];
+        const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|==(.*?)==)/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = regex.exec(text))) {
+            if (match.index > lastIndex) {
+                tokens.push(text.slice(lastIndex, match.index));
+            }
+            if (match[2]) {
+                tokens.push(<strong key={lastIndex}>{match[2]}</strong>);
+            } else if (match[3]) {
+                tokens.push(<em key={lastIndex}>{match[3]}</em>);
+            } else if (match[4]) {
+                tokens.push(
+                    <span key={lastIndex} className="bg-yellow-100 text-yellow-900 px-1 rounded-sm font-semibold">
+                        {match[4]}
+                    </span>
+                );
+            }
+            lastIndex = match.index + match[0].length;
+        }
+
+        if (lastIndex < text.length) {
+            tokens.push(text.slice(lastIndex));
+        }
+
+        return tokens;
+    };
+
+    const loadAnnouncements = useCallback(async () => {
+        if (Number.isNaN(grade) || !subject.trim()) return;
+        setAnnLoading(true);
+        setAnnError('');
+        try {
+            const data = await fetchModuleAnnouncements({ grade, subject, moduleType });
+            setAnnouncements(Array.isArray(data) ? data : []);
+        } catch (error) {
+            setAnnError('Could not load announcements');
+            setAnnouncements([]);
+        } finally {
+            setAnnLoading(false);
+        }
+    }, [grade, subject, moduleType]);
+
+    useEffect(() => {
+        loadAnnouncements();
+    }, [loadAnnouncements]);
+
     useEffect(() => {
         if (lessons.length && !lessons.some((l) => l._id === aiLessonId)) {
             setAiLessonId(lessons[0]._id);
@@ -66,6 +138,75 @@ const TutorModulePage = () => {
 
     const activeLesson = lessons.find((l) => l._id === aiLessonId);
     const publishedCount = lessons.filter((l) => l.status === 'published').length;
+
+    const handleCreateAnnouncement = async () => {
+        const trimmed = newAnnouncement.trim();
+        if (!trimmed) {
+            setAnnError('Announcement cannot be empty');
+            return;
+        }
+
+        setSavingAnnouncement(true);
+        setAnnError('');
+        try {
+            await createModuleAnnouncement({
+                grade,
+                subject,
+                moduleType,
+                message: trimmed,
+            });
+            setNewAnnouncement('');
+            await loadAnnouncements();
+        } catch (error) {
+            const errMsg =
+                error?.response?.data?.message ||
+                error?.message ||
+                'Could not save announcement';
+            setAnnError(errMsg);
+        } finally {
+            setSavingAnnouncement(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!id) return;
+        try {
+            await deleteModuleAnnouncement(id);
+            await loadAnnouncements();
+        } catch {
+            setAnnError('Could not delete announcement');
+        }
+    };
+
+    const handleEditStart = (announcement) => {
+        setEditingAnnouncementId(announcement._id);
+        setEditingAnnouncementText(announcement.message || '');
+        setAnnError('');
+    };
+
+    const handleEditCancel = () => {
+        setEditingAnnouncementId(null);
+        setEditingAnnouncementText('');
+        setAnnError('');
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingAnnouncementId) return;
+        const trimmed = editingAnnouncementText.trim();
+        if (!trimmed) {
+            setAnnError('Announcement text cannot be empty');
+            return;
+        }
+
+        try {
+            await updateModuleAnnouncement(editingAnnouncementId, { message: trimmed });
+            setEditingAnnouncementId(null);
+            setEditingAnnouncementText('');
+            await loadAnnouncements();
+        } catch {
+            setAnnError('Could not update announcement');
+        }
+    };
 
     return (
         <div className="min-h-screen relative overflow-hidden">
@@ -85,7 +226,7 @@ const TutorModulePage = () => {
                                     {subject}
                                 </h1>
                                 <span className="mb-1.5 inline-flex items-center rounded-full bg-slate-900 text-white text-xs font-bold px-3 py-1">
-                                    Grade {grade}
+                                    {grade === 0 ? 'Course module' : `Grade ${grade}`}
                                 </span>
                             </div>
                             <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
@@ -106,6 +247,104 @@ const TutorModulePage = () => {
                                     ＋ Add week to this module
                                 </Link>
                             </div>
+
+                            <section className="text-sm mt-6">
+                                <h3 className="font-bold text-slate-800 text-base mb-2">Module announcements</h3>
+                                {annLoading ? (
+                                    <div className="rounded-lg p-3 bg-slate-100 text-slate-500 text-xs">Loading announcements…</div>
+                                ) : annError ? (
+                                    <div className="rounded-lg p-3 bg-red-100 text-red-800 text-xs">{annError}</div>
+                                ) : announcements.length === 0 ? (
+                                    <div className="rounded-lg p-3 bg-slate-50 text-slate-500 text-xs">No announcements yet.</div>
+                                ) : (
+                                    <ul className="space-y-2">
+                                        {announcements.map((a) => {
+                                            const isOwner = user && (user.role === 'admin' || user.role === 'tutor');
+                                            const isEditing = editingAnnouncementId === a._id;
+
+                                            if (isEditing) {
+                                                return (
+                                                    <li key={a._id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+                                                        <textarea
+                                                            value={editingAnnouncementText}
+                                                            onChange={(e) => setEditingAnnouncementText(e.target.value)}
+                                                            rows={3}
+                                                            className="w-full rounded-md border border-indigo-200 p-2 text-sm"
+                                                        />
+                                                        <div className="mt-2 flex items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleSaveEdit}
+                                                                className="text-xs font-bold text-indigo-700"
+                                                            >
+                                                                Save
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleEditCancel}
+                                                                className="text-xs font-semibold text-slate-500"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                );
+                                            }
+
+                                            return (
+                                                <li key={a._id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed">
+                                                    <p className="text-slate-700">{formatAnnouncement(a.message)}</p>
+                                                    <p className="text-[11px] text-slate-400 mt-1">
+                                                        by {a.createdBy?.name || 'Admin'} • {new Date(a.createdAt).toLocaleString()}
+                                                    </p>
+                                                    {isOwner ? (
+                                                        <div className="mt-1 flex gap-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEditStart(a)}
+                                                                className="text-[11px] font-bold text-blue-600 hover:text-blue-700"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDelete(a._id)}
+                                                                className="text-[11px] font-bold text-red-600 hover:text-red-700"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    ) : null}
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
+
+                                {user?.role === 'admin' || user?.role === 'tutor' ? (
+                                    <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+                                        <p className="text-xs text-slate-500 mb-1">Use **bold**, *italic*, ==highlight==</p>
+                                        <textarea
+                                            value={newAnnouncement}
+                                            onChange={(e) => setNewAnnouncement(e.target.value)}
+                                            rows={3}
+                                            className="w-full rounded-lg border border-indigo-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                                            placeholder="Type announcement text here..."
+                                        />
+                                        <div className="mt-2 flex flex-wrap gap-2 items-center">
+                                            <button
+                                                type="button"
+                                                onClick={handleCreateAnnouncement}
+                                                disabled={savingAnnouncement}
+                                                className="rounded-lg bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 hover:bg-indigo-700 disabled:opacity-50"
+                                            >
+                                                {savingAnnouncement ? 'Saving…' : 'Post announcement'}
+                                            </button>
+                                            <span className="text-xs text-slate-500">Tutor/Admin</span>
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </section>
                         </header>
 
                         {loading ? (
@@ -127,22 +366,22 @@ const TutorModulePage = () => {
                                 </Link>
                             </div>
                         ) : (
-                            <ul className="space-y-3">
+                            <ul className="space-y-4">
                                 {lessons.map((lesson) => {
                                     const tutorPdfs = getLessonPdfDisplayList(lesson);
                                     return (
                                     <li
                                         key={lesson._id}
-                                        className="group rounded-2xl border border-white/50 bg-white/75 backdrop-blur-md shadow-sm hover:shadow-md hover:border-indigo-200/80 transition-all"
+                                        className="group rounded-3xl border border-white/70 bg-white/90 backdrop-blur-md shadow-sm hover:shadow-lg hover:border-indigo-200/80 transition-all overflow-hidden"
                                     >
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 sm:p-5">
-                                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                <div className="shrink-0 h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-sm font-black">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 sm:p-6">
+                                            <div className="flex items-center gap-4 min-w-0 flex-1">
+                                                <div className="shrink-0 h-16 w-16 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-base font-black">
                                                     W{lesson.weekNumber}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <h2 className="font-bold text-slate-900 truncate">{lesson.title}</h2>
-                                                    <p className="text-xs text-slate-500 truncate">
+                                                    <h2 className="font-bold text-slate-900 text-lg truncate">{lesson.title}</h2>
+                                                    <p className="text-sm text-slate-500 truncate">
                                                         {lesson.description
                                                             ? lesson.description.slice(0, 80) +
                                                               (lesson.description.length > 80 ? '…' : '')
@@ -166,12 +405,17 @@ const TutorModulePage = () => {
                                                         {tutorPdfs.length === 1 ? '' : 's'}
                                                     </span>
                                                 ) : null}
-                                                <Link
-                                                    to={`/tutor-dashboard/lesson/${lesson._id}`}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (lesson._id) {
+                                                            navigate(`/tutor-dashboard/lesson/${String(lesson._id)}`);
+                                                        }
+                                                    }}
                                                     className="rounded-xl bg-slate-900 text-white text-xs font-bold px-4 py-2 hover:bg-slate-800 transition-colors"
                                                 >
                                                     Edit week
-                                                </Link>
+                                                </button>
                                             </div>
                                         </div>
                                     </li>
@@ -181,9 +425,9 @@ const TutorModulePage = () => {
                         )}
                     </div>
 
-                    <div className="w-full lg:w-[340px] shrink-0 space-y-3">
+                    <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0 space-y-4">
                         {lessons.length > 0 ? (
-                            <div className="rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur px-3 py-3 shadow-sm">
+                            <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur px-4 py-4 shadow-sm">
                                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                                     Assistant context
                                 </label>

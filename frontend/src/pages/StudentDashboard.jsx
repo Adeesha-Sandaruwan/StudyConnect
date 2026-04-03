@@ -2,7 +2,13 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { fetchPublishedSubjectContents } from '../services/subjectContentApi';
-import { groupPublishedByTutorModule, studentModulePath } from '../utils/subjectModules';
+import {
+    groupPublishedByTutorModule,
+    studentModulePath,
+    formatLessonDateTime,
+    getNearestLesson,
+} from '../utils/subjectModules';
+import { getCompletedLessonIds, getModuleCompletion, subscribeToLessonCompletion } from '../utils/progressStorage';
 
 const StudentDashboard = () => {
     const { user } = useContext(AuthContext);
@@ -11,6 +17,7 @@ const StudentDashboard = () => {
     const [error, setError] = useState('');
     const [subjectQuery, setSubjectQuery] = useState('');
     const [gradeFilter, setGradeFilter] = useState('');
+    const [completedLessonIds, setCompletedLessonIds] = useState([]);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -30,12 +37,25 @@ const StudentDashboard = () => {
         load();
     }, [load]);
 
+    useEffect(() => {
+        setCompletedLessonIds(getCompletedLessonIds(user?._id));
+    }, [user]);
+
+    useEffect(() => {
+        if (!user?._id) return;
+        return subscribeToLessonCompletion(user._id, setCompletedLessonIds);
+    }, [user]);
+
     const filtered = useMemo(() => {
         const sq = subjectQuery.trim().toLowerCase();
-        const gf = gradeFilter === '' ? null : Number(gradeFilter);
 
         return modules.filter((m) => {
-            if (gf !== null && !Number.isNaN(gf) && m.grade !== gf) return false;
+            if (gradeFilter === 'course') {
+                if (m.grade !== 0) return false;
+            } else {
+                const gf = gradeFilter === '' ? null : Number(gradeFilter);
+                if (gf !== null && !Number.isNaN(gf) && m.grade !== gf) return false;
+            }
             if (sq && !String(m.subject).toLowerCase().includes(sq)) return false;
             return true;
         });
@@ -61,7 +81,7 @@ const StudentDashboard = () => {
                         </h1>
                         <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                             Published lessons from your tutors, grouped by subject and grade. Each card shows who is teaching so
-                            you can follow the right pathway.
+                            you can quickly continue where you left off.
                         </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 shrink-0">
@@ -76,16 +96,17 @@ const StudentDashboard = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Grade</label>
+                            <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Grade / type</label>
                             <select
                                 value={gradeFilter}
                                 onChange={(e) => setGradeFilter(e.target.value)}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm w-full sm:w-32 focus:outline-none focus:ring-2 focus:ring-sky-400/40"
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm w-full sm:w-40 focus:outline-none focus:ring-2 focus:ring-sky-400/40"
                             >
                                 <option value="">All</option>
+                                <option value="course">Course modules</option>
                                 {Array.from({ length: 13 }, (_, i) => i + 1).map((g) => (
                                     <option key={g} value={g}>
-                                        {g}
+                                        Grade {g}
                                     </option>
                                 ))}
                             </select>
@@ -113,7 +134,6 @@ const StudentDashboard = () => {
                     <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
                         {filtered.map((mod) => {
                             const href = studentModulePath(mod.tutorId, mod.grade, mod.subject);
-                            const pubCount = mod.lessons.length;
                             const accent = (mod.tutorId.length + mod.grade) % 4;
                             const rims = [
                                 'from-sky-500 to-blue-600',
@@ -150,14 +170,66 @@ const StudentDashboard = () => {
                                             </div>
                                         </div>
                                         <h3 className="text-lg font-extrabold text-slate-800 mb-1">{mod.subject}</h3>
-                                        <p className="text-xs font-bold text-sky-700 bg-sky-50 border border-sky-100 inline-flex rounded-lg px-2.5 py-1 w-fit mb-3">
-                                            Grade {mod.grade}
-                                        </p>
-                                        <p className="text-xs text-slate-600 flex-1 leading-relaxed mb-5">
-                                            {pubCount} published week{pubCount === 1 ? '' : 's'}
-                                            <span className="text-slate-400"> · </span>
-                                            latest: <span className="font-semibold text-slate-800">{mod.lessons[mod.lessons.length - 1]?.title}</span>
-                                        </p>
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            <p
+                                                className={`text-xs font-bold inline-flex rounded-lg px-2.5 py-1 w-fit ${
+                                                    mod.grade === 0
+                                                        ? 'text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-100'
+                                                        : 'text-sky-700 bg-sky-50 border border-sky-100'
+                                                }`}
+                                            >
+                                                {mod.grade === 0 ? 'Course module' : `Grade ${mod.grade}`}
+                                            </p>
+                                            {mod.grade === 0 ? (
+                                                <span className="text-xs font-bold inline-flex rounded-lg px-2.5 py-1 text-fuchsia-700 bg-fuchsia-100/80 border border-fuchsia-200">
+                                                    Recording only
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                        {mod.grade !== 0 && mod.lessons.length > 0 && (() => {
+                                            const nextLesson = getNearestLesson(mod.lessons);
+                                            return (
+                                                <p className="text-xs text-slate-600 flex-1 leading-relaxed mb-5">
+                                                    Next class:{' '}
+                                                    <span className="font-semibold text-slate-800">
+                                                        {formatLessonDateTime(nextLesson?.lessonDate, true) || 'TBA'}
+                                                    </span>
+                                                    <span className="text-slate-400"> · </span>
+                                                    latest:{' '}
+                                                    <span className="font-semibold text-slate-800">
+                                                        {nextLesson?.title || 'TBA'}
+                                                    </span>
+                                                </p>
+                                            );
+                                        })()}
+                                        {mod.grade === 0 && (
+                                            <p className="text-xs text-slate-600 flex-1 leading-relaxed mb-5">
+                                                Published content without live class schedule.
+                                            </p>
+                                        )}
+                                        {mod.lessons.length > 0 ? (
+                                            <div className="mb-4">
+                                                {(() => {
+                                                    const progress = getModuleCompletion(mod.lessons, user?._id, completedLessonIds);
+                                                    return (
+                                                        <>
+                                                            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
+                                                                <span>
+                                                                    {progress.completedCount} / {progress.total} lessons done
+                                                                </span>
+                                                                <span>{progress.percent}%</span>
+                                                            </div>
+                                                            <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                                                                <div
+                                                                    className="h-full rounded-full bg-indigo-600"
+                                                                    style={{ width: `${progress.percent}%` }}
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })()}
+                                            </div>
+                                        ) : null}
                                         <Link
                                             to={href}
                                             className="mt-auto text-center rounded-xl bg-slate-900 text-white text-sm font-bold py-3 hover:bg-slate-800 transition-colors"

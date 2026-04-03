@@ -9,7 +9,7 @@ const generateToken = (res, userId) => {
   res.cookie('jwt', token, {//Store token in an HTTP-only cookie
     httpOnly: true,//only accessible via HTTP requests
     secure: process.env.NODE_ENV !== 'development',//only sent over HTTPS in production
-    sameSite: 'strict',//
+    sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
     maxAge: 30 * 24 * 60 * 60 * 1000,// Set cookie to expire in 30 days
   });
 };

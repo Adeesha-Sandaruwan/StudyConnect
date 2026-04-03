@@ -3,8 +3,32 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { createSubjectContent, fetchMySubjectContents } from '../services/subjectContentApi';
 import { groupContentsByModule, modulePath } from '../utils/subjectModules';
+import TutorHeroImage from '../assets/tutor-hero.svg';
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+const pad2 = (num) => String(num).padStart(2, '0');
+
+const todayInput = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+
+const buildLessonDateTime = (date, time) => {
+    if (!date) return '';
+    const [year, month, day] = String(date).split('-').map(Number);
+    if (!year || Number.isNaN(month) || Number.isNaN(day)) return '';
+    const d = new Date(year, month - 1, day);
+    if (Number.isNaN(d.getTime())) return '';
+
+    if (time) {
+        const [hours, minutes] = String(time).split(':').map(Number);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return '';
+        d.setHours(hours, minutes, 0, 0);
+    } else {
+        d.setHours(0, 0, 0, 0);
+    }
+
+    return d.toISOString();
+};
 
 const TutorDashboard = () => {
     const { user } = useContext(AuthContext);
@@ -20,9 +44,11 @@ const TutorDashboard = () => {
 
     const [title, setTitle] = useState('');
     const [subject, setSubject] = useState('');
+    const [moduleType, setModuleType] = useState('school');
     const [grade, setGrade] = useState(10);
     const [weekNumber, setWeekNumber] = useState(1);
     const [lessonDate, setLessonDate] = useState(todayInput());
+    const [lessonTime, setLessonTime] = useState('09:00');
     const [description, setDescription] = useState('');
     const [contentText, setContentText] = useState('');
     const [homework, setHomework] = useState('');
@@ -52,9 +78,12 @@ const TutorDashboard = () => {
         const g = searchParams.get('grade');
         const open = searchParams.get('newWeek');
         if (open && s && g) {
+            const numericGrade = Number(g);
+            const isCourse = numericGrade === 0;
             setCreateOpen(true);
             setSubject(decodeURIComponent(s));
-            setGrade(Number(g) || 10);
+            setGrade(isCourse ? 0 : numericGrade || 10);
+            setModuleType(isCourse ? 'course' : 'school');
             setSearchParams({}, { replace: true });
         }
     }, [searchParams, setSearchParams]);
@@ -64,9 +93,11 @@ const TutorDashboard = () => {
     const resetCreateForm = () => {
         setTitle('');
         setSubject('');
+        setModuleType('school');
         setGrade(10);
         setWeekNumber(1);
         setLessonDate(todayInput());
+        setLessonTime('09:00');
         setDescription('');
         setContentText('');
         setHomework('');
@@ -88,9 +119,10 @@ const TutorDashboard = () => {
             const payload = {
                 title,
                 subject,
-                grade: Number(grade),
+                moduleType,
+                grade: moduleType === 'course' ? 0 : Number(grade),
                 weekNumber: Number(weekNumber),
-                lessonDate: lessonDate ? new Date(lessonDate).toISOString() : '',
+                lessonDate: buildLessonDateTime(lessonDate, moduleType === 'school' ? lessonTime : ''),
                 description,
                 contentText,
                 homework,
@@ -128,8 +160,8 @@ const TutorDashboard = () => {
         <div className="min-h-screen relative overflow-hidden">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_10%_-10%,rgba(91,124,250,0.18),transparent),radial-gradient(ellipse_70%_50%_at_90%_20%,rgba(139,92,246,0.14),transparent)]" />
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
-                <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10">
-                    <div className="space-y-3 max-w-2xl">
+                <header className="grid gap-8 lg:grid-cols-[1.4fr_1fr] items-start mb-10">
+                    <div className="space-y-4 max-w-2xl">
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">Tutor workspace</p>
                         <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
                             Teach in <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">modules</span>, week by week.
@@ -148,16 +180,69 @@ const TutorDashboard = () => {
                                 {totalLessons} week{totalLessons === 1 ? '' : 's'} total
                             </span>
                         </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-3">
+                            <button
+                                type="button"
+                                onClick={openCreateFresh}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white font-bold px-6 py-4 shadow-xl shadow-indigo-500/30 hover:opacity-95 transition-opacity text-sm"
+                            >
+                                <span className="text-lg leading-none">＋</span>
+                                New lesson / module
+                            </button>
+                            <div className="rounded-3xl border border-slate-200/70 bg-white/90 px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm">
+                                Build an inspiring learning path with a polished tutor dashboard, fresh previews and quick module controls.
+                            </div>
+                        </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={openCreateFresh}
-                        className="shrink-0 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white font-bold px-6 py-4 shadow-xl shadow-indigo-500/30 hover:opacity-95 transition-opacity text-sm"
-                    >
-                        <span className="text-lg leading-none">＋</span>
-                        New lesson / module
-                    </button>
+                    <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/95 shadow-2xl">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.28),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.22),transparent_32%)]" />
+                        <img
+                            src={TutorHeroImage}
+                            alt="Tutor productivity illustration"
+                            className="relative h-full w-full min-h-[320px] object-cover"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 p-6">
+                            <div className="rounded-3xl bg-slate-900/85 border border-white/10 p-4 text-white shadow-lg backdrop-blur-sm">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <p className="text-[11px] uppercase tracking-[0.24em] text-slate-300">Teaching snapshot</p>
+                                        <p className="mt-2 text-lg font-bold">Launch your next study plan.</p>
+                                    </div>
+                                    <span className="inline-flex rounded-full bg-indigo-500/10 px-3 py-2 text-[11px] uppercase tracking-[0.24em] text-indigo-100">
+                                        {modules.length} modules
+                                    </span>
+                                </div>
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-2xl bg-white/10 p-3">
+                                        <p className="text-xs text-slate-300">Live lessons</p>
+                                        <p className="mt-2 text-xl font-semibold text-white">{modules.reduce((sum, mod) => sum + mod.lessons.filter((l) => l.status === 'published').length, 0)}</p>
+                                    </div>
+                                    <div className="rounded-2xl bg-white/10 p-3">
+                                        <p className="text-xs text-slate-300">Drafts ready</p>
+                                        <p className="mt-2 text-xl font-semibold text-white">{modules.reduce((sum, mod) => sum + mod.lessons.filter((l) => l.status !== 'published').length, 0)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </header>
+                <div className="grid gap-4 sm:grid-cols-3 mb-8">
+                    <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">Plan</p>
+                        <h2 className="mt-3 text-lg font-bold text-slate-900">Organize with clarity</h2>
+                        <p className="mt-2 text-sm text-slate-600">Keep lesson plans grouped by subject and grade, then add week-by-week learning goals in one place.</p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">Create</p>
+                        <h2 className="mt-3 text-lg font-bold text-slate-900">Build lessons faster</h2>
+                        <p className="mt-2 text-sm text-slate-600">Draft notes, upload PDFs, and publish lesson weeks with a single tap to keep your teaching momentum alive.</p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">Share</p>
+                        <h2 className="mt-3 text-lg font-bold text-slate-900">Keep students engaged</h2>
+                        <p className="mt-2 text-sm text-slate-600">Use weekly module cards to share structured lesson progress and keep every class running smoothly.</p>
+                    </div>
+                </div>
 
                 {loading ? (
                     <div className="rounded-3xl border border-slate-200/60 bg-white/50 backdrop-blur p-16 text-center text-slate-500 font-medium">
@@ -218,7 +303,7 @@ const TutorDashboard = () => {
                                                     {mod.subject}
                                                 </h3>
                                                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-1">
-                                                    Grade {mod.grade}
+                                                    {mod.grade === 0 ? 'Course module' : `Grade ${mod.grade}`}
                                                 </p>
                                             </div>
                                             <span className="shrink-0 rounded-xl bg-slate-100 text-slate-800 text-[11px] font-black px-2.5 py-1">
@@ -303,7 +388,7 @@ const TutorDashboard = () => {
                                     placeholder="e.g. Introduction to databases"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Subject</label>
                                     <input
@@ -311,21 +396,38 @@ const TutorDashboard = () => {
                                         value={subject}
                                         onChange={(e) => setSubject(e.target.value)}
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/40"
-                                        placeholder="AL ICT"
+                                        placeholder="AL ICT or MERN Stack"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Grade</label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={13}
-                                        required
-                                        value={grade}
-                                        onChange={(e) => setGrade(e.target.value)}
+                                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Module type</label>
+                                    <select
+                                        value={moduleType}
+                                        onChange={(e) => setModuleType(e.target.value)}
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/40"
-                                    />
+                                    >
+                                        <option value="school">School Module</option>
+                                        <option value="course">Course Module</option>
+                                    </select>
                                 </div>
+                                {moduleType === 'school' ? (
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Grade</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={13}
+                                            required
+                                            value={grade}
+                                            onChange={(e) => setGrade(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/40"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                        Course modules skip school grade selection and are shared as general course content.
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Week #</label>
                                     <input
@@ -348,6 +450,22 @@ const TutorDashboard = () => {
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/40"
                                     />
                                 </div>
+                                {moduleType === 'school' ? (
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Time</label>
+                                        <input
+                                            type="time"
+                                            required
+                                            value={lessonTime}
+                                            onChange={(e) => setLessonTime(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/40"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                        Course modules do not use live online classes; recording-only content is preferred.
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Status</label>

@@ -178,10 +178,31 @@ const baseContentValidators = [
     .trim()
     .isLength({ min: 1 })
     .withMessage("Subject is required"),
+  body("moduleType")
+    .optional({ nullable: true })
+    .isIn(["school", "course"])
+    .withMessage("Invalid module type"),
   body("grade")
     .optional({ nullable: true })
-    .isInt({ min: 1, max: 13 })
-    .withMessage("Grade must be between 1 and 13"),
+    .custom((value, { req }) => {
+      if (value === undefined || value === null || value === "") {
+        return true;
+      }
+      const gradeNum = Number(value);
+      if (!Number.isInteger(gradeNum) || Number.isNaN(gradeNum)) {
+        throw new Error("Grade must be a whole number");
+      }
+      if (req.body.moduleType === "course") {
+        if (gradeNum !== 0) {
+          throw new Error("Course modules must use grade 0 or omit grade");
+        }
+        return true;
+      }
+      if (gradeNum < 1 || gradeNum > 13) {
+        throw new Error("Grade must be between 1 and 13");
+      }
+      return true;
+    }),
   body("weekNumber")
     .optional({ nullable: true })
     .isInt({ min: 1, max: 52 })
@@ -258,9 +279,17 @@ export const validateSubjectContentCreate = [
   ...baseContentValidators,
   body("title").exists({ values: "falsy" }).withMessage("Title is required"),
   body("subject").exists({ values: "falsy" }).withMessage("Subject is required"),
-  body("grade").exists({ values: "undefined" }).withMessage("Grade is required"),
+  body("moduleType").exists({ values: "falsy" }).withMessage("Module type is required"),
   body("weekNumber").exists({ values: "undefined" }).withMessage("Week number is required"),
   body("lessonDate").exists({ values: "falsy" }).withMessage("lessonDate is required"),
+  body("grade").custom((value, { req }) => {
+    if (req.body.moduleType === "school") {
+      if (value === undefined || value === null || value === "") {
+        throw new Error("Grade is required for school modules");
+      }
+    }
+    return true;
+  }),
   runValidationResult,
 ];
 

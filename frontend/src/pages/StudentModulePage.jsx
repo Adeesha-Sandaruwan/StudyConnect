@@ -1,9 +1,11 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { fetchPublishedSubjectContents } from '../services/subjectContentApi';
+import { fetchPublishedSubjectContents, fetchModuleAnnouncements } from '../services/subjectContentApi';
 import ModuleAIAssistant from '../components/tutor/ModuleAIAssistant';
+import { formatLessonDateTime } from '../utils/subjectModules';
 import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
+import { getCompletedLessonIds, getModuleCompletion, subscribeToLessonCompletion } from '../utils/progressStorage';
 const StudentModulePage = () => {
     const { user } = useContext(AuthContext);
     const { creatorId, grade: gradeParam, subjectSlug } = useParams();
@@ -12,7 +14,11 @@ const StudentModulePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [meta, setMeta] = useState({ tutorName: '', subject: '', grade: null });
+    const [announcements, setAnnouncements] = useState([]);
+    const [annLoading, setAnnLoading] = useState(false);
+    const [annError, setAnnError] = useState('');
     const [aiLessonId, setAiLessonId] = useState('');
+        const [completedLessonIds, setCompletedLessonIds] = useState([]);
 
     const grade = Number(gradeParam);
     const subject = useMemo(() => {
@@ -30,6 +36,12 @@ const StudentModulePage = () => {
             return creatorId || '';
         }
     }, [creatorId]);
+
+    useEffect(() => {
+        if (user?._id) {
+            setCompletedLessonIds(getCompletedLessonIds(user._id));
+        }
+    }, [user]);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -67,9 +79,66 @@ const StudentModulePage = () => {
         }
     }, [grade, subject, decodedCreatorId]);
 
+    const moduleType = useMemo(() => {
+        if (lessons.length && lessons[0].moduleType) return lessons[0].moduleType;
+        return grade === 0 ? 'course' : 'school';
+    }, [lessons, grade]);
+
+    const formatAnnouncement = (text) => {
+        if (!text) return null;
+
+        const tokens = [];
+        const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|==(.*?)==)/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = regex.exec(text))) {
+            if (match.index > lastIndex) {
+                tokens.push(text.slice(lastIndex, match.index));
+            }
+            if (match[2]) {
+                tokens.push(<strong key={lastIndex}>{match[2]}</strong>);
+            } else if (match[3]) {
+                tokens.push(<em key={lastIndex}>{match[3]}</em>);
+            } else if (match[4]) {
+                tokens.push(
+                    <span key={lastIndex} className="bg-yellow-100 text-yellow-900 px-1 rounded-sm font-semibold">
+                        {match[4]}
+                    </span>
+                );
+            }
+            lastIndex = match.index + match[0].length;
+        }
+
+        if (lastIndex < text.length) {
+            tokens.push(text.slice(lastIndex));
+        }
+
+        return tokens;
+    };
+
+    const loadAnnouncements = useCallback(async () => {
+        if (Number.isNaN(grade) || !subject.trim()) return;
+        setAnnLoading(true);
+        setAnnError('');
+        try {
+            const data = await fetchModuleAnnouncements({ grade, subject, moduleType });
+            setAnnouncements(Array.isArray(data) ? data : []);
+        } catch {
+            setAnnError('Could not load announcements');
+            setAnnouncements([]);
+        } finally {
+            setAnnLoading(false);
+        }
+    }, [grade, subject, moduleType]);
+
     useEffect(() => {
         if (!Number.isNaN(grade) && subject.trim() && decodedCreatorId) load();
     }, [load, grade, subject, decodedCreatorId]);
+
+    useEffect(() => {
+        loadAnnouncements();
+    }, [loadAnnouncements]);
 
     useEffect(() => {
         if (lessons.length && !aiLessonId) {
@@ -77,6 +146,15 @@ const StudentModulePage = () => {
         }
         if (!lessons.length) setAiLessonId('');
     }, [lessons, aiLessonId]);
+
+    useEffect(() => {
+            setCompletedLessonIds(getCompletedLessonIds(user?._id));
+        }, [lessons.length, user]);
+
+    useEffect(() => {
+        if (!user?._id) return;
+        return subscribeToLessonCompletion(user._id, setCompletedLessonIds);
+    }, [user]);
 
     if (user && user.role !== 'student') {
         const dest = user.role === 'tutor' ? '/tutor-dashboard' : '/admin';
@@ -107,15 +185,56 @@ const StudentModulePage = () => {
                         <div className="min-w-0 flex-1">
                             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                                 {subject}
-                                <span className="text-slate-400 font-bold text-lg sm:text-xl ml-2">· Grade {grade}</span>
+                                <span className="text-slate-400 font-bold text-lg sm:text-xl ml-2">
+                                    · {grade === 0 ? 'Course module' : `Grade ${grade}`}
+                                </span>
                             </h1>
                             <p className="text-sm text-slate-600 mt-2">
                                 <span className="font-bold text-slate-800">{meta.tutorName || 'Tutor'}</span>
                                 <span className="text-slate-400"> · </span>
                                 {lessons.length} published week{lessons.length === 1 ? '' : 's'}
                             </p>
-                        </div>
-                    </div>
+                            {lessons.length ? (
+                                <div className="mt-4 text-sm">
+                                    <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
+                                        <span>
+                                                {getModuleCompletion(lessons, user?._id, completedLessonIds).completedCount} / {lessons.length} done
+                                        </span>
+                                            <span>{getModuleCompletion(lessons, user?._id, completedLessonIds).percent}%</span>
+                                    </div>
+                                    <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full bg-indigo-600"
+                                                style={{ width: `${getModuleCompletion(lessons, user?._id, completedLessonIds).percent}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            <section className="mt-5 px-3 py-3 border border-indigo-100 bg-indigo-50 rounded-2xl">
+                                <h3 className="text-sm font-bold text-indigo-900 mb-1">Announcements</h3>
+                                {annLoading ? (
+                                    <div className="text-xs text-slate-500">Loading announcements…</div>
+                                ) : annError ? (
+                                    <div className="text-xs text-red-700">{annError}</div>
+                                ) : announcements.length === 0 ? (
+                                    <div className="text-xs text-slate-500">No announcements yet.</div>
+                                ) : (
+                                    <ul className="space-y-2">
+                                        {announcements.map((a) => (
+                                            <li key={a._id} className="text-xs text-indigo-900">
+                                                <div className="rounded-md border border-indigo-200 bg-white px-2 py-1">
+                                                    {formatAnnouncement(a.message)}
+                                                </div>
+                                                <div className="text-[10px] text-slate-400">
+                                                    by {a.createdBy?.name || 'Admin'} • {new Date(a.createdAt).toLocaleDateString()}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </section>
+                        </div>                    </div>
                 </header>
 
                 {loading ? (
@@ -144,24 +263,29 @@ const StudentModulePage = () => {
                                                 <li key={lesson._id}>
                                                     <Link
                                                         to={`/student-dashboard/lesson/${lesson._id}`}
-                                                        className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-5 py-4 rounded-2xl border border-slate-200/80 bg-white/90 backdrop-blur-sm shadow-sm hover:border-indigo-300 hover:shadow-md hover:bg-white transition-all group"
+                                                        className="flex flex-col sm:flex-row sm:items-center gap-4 px-5 sm:px-6 py-5 rounded-3xl border border-slate-200/90 bg-white/95 backdrop-blur-sm shadow-sm hover:border-indigo-300 hover:shadow-lg hover:bg-white transition-all group"
                                                     >
-                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                            <span className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white text-sm font-black group-hover:scale-105 transition-transform">
+                                                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                                                            <span className="shrink-0 inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-600 text-white text-base font-black group-hover:scale-105 transition-transform">
                                                                 W{lesson.weekNumber}
                                                             </span>
                                                             <div className="min-w-0">
-                                                                <h2 className="font-bold text-slate-900 truncate group-hover:text-indigo-700 transition-colors">
-                                                                    {lesson.title}
-                                                                </h2>
-                                                                <p className="text-xs text-slate-500">
-                                                                    {lesson.lessonDate
-                                                                        ? new Date(lesson.lessonDate).toLocaleDateString(undefined, {
-                                                                              year: 'numeric',
-                                                                              month: 'short',
-                                                                              day: 'numeric',
-                                                                          })
-                                                                        : ''}
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <h2 className="font-bold text-slate-900 text-lg truncate group-hover:text-indigo-700 transition-colors">
+                                                                        {lesson.title}
+                                                                    </h2>
+                                                                    <span
+                                                                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                                                            completedLessonIds.includes(String(lesson._id))
+                                                                                ? 'bg-emerald-100 text-emerald-700'
+                                                                                : 'bg-slate-100 text-slate-600'
+                                                                        }`}
+                                                                    >
+                                                                        {completedLessonIds.includes(String(lesson._id)) ? 'Done' : 'Pending'}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-sm text-slate-500">
+                                                                    {lesson.lessonDate ? formatLessonDateTime(lesson.lessonDate, true) : ''}
                                                                     {lessonPdfs.length ? (
                                                                         <span className="text-indigo-600 font-semibold">
                                                                             {' '}
@@ -185,8 +309,8 @@ const StudentModulePage = () => {
                         </div>
 
                         {lessons.length > 0 ? (
-                            <div className="w-full lg:w-[340px] shrink-0 lg:sticky lg:top-24 space-y-3">
-                                <div className="rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur px-3 py-3 shadow-sm">
+                            <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0 lg:sticky lg:top-24 space-y-4">
+                                <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur px-4 py-4 shadow-sm">
                                     <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
                                         Assistant context
                                     </label>

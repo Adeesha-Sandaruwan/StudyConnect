@@ -21,11 +21,40 @@ const emptyResources = {
     videoLinks: [],
 };
 
+function pad2(num) {
+    return String(num).padStart(2, '0');
+}
+
 function toDateInput(iso) {
     if (!iso) return '';
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toISOString().slice(0, 10);
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function toTimeInput(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function buildLessonDateTime(date, time) {
+    if (!date) return '';
+    const [year, month, day] = String(date).split('-').map(Number);
+    if (!year || Number.isNaN(month) || Number.isNaN(day)) return '';
+    const d = new Date(year, month - 1, day);
+    if (Number.isNaN(d.getTime())) return '';
+
+    if (time) {
+        const [hours, minutes] = String(time).split(':').map(Number);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return '';
+        d.setHours(hours, minutes, 0, 0);
+    } else {
+        d.setHours(0, 0, 0, 0);
+    }
+
+    return d.toISOString();
 }
 
 function splitLinks(text) {
@@ -51,9 +80,11 @@ const TutorLessonPage = () => {
 
     const [title, setTitle] = useState('');
     const [subject, setSubject] = useState('');
+    const [moduleType, setModuleType] = useState('school');
     const [grade, setGrade] = useState(10);
     const [weekNumber, setWeekNumber] = useState(1);
     const [lessonDate, setLessonDate] = useState('');
+    const [lessonTime, setLessonTime] = useState('09:00');
     const [description, setDescription] = useState('');
     const [contentText, setContentText] = useState('');
     const [homework, setHomework] = useState('');
@@ -78,9 +109,11 @@ const TutorLessonPage = () => {
                 if (cancelled) return;
                 setTitle(data.title || '');
                 setSubject(data.subject || '');
-                setGrade(Number(data.grade) || 10);
+                setModuleType(data.moduleType || (Number(data.grade) === 0 ? 'course' : 'school'));
+                setGrade(Number(data.grade) || 0);
                 setWeekNumber(Number(data.weekNumber) || 1);
                 setLessonDate(toDateInput(data.lessonDate));
+                setLessonTime(toTimeInput(data.lessonDate));
                 setDescription(data.description || '');
                 setContentText(data.contentText || '');
                 setHomework(data.homework || '');
@@ -113,9 +146,10 @@ const TutorLessonPage = () => {
     const buildPayload = () => ({
         title,
         subject,
-        grade: Number(grade),
+        moduleType,
+        grade: moduleType === 'course' ? 0 : Number(grade),
         weekNumber: Number(weekNumber),
-        lessonDate: lessonDate ? new Date(lessonDate).toISOString() : '',
+        lessonDate: buildLessonDateTime(lessonDate, moduleType === 'school' ? lessonTime : ''),
         description,
         contentText,
         homework,
@@ -194,6 +228,12 @@ const TutorLessonPage = () => {
     const removePdfAt = (index) => {
         setPdfList((prev) => prev.filter((_, i) => i !== index));
     };
+
+    useEffect(() => {
+        if (moduleType === 'course') {
+            setMeetingLink('');
+        }
+    }, [moduleType]);
 
     if (loading) {
         return (
@@ -294,17 +334,34 @@ const TutorLessonPage = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Grade</label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={13}
-                                        required
-                                        value={grade}
-                                        onChange={(e) => setGrade(e.target.value)}
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Module type</label>
+                                    <select
+                                        value={moduleType}
+                                        onChange={(e) => setModuleType(e.target.value)}
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
-                                    />
+                                    >
+                                        <option value="school">School Module</option>
+                                        <option value="course">Course Module</option>
+                                    </select>
                                 </div>
+                                {moduleType === 'school' ? (
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Grade</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={13}
+                                            required
+                                            value={grade}
+                                            onChange={(e) => setGrade(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                        Course modules skip grade selection and publish as general course content.
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Week number</label>
                                     <input
@@ -327,6 +384,22 @@ const TutorLessonPage = () => {
                                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
                                     />
                                 </div>
+                                {moduleType === 'school' ? (
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Class time</label>
+                                        <input
+                                            type="time"
+                                            required
+                                            value={lessonTime}
+                                            onChange={(e) => setLessonTime(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                        Course modules are recording-only and do not use a live meeting time.
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
                                     <select
@@ -474,17 +547,23 @@ const TutorLessonPage = () => {
                                             placeholder="https://"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                                            Meeting link
-                                        </label>
-                                        <input
-                                            value={meetingLink}
-                                            onChange={(e) => setMeetingLink(e.target.value)}
-                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none"
-                                            placeholder="https://"
-                                        />
-                                    </div>
+                                    {moduleType === 'school' ? (
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                                                Meeting link
+                                            </label>
+                                            <input
+                                                value={meetingLink}
+                                                onChange={(e) => setMeetingLink(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none"
+                                                placeholder="https://"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="sm:col-span-2 rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                            Course modules are recording-only and do not use live meeting links. Add video links instead.
+                                        </div>
+                                    )}
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                                             Worksheet URL

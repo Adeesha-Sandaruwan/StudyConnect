@@ -25,6 +25,24 @@ export function modulePath(grade, subject) {
     return `/tutor-dashboard/module/${grade}/${encodeURIComponent(subject.trim())}`;
 }
 
+export function formatLessonDateTime(dateString, includeTime = false) {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    if (Number.isNaN(d.getTime())) return '';
+    const options = {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    };
+    if (includeTime) {
+        options.hour = '2-digit';
+        options.minute = '2-digit';
+        options.hour12 = false;
+    }
+    return d.toLocaleString(undefined, options);
+}
+
 function tutorIdOf(lesson) {
     const c = lesson?.createdBy;
     if (!c) return '';
@@ -65,6 +83,30 @@ export function groupPublishedByTutorModule(contents) {
                 a.grade - b.grade ||
                 a.subject.localeCompare(b.subject)
         );
+}
+
+export function getNearestLesson(lessons) {
+    if (!Array.isArray(lessons) || lessons.length === 0) return null;
+
+    const now = Date.now();
+    const withUtc = lessons
+        .map((lesson) => ({
+            lesson,
+            time: lesson?.lessonDate ? new Date(lesson.lessonDate).getTime() : NaN,
+        }))
+        .filter((item) => !Number.isNaN(item.time));
+
+    if (withUtc.length === 0) return null;
+
+    const upcoming = withUtc.filter((item) => item.time >= now);
+    if (upcoming.length > 0) {
+        upcoming.sort((a, b) => a.time - b.time);
+        return upcoming[0].lesson;
+    }
+
+    // if no future class, use the most recent past class
+    withUtc.sort((a, b) => b.time - a.time);
+    return withUtc[0].lesson;
 }
 
 export function studentModulePath(tutorId, grade, subject) {
