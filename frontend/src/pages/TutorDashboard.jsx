@@ -5,13 +5,29 @@ import { createSubjectContent, fetchMySubjectContents } from '../services/subjec
 import { groupContentsByModule, modulePath } from '../utils/subjectModules';
 import TutorHeroImage from '../assets/tutor-hero.svg';
 
-const todayInput = () => new Date().toISOString().slice(0, 10);
+const pad2 = (num) => String(num).padStart(2, '0');
+
+const todayInput = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
 
 const buildLessonDateTime = (date, time) => {
     if (!date) return '';
-    const iso = time ? `${date}T${time}` : date;
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+    const [year, month, day] = String(date).split('-').map(Number);
+    if (!year || Number.isNaN(month) || Number.isNaN(day)) return '';
+    const d = new Date(year, month - 1, day);
+    if (Number.isNaN(d.getTime())) return '';
+
+    if (time) {
+        const [hours, minutes] = String(time).split(':').map(Number);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return '';
+        d.setHours(hours, minutes, 0, 0);
+    } else {
+        d.setHours(0, 0, 0, 0);
+    }
+
+    return d.toISOString();
 };
 
 const TutorDashboard = () => {

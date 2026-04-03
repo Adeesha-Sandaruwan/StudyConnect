@@ -21,25 +21,40 @@ const emptyResources = {
     videoLinks: [],
 };
 
+function pad2(num) {
+    return String(num).padStart(2, '0');
+}
+
 function toDateInput(iso) {
     if (!iso) return '';
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toISOString().slice(0, 10);
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
 function toTimeInput(iso) {
     if (!iso) return '';
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toISOString().slice(11, 16);
+    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
 function buildLessonDateTime(date, time) {
     if (!date) return '';
-    const iso = time ? `${date}T${time}` : date;
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+    const [year, month, day] = String(date).split('-').map(Number);
+    if (!year || Number.isNaN(month) || Number.isNaN(day)) return '';
+    const d = new Date(year, month - 1, day);
+    if (Number.isNaN(d.getTime())) return '';
+
+    if (time) {
+        const [hours, minutes] = String(time).split(':').map(Number);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return '';
+        d.setHours(hours, minutes, 0, 0);
+    } else {
+        d.setHours(0, 0, 0, 0);
+    }
+
+    return d.toISOString();
 }
 
 function splitLinks(text) {

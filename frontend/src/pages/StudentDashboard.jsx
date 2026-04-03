@@ -2,7 +2,12 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { fetchPublishedSubjectContents } from '../services/subjectContentApi';
-import { groupPublishedByTutorModule, studentModulePath, formatLessonDateTime } from '../utils/subjectModules';
+import {
+    groupPublishedByTutorModule,
+    studentModulePath,
+    formatLessonDateTime,
+    getNearestLesson,
+} from '../utils/subjectModules';
 import { getCompletedLessonIds, getModuleCompletion } from '../utils/progressStorage';
 
 const StudentDashboard = () => {
@@ -124,7 +129,6 @@ const StudentDashboard = () => {
                     <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
                         {filtered.map((mod) => {
                             const href = studentModulePath(mod.tutorId, mod.grade, mod.subject);
-                            const pubCount = mod.lessons.length;
                             const accent = (mod.tutorId.length + mod.grade) % 4;
                             const rims = [
                                 'from-sky-500 to-blue-600',
@@ -177,19 +181,27 @@ const StudentDashboard = () => {
                                                 </span>
                                             ) : null}
                                         </div>
-                                        <p className="text-xs text-slate-600 flex-1 leading-relaxed mb-5">
-                                            {mod.grade === 0 ? (
-                                                'Published content without live class schedule.'
-                                            ) : (
-                                                <>
-                                                    Next class: <span className="font-semibold text-slate-800">
-                                                        {formatLessonDateTime(mod.lessons[mod.lessons.length - 1]?.lessonDate, true) || 'TBA'}
+                                        {mod.grade !== 0 && mod.lessons.length > 0 && (() => {
+                                            const nextLesson = getNearestLesson(mod.lessons);
+                                            return (
+                                                <p className="text-xs text-slate-600 flex-1 leading-relaxed mb-5">
+                                                    Next class:{' '}
+                                                    <span className="font-semibold text-slate-800">
+                                                        {formatLessonDateTime(nextLesson?.lessonDate, true) || 'TBA'}
                                                     </span>
-                                                </>
-                                            )}
-                                            <span className="text-slate-400"> · </span>
-                                            latest: <span className="font-semibold text-slate-800">{mod.lessons[mod.lessons.length - 1]?.title}</span>
-                                        </p>
+                                                    <span className="text-slate-400"> · </span>
+                                                    latest:{' '}
+                                                    <span className="font-semibold text-slate-800">
+                                                        {nextLesson?.title || 'TBA'}
+                                                    </span>
+                                                </p>
+                                            );
+                                        })()}
+                                        {mod.grade === 0 && (
+                                            <p className="text-xs text-slate-600 flex-1 leading-relaxed mb-5">
+                                                Published content without live class schedule.
+                                            </p>
+                                        )}
                                         {mod.lessons.length > 0 ? (
                                             <div className="mb-4">
                                                 {(() => {
