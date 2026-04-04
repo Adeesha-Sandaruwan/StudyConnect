@@ -127,6 +127,16 @@ export async function getAvailableRequests(filters = {}, page = 1, limit = 10) {
     return data;
 }
 
+/**
+ * Tutor accepts an open unassigned request
+ * @param {String} requestId - Request ID
+ * @returns {Object} - {success, message, request}
+ */
+export async function acceptRequestAsTutor(requestId) {
+    const { data } = await api.put(`${root}/${requestId}/tutor/accept`);
+    return data;
+}
+
 // ============================================================================
 // ADMIN OPERATIONS
 // ============================================================================
@@ -153,6 +163,21 @@ export async function assignTutor(requestId, tutorId) {
 export async function updateRequestStatus(requestId, status) {
     const { data } = await api.put(`${root}/${requestId}/status`, {
         status
+    });
+    return data;
+}
+
+/**
+ * Fetch tutor users for admin assignment UI
+ * @returns {Object} - {users: []}
+ */
+export async function getTutorUsers() {
+    const { data } = await api.get('/users', {
+        params: {
+            role: 'tutor',
+            page: 1,
+            limit: 100
+        }
     });
     return data;
 }

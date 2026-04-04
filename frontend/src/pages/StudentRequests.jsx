@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getMyRequests, createRequest, deleteRequest } from '../services/studentRequestApi';
+import { getMyRequests, createRequest, updateRequest, deleteRequest } from '../services/studentRequestApi';
 import RequestCard from '../components/student/RequestCard';
 import RequestForm from '../components/student/RequestForm';
 import RequestModal from '../components/student/RequestModal';
@@ -61,6 +61,16 @@ const StudentRequests = () => {
             setRequests(requests.filter(r => r._id !== requestId));
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to delete request');
+        }
+    };
+
+    const handleUpdateRequest = async (requestId, payload) => {
+        try {
+            await updateRequest(requestId, payload);
+            await loadRequests();
+            setSelectedRequest(null);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to update request');
         }
     };
 
@@ -163,10 +173,7 @@ const StudentRequests = () => {
                         isOpen={!!selectedRequest}
                         request={selectedRequest}
                         onClose={() => setSelectedRequest(null)}
-                        onUpdate={() => {
-                            setSelectedRequest(null);
-                            loadRequests();
-                        }}
+                        onUpdate={handleUpdateRequest}
                     />
                 )}
             </div>

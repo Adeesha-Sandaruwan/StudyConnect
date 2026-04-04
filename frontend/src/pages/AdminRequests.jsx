@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getAllRequests, assignTutor } from '../services/studentRequestApi';
+import { getAllRequests, assignTutor, getTutorUsers } from '../services/studentRequestApi';
 import RequestCard from '../components/student/RequestCard';
 import RequestFilters from '../components/student/RequestFilters';
 import RequestModal from '../components/student/RequestModal';
@@ -19,6 +19,9 @@ const AdminRequests = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedRequest, setSelectedRequest] = useState(null);
+    const [tutors, setTutors] = useState([]);
+    const [selectedTutorByRequest, setSelectedTutorByRequest] = useState({});
+    const [assigningRequestId, setAssigningRequestId] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
@@ -60,6 +63,19 @@ const AdminRequests = () => {
         }
     };
 
+    const loadTutors = async () => {
+        try {
+            const response = await getTutorUsers();
+            setTutors(Array.isArray(response.users) ? response.users : []);
+        } catch (err) {
+            setTutors([]);
+        }
+    };
+
+    useEffect(() => {
+        loadTutors();
+    }, []);
+
     const handleFilterChange = (newFilters) => {
         setFilters(newFilters);
         setCurrentPage(1);
@@ -84,6 +100,26 @@ const AdminRequests = () => {
     const handleNextPage = () => {
         if (currentPage < totalPages) {
             setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const handleAssignTutor = async (requestId) => {
+        const tutorId = selectedTutorByRequest[requestId];
+        if (!tutorId) {
+            setError('Please select a tutor before assigning.');
+            return;
+        }
+
+        setAssigningRequestId(requestId);
+        try {
+            await assignTutor(requestId, tutorId);
+            setError('');
+            setSelectedTutorByRequest((prev) => ({ ...prev, [requestId]: '' }));
+            await loadRequests();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to assign tutor');
+        } finally {
+            setAssigningRequestId('');
         }
     };
 
@@ -198,6 +234,34 @@ const AdminRequests = () => {
                                             key={request._id}
                                             request={request}
                                             onClick={() => setSelectedRequest(request)}
+                                            customActions={
+                                                request.status === 'open' && !request.assignedTutor ? (
+                                                    <div className="flex gap-2 items-center">
+                                                        <select
+                                                            value={selectedTutorByRequest[request._id] || ''}
+                                                            onChange={(e) => setSelectedTutorByRequest((prev) => ({
+                                                                ...prev,
+                                                                [request._id]: e.target.value
+                                                            }))}
+                                                            className="flex-1 rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs font-semibold"
+                                                        >
+                                                            <option value="">Select tutor</option>
+                                                            {tutors.map((tutor) => (
+                                                                <option key={tutor._id} value={tutor._id}>
+                                                                    {tutor.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <button
+                                                            onClick={() => handleAssignTutor(request._id)}
+                                                            disabled={assigningRequestId === request._id}
+                                                            className="px-3 py-2 rounded-lg text-xs font-bold bg-[#5b7cfa] text-white hover:bg-[#4a6be0] disabled:opacity-60"
+                                                        >
+                                                            {assigningRequestId === request._id ? 'Assigning...' : 'Assign'}
+                                                        </button>
+                                                    </div>
+                                                ) : null
+                                            }
                                         />
                                     ))}
                                 </div>

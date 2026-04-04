@@ -8,7 +8,7 @@ import PriorityBadge from './PriorityBadge';
  * Shows: subject, grade level, priority, status, tutor info, student details
  */
 
-const RequestCard = ({ request, onClick, showActions = false, onEdit, onDelete }) => {
+const RequestCard = ({ request, onClick, showActions = false, onEdit, onDelete, customActions = null }) => {
     const getGradeLabel = (grade) => {
         if (grade === 0) return 'Course';
         return `Grade ${grade}`;
@@ -127,6 +127,15 @@ const RequestCard = ({ request, onClick, showActions = false, onEdit, onDelete }
                             Delete
                         </button>
                     )}
+                </div>
+            )}
+
+            {customActions && (
+                <div
+                    className="pt-3 border-t border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {customActions}
                 </div>
             )}
         </div>

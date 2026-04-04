@@ -360,6 +360,74 @@ const assignTutor = async (req, res) => {
   }
 };
 
+// @desc    Tutor accepts an open student request
+// @route   PUT /api/student-requests/:id/tutor/accept
+// @access  Private (Tutor only)
+const acceptRequestByTutor = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'tutor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only tutors can accept requests'
+      });
+    }
+
+    const request = await StudentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Request not found'
+      });
+    }
+
+    if (request.status !== 'open') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only open requests can be accepted'
+      });
+    }
+
+    if (request.assignedTutor) {
+      return res.status(400).json({
+        success: false,
+        message: 'Request is already assigned to a tutor'
+      });
+    }
+
+    request.assignedTutor = req.user._id;
+    request.status = 'in-progress';
+    await request.save();
+
+    await request.populate('student', ['name', 'email', 'avatar']);
+    await request.populate('assignedTutor', ['name', 'email', 'avatar']);
+
+    try {
+      const student = await User.findById(request.student);
+      await sendTutorAssignmentEmail(
+        student.email,
+        student.name,
+        req.user.name,
+        request.subject,
+        request._id.toString()
+      );
+    } catch (emailError) {
+      console.warn('Failed to send tutor acceptance email:', emailError.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Request accepted successfully',
+      request
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // @desc    Update request status
 // @route   PUT /api/student-requests/:id/status
 // @access  Private (Admin or request owner)
@@ -572,6 +640,7 @@ export {
   updateRequest,
   deleteRequest,
   assignTutor,
+  acceptRequestByTutor,
   updateRequestStatus,
   getTutorAssignedRequests,
   getAvailableRequests,

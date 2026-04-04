@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getAvailableRequests } from '../services/studentRequestApi';
+import { getAvailableRequests, acceptRequestAsTutor } from '../services/studentRequestApi';
 import RequestCard from '../components/student/RequestCard';
 import RequestFilters from '../components/student/RequestFilters';
 import RequestModal from '../components/student/RequestModal';
@@ -22,6 +22,7 @@ const TutorAvailableRequests = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
+    const [acceptingRequestId, setAcceptingRequestId] = useState('');
 
     const [filters, setFilters] = useState({
         subject: '',
@@ -84,6 +85,19 @@ const TutorAvailableRequests = () => {
     const handleNextPage = () => {
         if (currentPage < totalPages) {
             setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const handleAcceptRequest = async (requestId) => {
+        setAcceptingRequestId(requestId);
+        setError('');
+        try {
+            await acceptRequestAsTutor(requestId);
+            await loadRequests();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to accept request');
+        } finally {
+            setAcceptingRequestId('');
         }
     };
 
@@ -168,6 +182,17 @@ const TutorAvailableRequests = () => {
                                             key={request._id}
                                             request={request}
                                             onClick={() => setSelectedRequest(request)}
+                                            customActions={
+                                                user?.role === 'tutor' && request.status === 'open' && !request.assignedTutor ? (
+                                                    <button
+                                                        onClick={() => handleAcceptRequest(request._id)}
+                                                        disabled={acceptingRequestId === request._id}
+                                                        className="w-full px-3 py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+                                                    >
+                                                        {acceptingRequestId === request._id ? 'Accepting...' : 'Accept Request'}
+                                                    </button>
+                                                ) : null
+                                            }
                                         />
                                     ))}
                                 </div>
