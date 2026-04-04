@@ -21,6 +21,8 @@ import HomePage from './pages/HomePage';
 import StudentRequests from './pages/StudentRequests';
 import BrowseRequests from './pages/BrowseRequests';
 import RequestDetail from './pages/RequestDetail';
+import TutorMyRequests from './pages/TutorMyRequests';
+import TutorAvailableRequests from './pages/TutorAvailableRequests';
 
 
 const ProtectedRoute = ({ children }) => {
@@ -69,6 +71,8 @@ function App() {
                     <Route path="/tutor-dashboard" element={<ProtectedRoute><TutorDashboard /></ProtectedRoute>} />
                     <Route path="/tutor-dashboard/lesson/:id" element={<ProtectedRoute><TutorLessonPage /></ProtectedRoute>} />
                     <Route path="/tutor-dashboard/module/:grade/:subjectSlug" element={<ProtectedRoute><TutorModulePage /></ProtectedRoute>} />
+                    <Route path="/tutor/my-requests" element={<ProtectedRoute><TutorMyRequests /></ProtectedRoute>} />
+                    <Route path="/tutor/available-requests" element={<ProtectedRoute><TutorAvailableRequests /></ProtectedRoute>} />
                     
                     <Route path="/posts" element={<ProtectedRoute><StudyPosts /></ProtectedRoute>} />
                     <Route path="/posts/:id" element={<ProtectedRoute><SinglePost /></ProtectedRoute>} />

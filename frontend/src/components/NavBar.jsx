@@ -3,10 +3,27 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 
-const NavLinks = ({ homeLink, currentPath, closeMenu, unreadCount }) => (
+const NavLinks = ({ homeLink, currentPath, closeMenu, unreadCount, userRole }) => (
     <>
         <Link to="/" className={`font-bold transition-colors ${currentPath === '/' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Home</Link>
         <Link to={homeLink} className={`font-bold transition-colors ${currentPath === homeLink ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Dashboard</Link>
+        
+        {/* Student-specific links */}
+        {userRole === 'student' && (
+            <>
+                <Link to="/student-requests" className={`font-bold transition-colors ${currentPath === '/student-requests' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>My Requests</Link>
+                <Link to="/browse-requests" className={`font-bold transition-colors ${currentPath === '/browse-requests' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Browse</Link>
+            </>
+        )}
+        
+        {/* Tutor-specific links */}
+        {userRole === 'tutor' && (
+            <>
+                <Link to="/tutor/my-requests" className={`font-bold transition-colors ${currentPath === '/tutor/my-requests' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>My Assignments</Link>
+                <Link to="/tutor/available-requests" className={`font-bold transition-colors ${currentPath === '/tutor/available-requests' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Available</Link>
+            </>
+        )}
+        
         <Link to="/posts" className={`font-bold transition-colors ${currentPath === '/posts' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Study Posts</Link>
         
         <Link to="/notifications" className={`relative font-bold transition-colors flex items-center gap-1.5 ${currentPath === '/notifications' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
@@ -75,7 +92,7 @@ const NavBar = () => {
                     </div>
 
                     <div className="hidden md:flex items-center space-x-8">
-                        <NavLinks homeLink={homeLink} currentPath={location.pathname} closeMenu={() => setIsMobileMenuOpen(false)} unreadCount={unreadCount} />
+                        <NavLinks homeLink={homeLink} currentPath={location.pathname} closeMenu={() => setIsMobileMenuOpen(false)} unreadCount={unreadCount} userRole={user.role} />
                         <div className="border-l border-gray-200 h-6 mx-2"></div>
                         <div className="flex items-center gap-3">
                             <span className="text-sm font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-full uppercase tracking-wide">
@@ -104,7 +121,7 @@ const NavBar = () => {
             {isMobileMenuOpen && (
                 <div className="md:hidden bg-white border-t border-gray-100 shadow-lg absolute w-full left-0">
                     <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
-                        <NavLinks homeLink={homeLink} currentPath={location.pathname} closeMenu={() => setIsMobileMenuOpen(false)} unreadCount={unreadCount} />
+                        <NavLinks homeLink={homeLink} currentPath={location.pathname} closeMenu={() => setIsMobileMenuOpen(false)} unreadCount={unreadCount} userRole={user.role} />
                         <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
                             <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Logged in as {user.role}</span>
                             <button onClick={handleLogout} className="text-red-600 font-bold text-sm">
