@@ -18,6 +18,9 @@ import StudyPosts from './pages/StudyPosts';
 import SinglePost from './pages/SinglePost';
 import Notifications from './pages/Notifications';
 import HomePage from './pages/HomePage';
+import StudentRequests from './pages/StudentRequests';
+import BrowseRequests from './pages/BrowseRequests';
+import RequestDetail from './pages/RequestDetail';
 
 
 const ProtectedRoute = ({ children }) => {
@@ -59,6 +62,9 @@ function App() {
                     <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
                     <Route path="/student-dashboard/lesson/:lessonId" element={<ProtectedRoute><StudentLessonPage /></ProtectedRoute>} />
                     <Route path="/student-dashboard/module/:creatorId/:grade/:subjectSlug" element={<ProtectedRoute><StudentModulePage /></ProtectedRoute>} />
+                    <Route path="/student-requests" element={<ProtectedRoute><StudentRequests /></ProtectedRoute>} />
+                    <Route path="/browse-requests" element={<ProtectedRoute><BrowseRequests /></ProtectedRoute>} />
+                    <Route path="/request/:id" element={<ProtectedRoute><RequestDetail /></ProtectedRoute>} />
                     
                     <Route path="/tutor-dashboard" element={<ProtectedRoute><TutorDashboard /></ProtectedRoute>} />
                     <Route path="/tutor-dashboard/lesson/:id" element={<ProtectedRoute><TutorLessonPage /></ProtectedRoute>} />
