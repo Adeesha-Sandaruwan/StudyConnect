@@ -1,0 +1,51 @@
+config:
+  target: "http://localhost:5000"
+  phases:
+    - duration: 20
+      arrivalRate: 3
+      name: "Tutor warm up"
+    - duration: 40
+      arrivalRate: 5
+      rampTo: 15
+      name: "Tutor API steady load"
+    - duration: 20
+      arrivalRate: 15
+      rampTo: 25
+      name: "Tutor API peak load"
+  defaults:
+    headers:
+      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWM5ZjQ5NjZkNGNhMTJkY2ZkYWZiMTUiLCJpYXQiOjE3NzUyODU4NzQsImV4cCI6MTc3Nzg3Nzg3NH0.qKrhyLDK8gPSgOduipOz9GMjdnesSun9GMAKp2tBiNo"
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Tutor dashboard fetch flow - IT23561120"
+    flow:
+      - get:
+          url: "/api/subject-content/my"
+          expect:
+            - statusCode: 200
+
+  - name: "Tutor create lesson flow - IT23561120"
+    flow:
+      - post:
+          url: "/api/subject-content"
+          json:
+            title: "Performance Test Lesson - IT23561120"
+            subject: "ICT"
+            moduleType: "school"
+            grade: 11
+            weekNumber: 1
+            lessonDate: "2026-04-04T09:00:00.000Z"
+            description: "Artillery tutor performance test payload"
+            contentText: "This request checks tutor lesson creation under concurrent load."
+            homework: "No homework"
+            status: "draft"
+            resources:
+              quizFormLink: ""
+              worksheetLink: ""
+              answerSheetLink: ""
+              meetingLink: "https://meet.example.com/performance"
+              referenceLinks: []
+              videoLinks: []
+          expect:
+            - statusCode: 201
