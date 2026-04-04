@@ -2,6 +2,37 @@ import api from './api';
 
 const root = '/student-requests';
 
+function normalizeRequestPayload(payload = {}) {
+    const normalized = { ...payload };
+
+    // Align requestType enum with backend model
+    if (normalized.requestType === 'once') {
+        normalized.requestType = 'one-time';
+    }
+
+    // Align grade level values with backend enum
+    if (normalized.gradeLevel === '0' || normalized.gradeLevel === 0 || normalized.gradeLevel === 'Course/University') {
+        normalized.gradeLevel = 'University';
+    } else if (typeof normalized.gradeLevel === 'number') {
+        normalized.gradeLevel = `Grade ${normalized.gradeLevel}`;
+    } else if (typeof normalized.gradeLevel === 'string' && /^\d+$/.test(normalized.gradeLevel)) {
+        normalized.gradeLevel = `Grade ${normalized.gradeLevel}`;
+    }
+
+    // Backend expects only low/medium/high
+    if (normalized.priority === 'urgent') {
+        normalized.priority = 'high';
+    }
+
+    // Backend expects preferredSchedule as string[]
+    if (typeof normalized.preferredSchedule === 'string') {
+        const schedule = normalized.preferredSchedule.trim();
+        normalized.preferredSchedule = schedule ? [schedule] : [];
+    }
+
+    return normalized;
+}
+
 /**
  * STUDENT REQUEST API SERVICE
  * Centralized API layer for all student request management endpoints
@@ -18,7 +49,7 @@ const root = '/student-requests';
  * @returns {Object} - Created request with confirmation
  */
 export async function createRequest(payload) {
-    const { data } = await api.post(root, payload);
+    const { data } = await api.post(root, normalizeRequestPayload(payload));
     return data;
 }
 
@@ -65,7 +96,7 @@ export async function getRequestById(id) {
  * @returns {Object} - {success, message, request}
  */
 export async function updateRequest(id, payload) {
-    const { data } = await api.put(`${root}/${id}`, payload);
+    const { data } = await api.put(`${root}/${id}`, normalizeRequestPayload(payload));
     return data;
 }
 

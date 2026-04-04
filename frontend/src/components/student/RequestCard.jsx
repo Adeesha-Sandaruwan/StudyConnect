@@ -52,7 +52,7 @@ const RequestCard = ({ request, onClick, showActions = false, onEdit, onDelete, 
                 </span>
                 <PriorityBadge priority={request.priority} />
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-xs font-semibold text-indigo-700">
-                    {request.requestType === 'once' ? '📅 One-time' : '🔄 Ongoing'}
+                    {request.requestType === 'one-time' || request.requestType === 'once' ? '📅 One-time' : '🔄 Ongoing'}
                 </span>
             </div>
 
