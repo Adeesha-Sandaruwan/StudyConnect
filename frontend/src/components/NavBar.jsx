@@ -24,6 +24,11 @@ const NavLinks = ({ homeLink, currentPath, closeMenu, unreadCount, userRole }) =
             </>
         )}
         
+        {/* Admin-specific links */}
+        {userRole === 'admin' && (
+            <Link to="/admin/requests" className={`font-bold transition-colors ${currentPath === '/admin/requests' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Manage Requests</Link>
+        )}
+        
         <Link to="/posts" className={`font-bold transition-colors ${currentPath === '/posts' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>Study Posts</Link>
         
         <Link to="/notifications" className={`relative font-bold transition-colors flex items-center gap-1.5 ${currentPath === '/notifications' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
