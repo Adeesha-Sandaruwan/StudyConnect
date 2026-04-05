@@ -71,9 +71,10 @@ const RequestDetail = () => {
 
     const getStatusTransitions = (currentStatus) => {
         const transitions = {
-            open: ['in-progress', 'cancelled'],
-            'in-progress': ['completed', 'cancelled'],
+            open: ['in-progress', 'rejected'],
+            'in-progress': ['completed', 'rejected'],
             completed: [],
+            rejected: [],
             cancelled: []
         };
         return transitions[currentStatus] || [];
@@ -165,13 +166,13 @@ const RequestDetail = () => {
                                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                                     <p className="text-xs font-bold text-gray-600 uppercase mb-2">Request Type</p>
                                     <p className="text-lg font-bold text-gray-900">
-                                        {request.requestType === 'once' ? '📅 One-time Session' : '🔄 Ongoing'}
+                                        {request.requestType === 'one-time' || request.requestType === 'once' ? '📅 One-time Session' : '🔄 Ongoing'}
                                     </p>
                                 </div>
                                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                                     <p className="text-xs font-bold text-gray-600 uppercase mb-2">Status</p>
                                     <p className="text-lg font-bold text-gray-900 first-letter:uppercase">
-                                        {request.status.replace('-', ' ')}
+                                        {request.status === 'cancelled' ? 'rejected' : request.status.replace('-', ' ')}
                                     </p>
                                 </div>
                             </div>

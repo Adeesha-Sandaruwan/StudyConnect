@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getAllRequests, assignTutor, getTutorUsers } from '../services/studentRequestApi';
+import { getAllRequests, assignTutor, getTutorUsers, updateRequestStatus } from '../services/studentRequestApi';
 import RequestCard from '../components/student/RequestCard';
 import RequestFilters from '../components/student/RequestFilters';
 import RequestModal from '../components/student/RequestModal';
@@ -22,9 +22,11 @@ const AdminRequests = () => {
     const [tutors, setTutors] = useState([]);
     const [selectedTutorByRequest, setSelectedTutorByRequest] = useState({});
     const [assigningRequestId, setAssigningRequestId] = useState('');
+    const [statusUpdatingRequestId, setStatusUpdatingRequestId] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
+    const itemsPerPage = 8;
 
     const [filters, setFilters] = useState({
         subject: '',
@@ -32,8 +34,6 @@ const AdminRequests = () => {
         priority: [],
         status: []
     });
-
-    const itemsPerPage = 15;
 
     useEffect(() => {
         loadRequests();
@@ -52,9 +52,20 @@ const AdminRequests = () => {
             };
 
             const response = await getAllRequests(apiFilters, currentPage, itemsPerPage);
-            setRequests(response.requests || []);
+            const nextRequests = response.requests || [];
+            setRequests(nextRequests);
             setTotalPages(response.pagination?.pages || 1);
             setTotalRequests(response.pagination?.total || 0);
+
+            setSelectedTutorByRequest((prev) => {
+                const next = { ...prev };
+                nextRequests.forEach((r) => {
+                    if (!(r._id in next)) {
+                        next[r._id] = r.assignedTutor?._id || '';
+                    }
+                });
+                return next;
+            });
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to load requests');
             setRequests([]);
@@ -123,6 +134,56 @@ const AdminRequests = () => {
         }
     };
 
+    const handleRemoveTutor = async (requestId) => {
+        setAssigningRequestId(requestId);
+        try {
+            await assignTutor(requestId);
+            setError('');
+            setSelectedTutorByRequest((prev) => ({ ...prev, [requestId]: '' }));
+            await loadRequests();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to remove tutor');
+        } finally {
+            setAssigningRequestId('');
+        }
+    };
+
+    const handleUpdateStatus = async (requestId, status) => {
+        setStatusUpdatingRequestId(requestId);
+        try {
+            await updateRequestStatus(requestId, status);
+            setError('');
+            await loadRequests();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to update request status');
+        } finally {
+            setStatusUpdatingRequestId('');
+        }
+    };
+
+    const statusButtons = [
+        {
+            value: 'open',
+            label: 'Open',
+            className: 'bg-sky-100/65 text-sky-800 border-sky-200 hover:bg-sky-200/70'
+        },
+        {
+            value: 'in-progress',
+            label: 'In Progress',
+            className: 'bg-amber-100/65 text-amber-800 border-amber-200 hover:bg-amber-200/70'
+        },
+        {
+            value: 'completed',
+            label: 'Completed',
+            className: 'bg-emerald-100/65 text-emerald-800 border-emerald-200 hover:bg-emerald-200/70'
+        },
+        {
+            value: 'rejected',
+            label: 'Rejected',
+            className: 'bg-rose-100/65 text-rose-800 border-rose-200 hover:bg-rose-200/70'
+        }
+    ];
+
     if (user && user.role !== 'admin') {
         return <Navigate to={user.role === 'tutor' ? '/tutor-dashboard' : '/student-dashboard'} replace />;
     }
@@ -135,7 +196,7 @@ const AdminRequests = () => {
             open: requests.filter(r => r.status === 'open').length,
             inProgress: requests.filter(r => r.status === 'in-progress').length,
             completed: requests.filter(r => r.status === 'completed').length,
-            cancelled: requests.filter(r => r.status === 'cancelled').length,
+            rejected: requests.filter(r => r.status === 'rejected' || r.status === 'cancelled').length,
         };
         return stats;
     };
@@ -180,7 +241,7 @@ const AdminRequests = () => {
                         { label: 'Open', value: stats.open, icon: '🔵', color: 'bg-blue-50 border-blue-200' },
                         { label: 'In Progress', value: stats.inProgress, icon: '🟡', color: 'bg-amber-50 border-amber-200' },
                         { label: 'Completed', value: stats.completed, icon: '🟢', color: 'bg-emerald-50 border-emerald-200' },
-                        { label: 'Cancelled', value: stats.cancelled, icon: '🔴', color: 'bg-red-50 border-red-200' },
+                        { label: 'Rejected', value: stats.rejected, icon: '🔴', color: 'bg-red-50 border-red-200' },
                     ].map((stat, idx) => (
                         <div key={idx} className={`${stat.color} border rounded-xl p-4 text-center`}>
                             <div className="text-2xl mb-1">{stat.icon}</div>
@@ -235,32 +296,94 @@ const AdminRequests = () => {
                                             request={request}
                                             onClick={() => setSelectedRequest(request)}
                                             customActions={
-                                                request.status === 'open' && !request.assignedTutor ? (
-                                                    <div className="flex gap-2 items-center">
-                                                        <select
-                                                            value={selectedTutorByRequest[request._id] || ''}
-                                                            onChange={(e) => setSelectedTutorByRequest((prev) => ({
-                                                                ...prev,
-                                                                [request._id]: e.target.value
-                                                            }))}
-                                                            className="flex-1 rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs font-semibold"
-                                                        >
-                                                            <option value="">Select tutor</option>
-                                                            {tutors.map((tutor) => (
-                                                                <option key={tutor._id} value={tutor._id}>
-                                                                    {tutor.name}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                        <button
-                                                            onClick={() => handleAssignTutor(request._id)}
-                                                            disabled={assigningRequestId === request._id}
-                                                            className="px-3 py-2 rounded-lg text-xs font-bold bg-[#5b7cfa] text-white hover:bg-[#4a6be0] disabled:opacity-60"
-                                                        >
-                                                            {assigningRequestId === request._id ? 'Assigning...' : 'Assign'}
-                                                        </button>
+                                                <div className="space-y-3">
+                                                    {request.status === 'open' && !request.assignedTutor && (
+                                                        <div className="flex gap-2 items-center">
+                                                            <select
+                                                                value={selectedTutorByRequest[request._id] || ''}
+                                                                onChange={(e) => setSelectedTutorByRequest((prev) => ({
+                                                                    ...prev,
+                                                                    [request._id]: e.target.value
+                                                                }))}
+                                                                className="flex-1 rounded-lg border border-gray-300 bg-white/70 backdrop-blur-sm px-2 py-2 text-xs font-semibold"
+                                                            >
+                                                                <option value="">Select tutor</option>
+                                                                {tutors.map((tutor) => (
+                                                                    <option key={tutor._id} value={tutor._id}>
+                                                                        {tutor.name}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <button
+                                                                onClick={() => handleAssignTutor(request._id)}
+                                                                disabled={assigningRequestId === request._id}
+                                                                className="px-3 py-2 rounded-lg text-xs font-bold bg-[#5b7cfa]/90 text-white border border-white/40 backdrop-blur-md shadow-sm hover:bg-[#4a6be0] disabled:opacity-60"
+                                                            >
+                                                                {assigningRequestId === request._id ? 'Assigning...' : 'Assign'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {request.assignedTutor && (
+                                                        <div className="space-y-2">
+                                                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-600">
+                                                                Tutor Assignment
+                                                            </p>
+                                                            <div className="flex gap-2 items-center">
+                                                                <select
+                                                                    value={selectedTutorByRequest[request._id] || request.assignedTutor._id || ''}
+                                                                    onChange={(e) => setSelectedTutorByRequest((prev) => ({
+                                                                        ...prev,
+                                                                        [request._id]: e.target.value
+                                                                    }))}
+                                                                    className="flex-1 rounded-lg border border-gray-300 bg-white/70 backdrop-blur-sm px-2 py-2 text-xs font-semibold"
+                                                                >
+                                                                    <option value="">Select tutor</option>
+                                                                    {tutors.map((tutor) => (
+                                                                        <option key={tutor._id} value={tutor._id}>
+                                                                            {tutor.name}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                                <button
+                                                                    onClick={() => handleAssignTutor(request._id)}
+                                                                    disabled={assigningRequestId === request._id}
+                                                                    className="px-3 py-2 rounded-lg text-xs font-bold bg-indigo-500/90 text-white border border-white/40 backdrop-blur-md shadow-sm hover:bg-indigo-600 disabled:opacity-60"
+                                                                >
+                                                                    {assigningRequestId === request._id ? 'Saving...' : 'Change'}
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRemoveTutor(request._id)}
+                                                                    disabled={assigningRequestId === request._id}
+                                                                    className="px-3 py-2 rounded-lg text-xs font-bold bg-rose-500/90 text-white border border-white/40 backdrop-blur-md shadow-sm hover:bg-rose-600 disabled:opacity-60"
+                                                                >
+                                                                    {assigningRequestId === request._id ? 'Removing...' : 'Remove'}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="rounded-xl border border-white/40 bg-white/45 backdrop-blur-md p-2.5">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-600 mb-2">
+                                                            Change State
+                                                        </p>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {statusButtons.map((btn) => {
+                                                                const isCurrent = (request.status === 'cancelled' && btn.value === 'rejected') || request.status === btn.value;
+                                                                return (
+                                                                    <button
+                                                                        key={btn.value}
+                                                                        onClick={() => handleUpdateStatus(request._id, btn.value)}
+                                                                        disabled={isCurrent || statusUpdatingRequestId === request._id}
+                                                                        className={`px-2 py-2 rounded-lg text-[11px] font-bold border transition-all backdrop-blur-sm ${btn.className} ${isCurrent ? 'ring-2 ring-slate-300 opacity-95 cursor-default' : ''} ${statusUpdatingRequestId === request._id ? 'opacity-60 cursor-wait' : ''}`}
+                                                                    >
+                                                                        {statusUpdatingRequestId === request._id ? 'Updating...' : btn.label}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
-                                                ) : null
+                                                </div>
                                             }
                                         />
                                     ))}
@@ -269,6 +392,17 @@ const AdminRequests = () => {
                                 {/* Pagination */}
                                 {totalPages > 1 && (
                                     <div className="flex items-center justify-center gap-4 mt-10">
+                                        <button
+                                            onClick={() => setCurrentPage(1)}
+                                            disabled={currentPage === 1}
+                                            className={`px-3 py-2 rounded-lg font-bold transition-all ${
+                                                currentPage === 1
+                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            First
+                                        </button>
                                         <button
                                             onClick={handlePreviousPage}
                                             disabled={currentPage === 1}
@@ -320,6 +454,17 @@ const AdminRequests = () => {
                                             }`}
                                         >
                                             Next →
+                                        </button>
+                                        <button
+                                            onClick={() => setCurrentPage(totalPages)}
+                                            disabled={currentPage === totalPages}
+                                            className={`px-3 py-2 rounded-lg font-bold transition-all ${
+                                                currentPage === totalPages
+                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            Last
                                         </button>
                                     </div>
                                 )}

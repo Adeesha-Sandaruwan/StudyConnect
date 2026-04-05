@@ -1,7 +1,7 @@
 /**
  * StatusBadge Component
  * Visual status indicators with color-coded badges
- * Statuses: open, in-progress, completed, cancelled
+ * Statuses: open, in-progress, completed, rejected
  */
 
 const StatusBadge = ({ status, className = '' }) => {
@@ -27,12 +27,19 @@ const StatusBadge = ({ status, className = '' }) => {
             dot: 'bg-emerald-500',
             label: 'Completed'
         },
+        rejected: {
+            bg: 'bg-red-100',
+            text: 'text-red-700',
+            border: 'border-red-200',
+            dot: 'bg-red-500',
+            label: 'Rejected'
+        },
         cancelled: {
             bg: 'bg-red-100',
             text: 'text-red-700',
             border: 'border-red-200',
             dot: 'bg-red-500',
-            label: 'Cancelled'
+            label: 'Rejected'
         }
     };
 

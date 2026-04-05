@@ -9,7 +9,7 @@ import Loader from '../Loader';
  * Shows full request info with ability to edit or close
  */
 
-const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false }) => {
+const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, allowEdit = false }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState(null);
 
@@ -50,6 +50,7 @@ const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false })
     };
 
     const handleSave = () => {
+        if (!allowEdit || typeof onUpdate !== 'function') return;
         onUpdate(request._id, editData);
         setIsEditing(false);
     };
@@ -103,7 +104,7 @@ const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false })
                                 <div>
                                     <p className="text-xs font-bold text-gray-600 uppercase mb-1.5">Type</p>
                                     <span className="inline-flex px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg font-semibold text-xs">
-                                        {request.requestType === 'once' ? '📅 One-time' : '🔄 Ongoing'}
+                                        {request.requestType === 'one-time' || request.requestType === 'once' ? '📅 One-time' : '🔄 Ongoing'}
                                     </span>
                                 </div>
                             </div>
@@ -230,12 +231,14 @@ const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false })
                                     >
                                         Close
                                     </button>
-                                    <button
-                                        onClick={() => setIsEditing(true)}
-                                        className="px-6 py-2.5 bg-[#5b7cfa] text-white rounded-lg font-bold hover:bg-[#4a6be0] transition-colors flex items-center gap-2"
-                                    >
-                                        ✏️ Edit Request
-                                    </button>
+                                    {allowEdit && typeof onUpdate === 'function' && (
+                                        <button
+                                            onClick={() => setIsEditing(true)}
+                                            className="px-6 py-2.5 bg-[#5b7cfa] text-white rounded-lg font-bold hover:bg-[#4a6be0] transition-colors flex items-center gap-2"
+                                        >
+                                            ✏️ Edit Request
+                                        </button>
+                                    )}
                                 </>
                             )}
                         </div>

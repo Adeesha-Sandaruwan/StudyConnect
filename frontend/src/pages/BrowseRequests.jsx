@@ -30,7 +30,7 @@ const BrowseRequests = () => {
         status: []
     });
 
-    const itemsPerPage = 12;
+    const itemsPerPage = 10;
 
     useEffect(() => {
         loadRequests();
@@ -240,10 +240,7 @@ const BrowseRequests = () => {
                         isOpen={!!selectedRequest}
                         request={selectedRequest}
                         onClose={() => setSelectedRequest(null)}
-                        onUpdate={() => {
-                            setSelectedRequest(null);
-                            loadRequests();
-                        }}
+                        allowEdit={false}
                     />
                 )}
             </div>

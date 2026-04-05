@@ -20,17 +20,24 @@ const StudentRequests = () => {
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalRequests, setTotalRequests] = useState(0);
+
+    const itemsPerPage = 10;
 
     useEffect(() => {
         loadRequests();
-    }, []);
+    }, [currentPage]);
 
     const loadRequests = async () => {
         setLoading(true);
         setError('');
         try {
-            const response = await getMyRequests();
+            const response = await getMyRequests(currentPage, itemsPerPage);
             setRequests(response.requests || []);
+            setTotalPages(response.pagination?.pages || 1);
+            setTotalRequests(response.pagination?.total || 0);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to load your requests');
             setRequests([]);
@@ -43,8 +50,9 @@ const StudentRequests = () => {
         setIsSubmitting(true);
         try {
             const response = await createRequest(formData);
-            setRequests([response.request, ...requests]);
             setShowCreateForm(false);
+            setCurrentPage(1);
+            await loadRequests();
             setError('');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create request');
@@ -58,7 +66,7 @@ const StudentRequests = () => {
         
         try {
             await deleteRequest(requestId);
-            setRequests(requests.filter(r => r._id !== requestId));
+            await loadRequests();
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to delete request');
         }
@@ -72,6 +80,14 @@ const StudentRequests = () => {
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to update request');
         }
+    };
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) setCurrentPage(currentPage - 1);
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
     };
 
     if (user && user.role !== 'student') {
@@ -154,17 +170,53 @@ const StudentRequests = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {requests.map(request => (
-                            <RequestCard
-                                key={request._id}
-                                request={request}
-                                onClick={() => setSelectedRequest(request)}
-                                showActions={true}
-                                onDelete={handleDeleteRequest}
-                            />
-                        ))}
-                    </div>
+                    <>
+                        <div className="mb-5">
+                            <p className="text-sm font-semibold text-gray-600">
+                                📊 Showing {requests.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min(currentPage * itemsPerPage, totalRequests)} of {totalRequests}
+                            </p>
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {requests.map(request => (
+                                <RequestCard
+                                    key={request._id}
+                                    request={request}
+                                    onClick={() => setSelectedRequest(request)}
+                                    showActions={true}
+                                    onDelete={handleDeleteRequest}
+                                />
+                            ))}
+                        </div>
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-4 mt-10">
+                                <button
+                                    onClick={handlePreviousPage}
+                                    disabled={currentPage === 1}
+                                    className={`px-4 py-2 rounded-lg font-bold transition-all ${
+                                        currentPage === 1
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-[#5b7cfa] text-white hover:bg-[#4a6be0]'
+                                    }`}
+                                >
+                                    ← Previous
+                                </button>
+                                <span className="text-sm font-semibold text-gray-600">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <button
+                                    onClick={handleNextPage}
+                                    disabled={currentPage === totalPages}
+                                    className={`px-4 py-2 rounded-lg font-bold transition-all ${
+                                        currentPage === totalPages
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-[#5b7cfa] text-white hover:bg-[#4a6be0]'
+                                    }`}
+                                >
+                                    Next →
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {/* Request Detail Modal */}
@@ -174,6 +226,7 @@ const StudentRequests = () => {
                         request={selectedRequest}
                         onClose={() => setSelectedRequest(null)}
                         onUpdate={handleUpdateRequest}
+                        allowEdit={true}
                     />
                 )}
             </div>

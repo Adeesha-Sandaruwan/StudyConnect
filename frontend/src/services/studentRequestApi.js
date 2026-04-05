@@ -57,8 +57,13 @@ export async function createRequest(payload) {
  * Get student's own requests
  * @returns {Object} - {success, requests: []}
  */
-export async function getMyRequests() {
-    const { data } = await api.get(`${root}/my-requests`);
+export async function getMyRequests(page = 1, limit = 10) {
+    const { data } = await api.get(`${root}/my-requests`, {
+        params: {
+            page,
+            limit
+        }
+    });
     return data;
 }
 
@@ -179,16 +184,15 @@ export async function acceptRequestAsTutor(requestId) {
  * @returns {Object} - {success, message, request}
  */
 export async function assignTutor(requestId, tutorId) {
-    const { data } = await api.put(`${root}/${requestId}/assign-tutor`, {
-        tutorId
-    });
+    const payload = tutorId ? { tutorId } : {};
+    const { data } = await api.put(`${root}/${requestId}/assign-tutor`, payload);
     return data;
 }
 
 /**
  * Update request status (admin or tutor only)
  * @param {String} requestId - Request ID
- * @param {String} status - New status (open, in-progress, completed, cancelled)
+ * @param {String} status - New status (open, in-progress, completed, rejected)
  * @returns {Object} - {success, message, request}
  */
 export async function updateRequestStatus(requestId, status) {

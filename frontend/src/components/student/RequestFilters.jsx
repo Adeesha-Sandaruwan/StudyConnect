@@ -6,23 +6,26 @@
 
 const RequestFilters = ({ filters, onFiltersChange, onClear }) => {
     const SUBJECTS = [
-        'Mathematics', 'Physics', 'Chemistry', 'Biology', 
-        'Computer Science', 'Languages', 'Business', 'History',
-        'English Literature', 'Economics', 'Psychology', 'Other'
+        'Mathematics',
+        'English',
+        'Science',
+        'History',
+        'Geography',
+        'ICT',
+        'Other'
     ];
 
     const STATUSES = [
         { value: 'open', label: 'Open', icon: '🔵' },
         { value: 'in-progress', label: 'In Progress', icon: '🟡' },
         { value: 'completed', label: 'Completed', icon: '🟢' },
-        { value: 'cancelled', label: 'Cancelled', icon: '🔴' }
+        { value: 'rejected', label: 'Rejected', icon: '🔴' }
     ];
 
     const PRIORITIES = [
         { value: 'low', label: 'Low', icon: '📍' },
         { value: 'medium', label: 'Medium', icon: '📌' },
-        { value: 'high', label: 'High', icon: '🔺' },
-        { value: 'urgent', label: 'Urgent', icon: '🚨' }
+        { value: 'high', label: 'High', icon: '🔺' }
     ];
 
     const handleFilterChange = (filterName, value) => {
@@ -89,10 +92,9 @@ const RequestFilters = ({ filters, onFiltersChange, onClear }) => {
                         className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 font-semibold text-sm outline-none focus:ring-2 focus:ring-[#5b7cfa] transition-all appearance-none cursor-pointer"
                     >
                         <option value="">All Grades</option>
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(grade => (
-                            <option key={grade} value={grade}>Grade {grade}</option>
+                        {['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12', 'University'].map((grade) => (
+                            <option key={grade} value={grade}>{grade}</option>
                         ))}
-                        <option value="0">Course/University</option>
                     </select>
                 </div>
 
