@@ -15,6 +15,7 @@ import {
   updateRequest,
   deleteRequest,
   assignTutor,
+  acceptRequestByTutor,
   updateRequestStatus,
   getTutorAssignedRequests,
   getAvailableRequests,
@@ -22,8 +23,8 @@ import {
 } from '../controllers/studentRequestController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { admin } from '../middleware/adminMiddleware.js';
-import { checkOwnerOrAdmin } from '../middleware/ownerMiddleware.js';
-import { adminOrTutor } from '../middleware/tutorMiddleware.js';
+import { checkStudentOwner } from '../middleware/ownerMiddleware.js';
+import { tutor, adminOrTutor } from '../middleware/tutorMiddleware.js';
 import {
   validateStudentRequest,
   validateStudentRequestUpdate,
@@ -70,6 +71,9 @@ router.get('/subject/:subject', getRequestsBySubject);
 // PUT /api/student-requests/:id/assign-tutor - Assign tutor (Admin only)
 router.put('/:id/assign-tutor', protect, admin, validateAssignTutor, assignTutor);
 
+// PUT /api/student-requests/:id/tutor/accept - Tutor accepts an open request
+router.put('/:id/tutor/accept', protect, tutor, acceptRequestByTutor);
+
 // PUT /api/student-requests/:id/status - Update status (Admin or Tutor only)
 router.put('/:id/status', protect, adminOrTutor, validateRequestStatus, updateRequestStatus);
 
@@ -78,10 +82,10 @@ router.put('/:id/status', protect, adminOrTutor, validateRequestStatus, updateRe
  */
 
 // PUT /api/student-requests/:id - Update request (Owner or Admin)
-router.put('/:id', protect, checkOwnerOrAdmin, validateStudentRequestUpdate, updateRequest);
+router.put('/:id', protect, checkStudentOwner, validateStudentRequestUpdate, updateRequest);
 
 // DELETE /api/student-requests/:id - Delete request (Owner or Admin)
-router.delete('/:id', protect, checkOwnerOrAdmin, deleteRequest);
+router.delete('/:id', protect, checkStudentOwner, deleteRequest);
 
 // GET /api/student-requests/:id - Get request by ID (Public)
 router.get('/:id', getRequestById);

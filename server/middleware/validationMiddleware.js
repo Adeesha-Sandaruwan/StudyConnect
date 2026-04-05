@@ -66,10 +66,10 @@ export const validateStudentRequestUpdate = [
 ];
 
 // Validate request status updates
-// Status must be one of: open, in-progress, completed, cancelled
+// Status must be one of: open, in-progress, completed, rejected
 export const validateRequestStatus = [
   check('status', 'Status is required').not().isEmpty(),
-  check('status').isIn(['open', 'in-progress', 'completed', 'cancelled']).withMessage('Invalid status'),
+  check('status').isIn(['open', 'in-progress', 'completed', 'rejected', 'cancelled']).withMessage('Invalid status'),
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

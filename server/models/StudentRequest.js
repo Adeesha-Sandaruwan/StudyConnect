@@ -44,10 +44,10 @@ const studentRequestSchema = mongoose.Schema(
       default: []
     },
     
-    // Status lifecycle: open -> in-progress -> completed or cancelled
+    // Status lifecycle: open -> in-progress -> completed or rejected
     status: {
       type: String,
-      enum: ['open', 'in-progress', 'completed', 'cancelled'],
+      enum: ['open', 'in-progress', 'completed', 'rejected', 'cancelled'],
       default: 'open'
     },
     

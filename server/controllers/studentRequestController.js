@@ -5,6 +5,7 @@ import {
   sendRequestCreationEmail,
   sendAdminNotificationEmail,
   sendTutorAssignmentEmail,
+  sendTutorRequestEmail,
   sendStatusUpdateEmail
 } from '../services/emailService.js';
 
@@ -17,7 +18,9 @@ const getAllRequests = async (req, res) => {
 
     // Build filter object
     const filter = {};
-    if (status) filter.status = status;
+    if (status) {
+      filter.status = status === 'rejected' ? { $in: ['rejected', 'cancelled'] } : status;
+    }
     if (subject) filter.subject = subject;
     if (gradeLevel) filter.gradeLevel = gradeLevel;
     if (priority) filter.priority = priority;
@@ -52,13 +55,29 @@ const getAllRequests = async (req, res) => {
 // @access  Private
 const getMyRequests = async (req, res) => {
   try {
-    const requests = await StudentRequest.find({ student: req.user._id })
+    const { page = 1, limit = 10 } = req.query;
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
+    const skip = (pageNum - 1) * limitNum;
+
+    const filter = { student: req.user._id };
+
+    const requests = await StudentRequest.find(filter)
       .populate('assignedTutor', ['name', 'email', 'avatar'])
+      .limit(limitNum)
+      .skip(skip)
       .sort({ createdAt: -1 });
+
+    const total = await StudentRequest.countDocuments(filter);
 
     res.json({
       success: true,
-      requests
+      requests,
+      pagination: {
+        total,
+        pages: Math.ceil(total / limitNum),
+        currentPage: pageNum
+      }
     });
   } catch (error) {
     console.error(error);
@@ -291,13 +310,6 @@ const assignTutor = async (req, res) => {
 
     const { tutorId } = req.body;
 
-    if (!tutorId) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Please provide tutor ID' 
-      });
-    }
-
     const request = await StudentRequest.findById(req.params.id);
 
     if (!request) {
@@ -307,31 +319,91 @@ const assignTutor = async (req, res) => {
       });
     }
 
+    // Block assignment updates on terminal states
+    if (['completed', 'rejected', 'cancelled'].includes(request.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot modify tutor assignment for completed/rejected requests'
+      });
+    }
+
+    const previousTutorId = request.assignedTutor ? request.assignedTutor.toString() : null;
+
+    // Remove tutor assignment when tutorId is omitted
+    if (!tutorId) {
+      if (!request.assignedTutor) {
+        return res.status(400).json({
+          success: false,
+          message: 'No tutor is currently assigned to this request'
+        });
+      }
+
+      request.assignedTutor = null;
+      if (request.status === 'in-progress') {
+        request.status = 'open';
+      }
+
+      await request.save();
+      await request.populate('student', ['name', 'email', 'avatar']);
+      await request.populate('assignedTutor', ['name', 'email', 'avatar']);
+
+      try {
+        const student = await User.findById(request.student);
+        await sendStatusUpdateEmail(
+          student.email,
+          student.name,
+          request.status,
+          request.subject,
+          request._id.toString()
+        );
+
+        if (previousTutorId) {
+          const previousTutor = await User.findById(previousTutorId);
+          if (previousTutor && previousTutor.role === 'tutor') {
+            await sendTutorRequestEmail(
+              previousTutor.email,
+              previousTutor.name,
+              student.name,
+              request.subject,
+              request._id.toString(),
+              request.status,
+              'removed'
+            );
+          }
+        }
+      } catch (emailError) {
+        console.warn('Failed to send tutor removal emails:', emailError.message);
+      }
+
+      return res.json({
+        success: true,
+        message: 'Tutor removed successfully',
+        request
+      });
+    }
+
     // Verify tutor exists and has tutor role
     const tutor = await User.findById(tutorId);
     if (!tutor || tutor.role !== 'tutor') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Invalid tutor' 
+        message: 'Invalid tutor'
       });
     }
 
-    // Only allow assignment if request is open
-    if (request.status !== 'open') {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Can only assign tutor to open requests' 
-      });
-    }
-
+    const wasAssigned = !!request.assignedTutor;
     request.assignedTutor = new mongoose.Types.ObjectId(tutorId);
-    request.status = 'in-progress';
+
+    if (request.status === 'open') {
+      request.status = 'in-progress';
+    }
+
     await request.save();
 
     await request.populate('student', ['name', 'email', 'avatar']);
     await request.populate('assignedTutor', ['name', 'email', 'avatar']);
 
-    // Send notification email to student about tutor assignment
+    // Send notification emails only to related student and tutor
     try {
       const student = await User.findById(request.student);
       await sendTutorAssignmentEmail(
@@ -339,8 +411,35 @@ const assignTutor = async (req, res) => {
         student.name,
         tutor.name,
         request.subject,
-        request._id.toString()
+        request._id.toString(),
+        request.status
       );
+
+      await sendTutorRequestEmail(
+        tutor.email,
+        tutor.name,
+        student.name,
+        request.subject,
+        request._id.toString(),
+        request.status,
+        wasAssigned ? 'changed' : 'assigned'
+      );
+
+      // Notify previous tutor only when reassigned
+      if (wasAssigned && previousTutorId && previousTutorId !== tutorId) {
+        const previousTutor = await User.findById(previousTutorId);
+        if (previousTutor && previousTutor.role === 'tutor') {
+          await sendTutorRequestEmail(
+            previousTutor.email,
+            previousTutor.name,
+            student.name,
+            request.subject,
+            request._id.toString(),
+            request.status,
+            'removed'
+          );
+        }
+      }
     } catch (emailError) {
       console.warn('Failed to send tutor assignment email:', emailError.message);
       // Don't fail the request if email fails
@@ -348,7 +447,9 @@ const assignTutor = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Tutor assigned successfully and email notification sent to student',
+      message: wasAssigned
+        ? 'Tutor changed successfully and email notification sent to student'
+        : 'Tutor assigned successfully and email notification sent to student',
       request
     });
   } catch (error) {
@@ -356,6 +457,74 @@ const assignTutor = async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: error.message 
+    });
+  }
+};
+
+// @desc    Tutor accepts an open student request
+// @route   PUT /api/student-requests/:id/tutor/accept
+// @access  Private (Tutor only)
+const acceptRequestByTutor = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'tutor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only tutors can accept requests'
+      });
+    }
+
+    const request = await StudentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Request not found'
+      });
+    }
+
+    if (request.status !== 'open') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only open requests can be accepted'
+      });
+    }
+
+    if (request.assignedTutor) {
+      return res.status(400).json({
+        success: false,
+        message: 'Request is already assigned to a tutor'
+      });
+    }
+
+    request.assignedTutor = req.user._id;
+    request.status = 'in-progress';
+    await request.save();
+
+    await request.populate('student', ['name', 'email', 'avatar']);
+    await request.populate('assignedTutor', ['name', 'email', 'avatar']);
+
+    try {
+      const student = await User.findById(request.student);
+      await sendTutorAssignmentEmail(
+        student.email,
+        student.name,
+        req.user.name,
+        request.subject,
+        request._id.toString()
+      );
+    } catch (emailError) {
+      console.warn('Failed to send tutor acceptance email:', emailError.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Request accepted successfully',
+      request
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };
@@ -387,7 +556,7 @@ const updateRequestStatus = async (req, res) => {
       });
     }
 
-    const validStatuses = ['open', 'in-progress', 'completed', 'cancelled'];
+    const validStatuses = ['open', 'in-progress', 'completed', 'rejected', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ 
         success: false,
@@ -402,7 +571,7 @@ const updateRequestStatus = async (req, res) => {
     await request.populate('student', ['name', 'email', 'avatar']);
     await request.populate('assignedTutor', ['name', 'email', 'avatar']);
 
-    // Send notification email to student about status change
+    // Send notification emails only to related student and assigned tutor
     try {
       const student = await User.findById(request.student);
       await sendStatusUpdateEmail(
@@ -412,6 +581,21 @@ const updateRequestStatus = async (req, res) => {
         request.subject,
         request._id.toString()
       );
+
+      if (request.assignedTutor) {
+        const assignedTutor = await User.findById(request.assignedTutor);
+        if (assignedTutor && assignedTutor.role === 'tutor') {
+          await sendTutorRequestEmail(
+            assignedTutor.email,
+            assignedTutor.name,
+            student.name,
+            request.subject,
+            request._id.toString(),
+            status,
+            'changed'
+          );
+        }
+      }
     } catch (emailError) {
       console.warn('Failed to send status update email:', emailError.message);
       // Don't fail the request if email fails
@@ -453,10 +637,10 @@ const getTutorAssignedRequests = async (req, res) => {
       filter.assignedTutor = tutorId;
     }
     
-    // Optional: Filter by request status (open, in-progress, completed, cancelled)
+    // Optional: Filter by request status (open, in-progress, completed, rejected)
     // Default returns all statuses (status=all)
     if (status !== 'all') {
-      filter.status = status;
+      filter.status = status === 'rejected' ? { $in: ['rejected', 'cancelled'] } : status;
     }
 
     // Fetch requests with populated student and tutor references
@@ -572,6 +756,7 @@ export {
   updateRequest,
   deleteRequest,
   assignTutor,
+  acceptRequestByTutor,
   updateRequestStatus,
   getTutorAssignedRequests,
   getAvailableRequests,

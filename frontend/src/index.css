@@ -1,1 +1,63 @@
 @import "tailwindcss";
+
+@layer components {
+	/* Toast animations */
+	@keyframes slide-in-right {
+		from {
+			transform: translateX(100%);
+			opacity: 0;
+		}
+		to {
+			transform: translateX(0);
+			opacity: 1;
+		}
+	}
+
+	@keyframes slide-out-right {
+		from {
+			transform: translateX(0);
+			opacity: 1;
+		}
+		to {
+			transform: translateX(100%);
+			opacity: 0;
+		}
+	}
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes fade-out {
+		from {
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
+		}
+	}
+}
+
+@layer utilities {
+	.animate-slide-in-right {
+		animation: slide-in-right 0.3s ease-out;
+	}
+
+	.animate-slide-out-right {
+		animation: slide-out-right 0.3s ease-out;
+	}
+
+	.animate-fade-in {
+		animation: fade-in 0.3s ease-out;
+	}
+
+	.animate-fade-out {
+		animation: fade-out 0.3s ease-out;
+	}
+}
+@import "tailwindcss";

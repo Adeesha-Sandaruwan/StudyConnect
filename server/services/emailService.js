@@ -30,7 +30,8 @@ export const sendTutorAssignmentEmail = async (
   studentName,
   tutorName,
   subject,
-  requestId
+  requestId,
+  status = 'in-progress'
 ) => {
   try {
     const mailOptions = {
@@ -52,6 +53,7 @@ export const sendTutorAssignmentEmail = async (
               <p><strong>Tutor Name:</strong> ${tutorName}</p>
               <p><strong>Subject:</strong> ${subject}</p>
               <p><strong>Request ID:</strong> ${requestId}</p>
+              <p><strong>Status:</strong> ${String(status).toUpperCase()}</p>
             </div>
             
             <p>Your tutor will be reaching out soon to discuss the best learning schedule and approach tailored to your needs.</p>
@@ -74,6 +76,71 @@ export const sendTutorAssignmentEmail = async (
     return true;
   } catch (error) {
     console.error('Error sending tutor assignment email:', error);
+    return false;
+  }
+};
+
+/**
+ * SEND TUTOR ASSIGNMENT/STATUS EMAIL TO TUTOR
+ * Notifies the related tutor when they are assigned/changed/removed from a request
+ */
+export const sendTutorRequestEmail = async (
+  tutorEmail,
+  tutorName,
+  studentName,
+  subject,
+  requestId,
+  status,
+  action = 'assigned'
+) => {
+  try {
+    const actionText = {
+      assigned: 'You have been assigned to a student request.',
+      changed: 'You have been assigned as the updated tutor for a student request.',
+      removed: 'You have been removed from a student request.'
+    };
+
+    const actionColor = {
+      assigned: '#4CAF50',
+      changed: '#3F51B5',
+      removed: '#f44336'
+    };
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: tutorEmail,
+      subject: `Tutor Request Update - ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+          <div style="background-color: ${actionColor[action] || '#3F51B5'}; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+            <h2>Tutor Request Notification</h2>
+          </div>
+
+          <div style="background-color: white; padding: 30px; border-radius: 0 0 8px 8px;">
+            <p>Hi <strong>${tutorName}</strong>,</p>
+            <p>${actionText[action] || actionText.assigned}</p>
+
+            <div style="background-color: #f0f8ff; padding: 15px; border-left: 4px solid ${actionColor[action] || '#3F51B5'}; margin: 20px 0;">
+              <p><strong>Student:</strong> ${studentName}</p>
+              <p><strong>Subject:</strong> ${subject}</p>
+              <p><strong>Request ID:</strong> ${requestId}</p>
+              <p><strong>Status:</strong> ${String(status).toUpperCase()}</p>
+            </div>
+
+            <p style="color: #666; margin-top: 20px; font-size: 14px;">
+              Best regards,<br/>
+              <strong>StudyConnect Team</strong>
+            </p>
+          </div>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✓ Tutor request email sent to ${tutorEmail}`);
+    return true;
+  } catch (error) {
+    console.error('Error sending tutor request email:', error);
     return false;
   }
 };
@@ -319,6 +386,7 @@ export const sendAdminNotificationEmail = async (
 
 export default {
   sendTutorAssignmentEmail,
+  sendTutorRequestEmail,
   sendStatusUpdateEmail,
   sendRequestCreationEmail,
   sendAdminNotificationEmail
