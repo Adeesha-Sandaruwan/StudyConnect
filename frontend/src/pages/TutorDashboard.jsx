@@ -1,7 +1,11 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { createSubjectContent, fetchMySubjectContents } from '../services/subjectContentApi';
+import {
+    createSubjectContent,
+    deleteSubjectContent,
+    fetchMySubjectContents,
+} from '../services/subjectContentApi';
 import { groupContentsByModule, modulePath } from '../utils/subjectModules';
 import TutorHeroImage from '../assets/tutor-hero.svg';
 
@@ -37,6 +41,7 @@ const TutorDashboard = () => {
     const [modules, setModules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [listError, setListError] = useState('');
+    const [deletingModuleKey, setDeletingModuleKey] = useState('');
 
     const [createOpen, setCreateOpen] = useState(false);
     const [createError, setCreateError] = useState('');
@@ -109,6 +114,43 @@ const TutorDashboard = () => {
     const openCreateFresh = () => {
         resetCreateForm();
         setCreateOpen(true);
+    };
+
+    const handleDeleteModule = async (mod) => {
+        const lessonIds = Array.isArray(mod?.lessons)
+            ? mod.lessons.map((lesson) => lesson?._id).filter(Boolean)
+            : [];
+        const moduleKey = `${String(mod?.subject || '').trim().toLowerCase()}__${Number(mod?.grade)}`;
+
+        if (!lessonIds.length || deletingModuleKey) return;
+
+        const label = `${mod.subject} · ${mod.grade === 0 ? 'Course module' : `Grade ${mod.grade}`}`;
+        const confirmed = window.confirm(
+            `Delete the entire ${label} module?\n\nThis will permanently remove ${lessonIds.length} week${
+                lessonIds.length === 1 ? '' : 's'
+            }.`
+        );
+
+        if (!confirmed) return;
+
+        setDeletingModuleKey(moduleKey);
+        setListError('');
+
+        try {
+            const results = await Promise.allSettled(lessonIds.map((lessonId) => deleteSubjectContent(lessonId)));
+            const failed = results.filter((result) => result.status === 'rejected');
+
+            if (failed.length) {
+                setListError('Could not fully delete this module. Please try again.');
+                return;
+            }
+
+            await load();
+        } catch {
+            setListError('Could not delete this module.');
+        } finally {
+            setDeletingModuleKey('');
+        }
     };
 
     const handleCreate = async (e) => {
@@ -282,6 +324,8 @@ const TutorDashboard = () => {
                             const pub = mod.lessons.filter((l) => l.status === 'published').length;
                             const path = modulePath(mod.grade, mod.subject);
                             const accent = (mod.grade + mod.subject.length) % 4;
+                            const moduleKey = `${String(mod.subject).trim().toLowerCase()}__${Number(mod.grade)}`;
+                            const isDeletingModule = deletingModuleKey === moduleKey;
                             const borders = [
                                 'from-cyan-500/90 to-blue-600/90',
                                 'from-violet-500/90 to-fuchsia-600/90',
@@ -338,6 +382,15 @@ const TutorDashboard = () => {
                                             >
                                                 ＋ Week
                                             </Link>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteModule(mod)}
+                                                aria-label={`Delete module ${mod.subject}`}
+                                                disabled={isDeletingModule}
+                                                className="rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs font-bold py-3 px-4 hover:bg-red-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {isDeletingModule ? 'Deleting…' : 'Delete'}
+                                            </button>
                                         </div>
                                     </div>
                                 </article>
