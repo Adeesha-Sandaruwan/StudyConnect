@@ -46,7 +46,7 @@ const StudyPosts = () => {
     const fetchPosts = async () => {
         setIsLoading(true);
         try {
-            let query = `?page=${page}&limit=9`;
+            let query = `?page=${page}&limit=10`;
             if (keyword) query += `&keyword=${encodeURIComponent(keyword)}`;
             if (subjectTag) query += `&subjectTag=${encodeURIComponent(subjectTag)}`;
 
@@ -91,88 +91,95 @@ const StudyPosts = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 font-sans">
+        <div className="max-w-3xl mx-auto p-4 sm:p-6 font-sans">
             <CreatePostModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPostCreated={handlePostCreated} />
 
-            <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8 mb-8 flex flex-col lg:flex-row justify-between gap-6 items-center">
-                <div className="w-full lg:w-auto text-center lg:text-left">
-                    <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">Study Feed</h1>
-                    <p className="text-gray-500 mt-1 text-sm">Discover questions, notes, and study materials.</p>
+            <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-6 flex flex-col gap-4">
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Study Feed</h1>
+                    {isVerified && (
+                        <button onClick={() => setIsCreateModalOpen(true)} className="bg-[#5b7cfa] text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-sm hover:bg-[#4a6be0] transition-colors flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"></path></svg>
+                            Create Post
+                        </button>
+                    )}
                 </div>
                 
-                <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
-                    <form onSubmit={handleSearch} className="flex-1 sm:min-w-[250px] relative">
-                        <input type="text" placeholder="Search posts..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-3 text-sm focus:ring-2 focus:ring-[#5b7cfa] outline-none transition-all" />
-                        <button type="submit" className="absolute right-3 top-3 text-gray-400 hover:text-[#5b7cfa]">🔍</button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <form onSubmit={handleSearch} className="flex-1 relative">
+                        <input type="text" placeholder="Search discussions..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#5b7cfa] outline-none transition-all" />
+                        <svg className="absolute left-4 top-3 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        <button type="submit" className="hidden">Search</button>
                     </form>
                     
-                    <select value={subjectTag} onChange={handleSubjectChange} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#5b7cfa] outline-none transition-all appearance-none cursor-pointer text-gray-600">
+                    <select value={subjectTag} onChange={handleSubjectChange} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#5b7cfa] outline-none transition-all appearance-none cursor-pointer text-gray-700 min-w-[140px]">
                         <option value="">All Subjects</option>
                         {SUBJECTS.map(sub => <option key={sub} value={sub}>{sub}</option>)}
                     </select>
-
-                    {isVerified && (
-                        <button onClick={() => setIsCreateModalOpen(true)} className="bg-[#5b7cfa] text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-[#4a6be0] hover:-translate-y-0.5 transition-all whitespace-nowrap">
-                            + Create Post
-                        </button>
-                    )}
                 </div>
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center items-center h-64">
-                    <div className="w-12 h-12 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div>
+                <div className="flex justify-center items-center h-40">
+                    <div className="w-10 h-10 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div>
                 </div>
             ) : posts.length === 0 ? (
-                <div className="bg-white rounded-3xl shadow-sm p-12 text-center">
-                    <span className="text-6xl mb-4 block">📭</span>
-                    <h2 className="text-xl font-bold text-gray-800">No posts found</h2>
-                    <p className="text-gray-500 mt-2">Try adjusting your search or filter criteria.</p>
+                <div className="bg-white rounded-2xl shadow-sm p-12 text-center border border-gray-100">
+                    <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                    <h2 className="text-lg font-extrabold text-gray-900">No posts found</h2>
+                    <p className="text-gray-500 text-sm mt-1">Try adjusting your search or filter criteria.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="flex flex-col gap-4">
                     {posts.map(post => {
                         const hasUpvoted = post.upvotes?.includes(user?._id);
                         const hasDownvoted = post.downvotes?.includes(user?._id);
+                        const voteCount = (post.upvotes?.length || 0) - (post.downvotes?.length || 0);
 
                         return (
-                            <Link to={`/posts/${post._id}`} key={post._id} className="bg-white rounded-3xl shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col h-full border border-transparent hover:border-blue-50">
-                                <div className="flex items-center gap-3 mb-4">
-                                    {post.user?.avatar ? (
-                                        <img src={post.user.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
-                                    ) : (
-                                        <div className="w-10 h-10 rounded-full bg-[#5b7cfa]/10 flex items-center justify-center text-[#5b7cfa] font-bold">
-                                            {post.user?.name?.charAt(0) || '?'}
+                            <Link to={`/posts/${post._id}`} key={post._id} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-4 sm:p-5 flex flex-col border border-gray-100 cursor-pointer">
+                                
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2.5">
+                                        {post.user?.avatar ? (
+                                            <img src={post.user.avatar} alt="avatar" className="w-8 h-8 rounded-full object-cover border border-gray-100" />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-[#5b7cfa] font-bold text-xs">
+                                                {post.user?.name?.charAt(0) || '?'}
+                                            </div>
+                                        )}
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-bold text-sm text-gray-900">{post.user?.name || 'Unknown User'}</span>
+                                                <span className="text-gray-400 text-xs font-medium">• {new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                            </div>
                                         </div>
-                                    )}
-                                    <div>
-                                        <p className="font-bold text-sm text-gray-800 leading-tight">{post.user?.name || 'Unknown User'}</p>
-                                        <p className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</p>
                                     </div>
-                                </div>
-
-                                <div className="flex-1">
-                                    <span className="inline-block bg-blue-50 text-[#5b7cfa] px-3 py-1 rounded-full text-xs font-bold mb-3">
+                                    <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md text-[11px] font-extrabold uppercase tracking-wider">
                                         {post.subjectTag || 'General'}
                                     </span>
-                                    <h3 className="text-lg font-extrabold text-gray-800 mb-2 line-clamp-2">{post.title}</h3>
-                                    <p className="text-gray-600 text-sm line-clamp-3">{post.description}</p>
                                 </div>
 
-                                <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center text-sm font-semibold text-gray-500">
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={(e) => handleVote(e, post._id, 'upvote')} className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${hasUpvoted ? 'bg-green-100 text-green-700' : 'hover:bg-gray-100'}`}>
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
-                                            {post.upvotes?.length || 0}
+                                <h3 className="text-lg sm:text-xl font-extrabold text-gray-900 mb-2 leading-snug">{post.title}</h3>
+                                <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4">{post.description}</p>
+
+                                <div className="flex items-center gap-3 mt-auto pt-1">
+                                    <div className="flex items-center bg-gray-50 rounded-full border border-gray-200" onClick={(e) => e.preventDefault()}>
+                                        <button onClick={(e) => handleVote(e, post._id, 'upvote')} className={`p-1.5 sm:p-2 rounded-l-full hover:bg-gray-200 transition-colors ${hasUpvoted ? 'text-[#5b7cfa]' : 'text-gray-500'}`}>
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 15l7-7 7 7"></path></svg>
                                         </button>
-                                        <button onClick={(e) => handleVote(e, post._id, 'downvote')} className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${hasDownvoted ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'}`}>
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                                            {post.downvotes?.length || 0}
+                                        <span className={`text-xs font-extrabold min-w-[20px] text-center ${hasUpvoted ? 'text-[#5b7cfa]' : hasDownvoted ? 'text-red-500' : 'text-gray-700'}`}>
+                                            {voteCount}
+                                        </span>
+                                        <button onClick={(e) => handleVote(e, post._id, 'downvote')} className={`p-1.5 sm:p-2 rounded-r-full hover:bg-gray-200 transition-colors ${hasDownvoted ? 'text-red-500' : 'text-gray-500'}`}>
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
                                         </button>
                                     </div>
-                                    <span className="flex items-center gap-1">
-                                        💬 {post.answers?.length || 0}
-                                    </span>
+                                    
+                                    <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                        <span className="text-xs font-bold">{post.answers?.length || 0} Answers</span>
+                                    </div>
                                 </div>
                             </Link>
                         );
@@ -181,10 +188,10 @@ const StudyPosts = () => {
             )}
 
             {!isLoading && totalPages > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-10">
-                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`px-4 py-2 rounded-xl font-bold transition-all ${page === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white shadow-sm text-gray-700 hover:text-[#5b7cfa]'}`}>Prev</button>
-                    <span className="text-sm font-bold text-gray-500">Page {page} of {totalPages}</span>
-                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={`px-4 py-2 rounded-xl font-bold transition-all ${page === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white shadow-sm text-gray-700 hover:text-[#5b7cfa]'}`}>Next</button>
+                <div className="flex justify-center items-center gap-4 mt-8">
+                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${page === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white shadow-sm text-gray-700 hover:text-[#5b7cfa] border border-gray-200'}`}>Prev</button>
+                    <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider">Page {page} of {totalPages}</span>
+                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${page === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white shadow-sm text-gray-700 hover:text-[#5b7cfa] border border-gray-200'}`}>Next</button>
                 </div>
             )}
         </div>
