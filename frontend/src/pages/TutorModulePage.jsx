@@ -7,6 +7,7 @@ import {
     createModuleAnnouncement,
     updateModuleAnnouncement,
     deleteModuleAnnouncement,
+    deleteSubjectContent,
 } from '../services/subjectContentApi';
 import ModuleAIAssistant from '../components/tutor/ModuleAIAssistant';
 import { getLessonPdfDisplayList } from '../utils/lessonPdfs';
@@ -18,6 +19,7 @@ const TutorModulePage = () => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [aiLessonId, setAiLessonId] = useState('');
+    const [deletingModule, setDeletingModule] = useState(false);
 
     const [announcements, setAnnouncements] = useState([]);
     const [annLoading, setAnnLoading] = useState(false);
@@ -208,6 +210,46 @@ const TutorModulePage = () => {
         }
     };
 
+    const handleDeleteModule = async () => {
+        const lessonIds = lessons.map((lesson) => lesson?._id).filter(Boolean);
+        const announcementIds = announcements.map((announcement) => announcement?._id).filter(Boolean);
+
+        if (!lessonIds.length || deletingModule) return;
+
+        const confirmed = window.confirm(
+            `Delete the entire ${subject} module?\n\nThis will permanently remove ${lessonIds.length} week${
+                lessonIds.length === 1 ? '' : 's'
+            }${announcementIds.length ? ` and ${announcementIds.length} announcement${announcementIds.length === 1 ? '' : 's'}` : ''}.`
+        );
+
+        if (!confirmed) return;
+
+        setDeletingModule(true);
+        setLoadError('');
+        setAnnError('');
+
+        try {
+            const results = await Promise.allSettled([
+                ...lessonIds.map((lessonId) => deleteSubjectContent(lessonId)),
+                ...announcementIds.map((announcementId) => deleteModuleAnnouncement(announcementId)),
+            ]);
+            const failed = results.filter((result) => result.status === 'rejected');
+
+            if (failed.length) {
+                setLoadError('Could not fully delete this module. Please try again.');
+                await load();
+                await loadAnnouncements();
+                return;
+            }
+
+            navigate('/tutor-dashboard');
+        } catch {
+            setLoadError('Could not delete this module.');
+        } finally {
+            setDeletingModule(false);
+        }
+    };
+
     return (
         <div className="min-h-screen relative overflow-hidden">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(99,102,241,0.22),transparent),radial-gradient(ellipse_60%_40%_at_100%_50%,rgba(168,85,247,0.12),transparent)]" />
@@ -246,6 +288,16 @@ const TutorModulePage = () => {
                                 >
                                     ＋ Add week to this module
                                 </Link>
+                                {lessons.length > 0 ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleDeleteModule}
+                                        disabled={deletingModule}
+                                        className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {deletingModule ? 'Deleting module…' : 'Delete module'}
+                                    </button>
+                                ) : null}
                             </div>
 
                             <section className="text-sm mt-6">

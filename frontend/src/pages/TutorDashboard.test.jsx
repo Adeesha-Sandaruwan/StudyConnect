@@ -5,10 +5,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import TutorDashboard from './TutorDashboard';
-import { createSubjectContent, fetchMySubjectContents } from '../services/subjectContentApi';
+import { createSubjectContent, deleteSubjectContent, fetchMySubjectContents } from '../services/subjectContentApi';
 
 vi.mock('../services/subjectContentApi', () => ({
     createSubjectContent: vi.fn(),
+    deleteSubjectContent: vi.fn(),
     fetchMySubjectContents: vi.fn(),
 }));
 
@@ -39,6 +40,8 @@ describe('TutorDashboard', () => {
     beforeEach(() => {
         fetchMySubjectContents.mockResolvedValue([]);
         createSubjectContent.mockResolvedValue({ id: 'new-lesson' });
+        deleteSubjectContent.mockResolvedValue({ message: 'Content deleted successfully' });
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
     });
 
     afterEach(() => {
@@ -88,6 +91,50 @@ describe('TutorDashboard', () => {
             'href',
             '/tutor-dashboard?newWeek=1&grade=0&subject=MERN%20Stack'
         );
+    });
+
+    it('deletes an entire module from the tutor card', async () => {
+        const user = userEvent.setup();
+        fetchMySubjectContents
+            .mockResolvedValueOnce([
+                {
+                    _id: 'l1',
+                    title: 'Database Basics',
+                    subject: 'AL ICT',
+                    grade: 12,
+                    weekNumber: 1,
+                    status: 'published',
+                    moduleType: 'school',
+                },
+                {
+                    _id: 'l2',
+                    title: 'Normalization',
+                    subject: 'AL ICT',
+                    grade: 12,
+                    weekNumber: 2,
+                    status: 'draft',
+                    moduleType: 'school',
+                },
+            ])
+            .mockResolvedValueOnce([]);
+
+        renderDashboard();
+
+        await waitFor(() => {
+            expect(screen.getByText('AL ICT')).toBeInTheDocument();
+        });
+
+        await user.click(screen.getByRole('button', { name: /delete module al ict/i }));
+
+        await waitFor(() => {
+            expect(deleteSubjectContent).toHaveBeenCalledTimes(2);
+        });
+
+        expect(deleteSubjectContent).toHaveBeenNthCalledWith(1, 'l1');
+        expect(deleteSubjectContent).toHaveBeenNthCalledWith(2, 'l2');
+        await waitFor(() => {
+            expect(screen.queryByText('AL ICT')).not.toBeInTheDocument();
+        });
     });
 
     it('prefills and submits the create lesson form from query params', async () => {
