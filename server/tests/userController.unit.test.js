@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { registerUser } from '../controllers/userController.js';
+import { registerUser } from '../controllers/authController.js'; 
 import User from '../models/User.js';
 
 vi.mock('../models/User.js');
