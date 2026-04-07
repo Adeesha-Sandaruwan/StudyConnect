@@ -1,111 +1,382 @@
-# StudyConnect RESTful API Backend
+<div align="center">
 
-StudyConnect is a secure, robust, and scalable full-stack volunteer platform connecting students with tutors. This repository contains the Node.js/Express backend API that powers the platform.
+<br/>
 
----
+<h1>📚 StudyConnect</h1>
 
-## 🚀 Core Components
+### 🎓 A Full-Stack Collaborative Learning Platform
 
-This backend is built using a clean MVC architecture and comprises the following integrated RESTful components:
+<br/>
 
-- **Authentication & Authorization** — `authController`, `authMiddleware`,`adminMiddleware`, `roleMiddleware`
-- **User Profile Management** — `profileController`
-- **Study Posts & Q&A** — `studyPostController`
-- **Student Requests** — `studentRequestController`
-- **Subject Content Management** — `subjectContentController`, `subjectContentValidation`
-- **Feedback System** — `feedbackController`
-- **Automated Notifications** — `notificationController`
+![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![React](https://img.shields.io/badge/React-Vite-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![JWT](https://img.shields.io/badge/Auth-JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
+![Cloudinary](https://img.shields.io/badge/Media-Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
----
+<br/>
 
-## 🔌 Third-Party API Integrations
+[🚀 Live Demo](#-live-deployment) · [📖 API Docs](#-api-documentation) · [🧪 Testing](#-testing) · [🤝 Contributing](#-contributing)
 
-| Integration | Purpose |
-|---|---|
-| **Cloudinary** | Media & Document Storage |
-| **Google Authentication** | Login with your google account |
-| **Nodemailer** | Automated Email Delivery |
-| **PurgoMalum REST API** | Automated Content Moderation |
-| **Hugging Face API** | AI question-answering feature for lesson content |
+<br/>
 
 ---
 
-## 🛠️ Technology Stack
+</div>
+
+<br/>
+
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Backend Setup](#backend-setup)
+  - [Frontend Setup](#frontend-setup)
+- [Environment Variables](#-environment-variables)
+- [API Documentation](#-api-documentation)
+- [Live Deployment](#-live-deployment)
+- [Testing](#-testing)
+- [Contributing](#-contributing)
+
+<br/>
+
+---
+
+## 🌟 Overview
+
+**StudyConnect** is a full-stack collaborative learning platform that empowers students to connect, share knowledge, and grow together. Built with a modern MERN-inspired architecture, it features secure authentication, media uploads, real-time study post feeds, and a robust testing suite covering unit, integration, and performance layers.
+
+<br/>
+
+---
+
+## 🛠 Tech Stack
 
 | Layer | Technology |
 |---|---|
-| **Runtime** | Node.js |
-| **Framework** | Express.js |
-| **Database** | MongoDB & Mongoose ORM |
-| **Security** | Helmet, CORS |
-| **File Uploads** | Multer |
+| **Frontend** | React + Vite, Vitest |
+| **Backend** | Node.js, Express.js |
+| **Database** | MongoDB Atlas |
+| **Auth** | JWT (HTTP-only cookies), Google OAuth 2.0 |
+| **Media** | Cloudinary |
+| **Email** | Nodemailer + Gmail SMTP |
+| **Testing** | Vitest, Supertest, Artillery.io |
+| **Deployment** | Vercel (Frontend), Render/Railway (Backend) |
+
+<br/>
 
 ---
 
-## ⚙️ Setup Instructions
+## 📁 Project Structure
 
-Follow these steps to get the backend project running locally on your machine.
+```
+StudyConnect/
+├── frontend/                   # React + Vite application
+│   ├── src/
+│   └── .env                    # Frontend environment variables
+│
+├── server/                     # Express.js backend
+│   ├── tests/
+│   │   ├── *.unit.test.js      # Unit tests
+│   │   └── *.integration*.test.js  # Integration tests
+│   └── .env                    # Backend environment variables
+│
+├── tests/
+│   └── StudyConnect_Postman_Collection.json  # Full Postman collection
+│
+└── performance-test.yml        # Artillery load test config
+```
 
-### 1. Prerequisites
+<br/>
 
-Ensure you have the following installed:
+---
 
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- [MongoDB](https://www.mongodb.com/) (local installation or MongoDB Atlas URI)
-- Git
+## 🚀 Getting Started
 
-### 2. Clone the Repository
+### Prerequisites
+
+Before you begin, make sure you have the following installed:
+
+- **Node.js** `v18+` — [Download](https://nodejs.org/)
+- **Git** — [Download](https://git-scm.com/)
+- **MongoDB Atlas** account — [Sign Up](https://www.mongodb.com/atlas) *(or a local MongoDB instance)*
+
+<br/>
+
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Adeesha-Sandaruwan/StudyConnect
+git clone https://github.com/Adeesha-Sandaruwan/StudyConnect.git
 cd StudyConnect
 ```
 
-### 3. Install Dependencies
+<br/>
 
-Navigate into the `server` directory and install the required NPM packages:
+### 2. Backend Setup
 
 ```bash
+# Navigate to the server directory
 cd server
+
+# Install dependencies
 npm install
-```
 
-### 4. Environment Variables Configuration
+# Create your environment file (see Environment Variables section below)
+touch .env
 
-Create a `.env` file in the root of your `server` directory. Copy the structure below and replace all placeholder values with your actual credentials:
-
-```env
-NODE_ENV=development
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_super_secret_jwt_key
-
-# Google OAuth 2.0
-GOOGLE_CLIENT_ID=your_google_client_id
-
-# Cloudinary Media Storage
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-# Nodemailer (Email Automation)
-EMAIL_USER=your_verified_gmail_address
-EMAIL_PASS=your_16_character_app_password
-```
-
-### 5. Start the Server
-
-Run the application in development mode:
-
-```bash
+# Start the development server
 npm run dev
 ```
 
-If configured correctly, your terminal will display:
+> The backend will start on `http://localhost:5000`
 
-```
-Server started on port 5000
-MongoDB Connected...
+<br/>
+
+### 3. Frontend Setup
+
+```bash
+# Navigate to the frontend directory (from project root)
+cd frontend
+
+# Install dependencies
+npm install
+
+# Create your environment file (see Environment Variables section below)
+touch .env
+
+# Start the development server
+npm run dev
 ```
 
-You can now send requests to `http://localhost:5000`.
+> The frontend will start on `http://localhost:5173`
+
+<br/>
+
+---
+
+## 🔐 Environment Variables
+
+### Backend — `server/.env`
+
+```env
+# ── Server ─────────────────────────────────────────────
+PORT=5000
+NODE_ENV=development
+
+# ── Database ───────────────────────────────────────────
+MONGO_URI=your_mongodb_connection_string
+
+# ── Authentication ─────────────────────────────────────
+JWT_SECRET=your_jwt_secret
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+
+# ── Cloudinary (Media Storage) ─────────────────────────
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+# ── Email / SMTP ───────────────────────────────────────
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_email_app_password
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_EMAIL=your_smtp_email@gmail.com
+SMTP_PASSWORD=your_smtp_app_password
+FROM_NAME="StudyConnect Security"
+FROM_EMAIL=your_smtp_email@gmail.com
+
+# ── CORS ───────────────────────────────────────────────
+FRONTEND_URL=http://localhost:5173
+```
+
+### Frontend — `frontend/.env`
+
+```env
+VITE_API_URL=http://localhost:5000/api
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
+```
+
+> ⚠️ **Security Notice:** Never commit `.env` files to version control. All secret values in production are stored securely in the hosting provider's environment settings.
+
+<br/>
+
+---
+
+## 📡 API Documentation
+
+> 💡 **Tip:** A complete, ready-to-import **Postman Collection** is available at:
+> ```
+> /tests/StudyConnect_Postman_Collection.json
+> ```
+> Import it directly into Postman to access all endpoints with pre-configured headers and example request bodies.
+
+<br/>
+
+### 🔑 Authentication — `/api/users`
+
+<br/>
+
+#### `POST /api/users/register(Example)`
+Registers a new user account.
+
+| Property | Value |
+|---|---|
+| **Auth Required** | ❌ No |
+| **Success Status** | `201 Created` |
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "role": "student"
+}
+```
+
+**Success Response:**
+```json
+{
+  "_id": "...",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "role": "student"
+}
+```
+
+<br/>
+
+#### `POST /api/users/login`
+Authenticates a user and sets an HTTP-only JWT cookie.
+
+| Property | Value |
+|---|---|
+| **Auth Required** | ❌ No |
+| **Success Status** | `200 OK` |
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+**Success Response:** User object + `Set-Cookie` header with JWT.
+
+<br/>
+
+---
+
+## ☁️ Live Deployment
+
+| Service | Provider | URL |
+|---|---|---|
+| **Frontend** | Vercel / Netlify | `https://your-frontend-url.vercel.app` |
+| **Backend API** | Render / Railway | `https://your-backend-url.onrender.com` |
+| **Database** | MongoDB Atlas | Managed Cloud |
+
+<br/>
+
+**Production Environment Variables:**
+
+- **Backend:** `MONGO_URI`, `JWT_SECRET`, `NODE_ENV`, `GOOGLE_CLIENT_ID`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `EMAIL_USER`, `EMAIL_PASS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_EMAIL`, `SMTP_PASSWORD`, `FROM_NAME`, `FROM_EMAIL`, `FRONTEND_URL`
+- **Frontend:** `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`
+
+<br/>
+
+---
+
+## 🧪 Testing
+
+StudyConnect features a comprehensive three-layer testing strategy to ensure reliability, correctness, and performance at scale.
+
+<br/>
+
+### Testing Stack
+
+| Layer | Tool | Scope |
+|---|---|---|
+| **Unit** | Vitest | Components, utilities, controller logic |
+| **Integration** | Vitest + Supertest | Express routes ↔ MongoDB |
+| **Performance** | Artillery.io | Concurrent load & stress testing |
+
+<br/>
+
+### ▶️ Running Unit Tests
+
+**Frontend** *(React components & utilities)*:
+```bash
+cd frontend
+npx vitest run
+```
+
+**Backend** *(controllers & utility functions)*:
+```bash
+cd server
+npx vitest run tests/*.unit.test.js
+```
+
+<br/>
+
+### 🔗 Running Integration Tests
+
+Integration tests verify full request-response cycles between Express controllers, routing, and MongoDB.
+
+```bash
+cd server
+# Ensure MONGO_URI is set in your .env file
+npx vitest run tests/*.integration*.test.js
+```
+
+<br/>
+
+### ⚡ Running Performance Tests
+
+Artillery simulates concurrent user loads to measure latency, throughput, and stability.
+
+```bash
+# Step 1 — Install Artillery globally
+npm install -g artillery
+
+# Step 2 — Start the backend server
+cd server && npm run dev
+
+# Step 3 — In a new terminal at the project root, run the load test
+artillery run performance-test.yml
+```
+
+The final report will display **median latency**, **p95 response times**, and **HTTP 200 success rates**.
+
+<br/>
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. **Fork** the repository
+2. Create a feature branch: `git checkout -b feature/your-feature-name`
+3. Commit your changes: `git commit -m 'feat: add your feature'`
+4. Push to the branch: `git push origin feature/your-feature-name`
+5. Open a **Pull Request**
+
+<br/>
+
+---
+
+<div align="center">
+
+Made with ❤️ by the **StudyConnect Team**
+
+<br/>
+
+⭐ *If you found this project helpful, consider giving it a star!* ⭐
+
+</div>
