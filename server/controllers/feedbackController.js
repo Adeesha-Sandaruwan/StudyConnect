@@ -5,14 +5,16 @@ import transporter from '../config/emailConfig.js';
 // CREATE + EMAIL
 export const createFeedback = async (req, res) => {
     try {
+        // 1. Save to DB first
         const newFeedback = await Feedback.create(req.body);
 
-        // Send Email
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: req.body.tutorEmail,
-            subject: "New Lesson Feedback Received",
-            text: `
+        // 2. Send Email separately — won't crash if it fails
+        try {
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: req.body.tutorEmail,
+                subject: "New Lesson Feedback Received",
+                text: `
 Tutor: ${req.body.tutorName}
 Lesson: ${req.body.lesson}
 Rating: ${req.body.rating}
@@ -20,7 +22,11 @@ Rating: ${req.body.rating}
 Feedback:
 ${req.body.feedback}
 `
-        });
+            });
+        } catch (emailErr) {
+            // Email failed but we still return success
+            console.warn("Email sending failed:", emailErr.message);
+        }
 
         res.status(201).json(newFeedback);
     } catch (err) {
@@ -69,5 +75,5 @@ export const deleteFeedback = async (req, res) => {
         res.json({ message: "Deleted Successfully" });
     } catch (err) {
         res.status(500).json({ message: err.message });
-}
+    }
 };
