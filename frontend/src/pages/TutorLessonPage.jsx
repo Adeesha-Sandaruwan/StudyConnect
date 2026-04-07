@@ -282,26 +282,60 @@ const TutorLessonPage = () => {
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
                 <div className="flex flex-col lg:flex-row lg:items-start gap-8">
                     <div className="flex-1 min-w-0 space-y-6">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                                <Link
-                                    to={backToModule}
-                                    className="inline-flex text-xs font-bold text-indigo-600 hover:text-indigo-500 mb-2"
+                        <div className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/85 p-5 sm:p-6 shadow-xl shadow-indigo-500/10 backdrop-blur-xl">
+                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.16),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.12),transparent_32%)]" />
+                            <div className="relative flex flex-wrap items-start justify-between gap-4">
+                                <div className="space-y-2">
+                                    <Link
+                                        to={backToModule}
+                                        className="inline-flex text-xs font-bold text-indigo-600 hover:text-indigo-500"
+                                    >
+                                        ← {subject} · {grade === 0 ? 'Course module' : `Grade ${grade}`}
+                                    </Link>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+                                            Week {weekNumber}
+                                        </h1>
+                                        <span
+                                            className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
+                                                status === 'published'
+                                                    ? 'bg-emerald-100 text-emerald-800'
+                                                    : 'bg-amber-100 text-amber-800'
+                                            }`}
+                                        >
+                                            {status}
+                                        </span>
+                                    </div>
+                                    <p className="mt-1 text-sm text-slate-600">Edit lecture notes, links, and visibility.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleDelete}
+                                    className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-100"
                                 >
-                                    ← {subject} · Grade {grade}
-                                </Link>
-                                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                                    Week {weekNumber}
-                                </h1>
-                                <p className="text-sm text-slate-600 mt-1">Edit lecture notes, links, and visibility.</p>
+                                    Delete week
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                onClick={handleDelete}
-                                className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl border border-red-100"
-                            >
-                                Delete week
-                            </button>
+                            <div className="relative mt-4 grid gap-3 sm:grid-cols-3">
+                                <div className="rounded-[1.25rem] border border-slate-200/80 bg-white/80 p-3 shadow-sm">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Subject</p>
+                                    <p className="mt-1 text-sm font-semibold text-slate-900">{subject || 'Untitled subject'}</p>
+                                </div>
+                                <div className="rounded-[1.25rem] border border-slate-200/80 bg-white/80 p-3 shadow-sm">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Schedule</p>
+                                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                                        {moduleType === 'school'
+                                            ? `${lessonDate || 'Pick a date'}${lessonTime ? ` · ${lessonTime}` : ''}`
+                                            : lessonDate || 'Self-paced'}
+                                    </p>
+                                </div>
+                                <div className="rounded-[1.25rem] border border-slate-200/80 bg-white/80 p-3 shadow-sm">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Module</p>
+                                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                                        {moduleType === 'course' ? 'Course module' : `Grade ${grade}`}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         {error ? (
@@ -312,143 +346,173 @@ const TutorLessonPage = () => {
 
                         <form
                             onSubmit={handleSave}
-                            className="rounded-3xl border border-white/60 bg-white/85 backdrop-blur-lg shadow-xl shadow-indigo-500/5 p-6 sm:p-8 space-y-6"
+                            className="space-y-6 rounded-[2rem] border border-white/70 bg-white/85 p-4 sm:p-6 lg:p-8 shadow-[0_24px_80px_-32px_rgba(79,70,229,0.35)] backdrop-blur-xl"
                         >
-                            <div className="grid sm:grid-cols-2 gap-4">
-                                <div className="sm:col-span-2">
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Lesson title</label>
-                                    <input
-                                        required
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Subject</label>
-                                    <input
-                                        required
-                                        value={subject}
-                                        onChange={(e) => setSubject(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Module type</label>
-                                    <select
-                                        value={moduleType}
-                                        onChange={(e) => setModuleType(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
-                                    >
-                                        <option value="school">School Module</option>
-                                        <option value="course">Course Module</option>
-                                    </select>
-                                </div>
-                                {moduleType === 'school' ? (
+                            <section className="rounded-[1.5rem] border border-indigo-100/80 bg-gradient-to-br from-indigo-50/80 to-white p-4 sm:p-5">
+                                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Grade</label>
+                                        <h2 className="text-base font-bold text-slate-900">Lesson basics</h2>
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            Update the key details students see for this week.
+                                        </p>
+                                    </div>
+                                    <span className="rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-700 shadow-sm">
+                                        Editable
+                                    </span>
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="sm:col-span-2">
+                                        <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Lesson title</label>
+                                        <input
+                                            required
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Subject</label>
+                                        <input
+                                            required
+                                            value={subject}
+                                            onChange={(e) => setSubject(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Module type</label>
+                                        <select
+                                            value={moduleType}
+                                            onChange={(e) => setModuleType(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50"
+                                        >
+                                            <option value="school">School Module</option>
+                                            <option value="course">Course Module</option>
+                                        </select>
+                                    </div>
+                                    {moduleType === 'school' ? (
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Grade</label>
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={13}
+                                                required
+                                                value={grade}
+                                                onChange={(e) => setGrade(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-3xl border border-slate-200/70 bg-white px-4 py-3 text-xs text-slate-600">
+                                            Course modules skip grade selection and publish as general course content.
+                                        </div>
+                                    )}
+                                    <div>
+                                        <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Week number</label>
                                         <input
                                             type="number"
                                             min={1}
-                                            max={13}
+                                            max={52}
                                             required
-                                            value={grade}
-                                            onChange={(e) => setGrade(e.target.value)}
-                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
+                                            value={weekNumber}
+                                            onChange={(e) => setWeekNumber(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50"
                                         />
                                     </div>
-                                ) : (
-                                    <div className="rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-                                        Course modules skip grade selection and publish as general course content.
-                                    </div>
-                                )}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Week number</label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={52}
-                                        required
-                                        value={weekNumber}
-                                        onChange={(e) => setWeekNumber(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Lesson date</label>
-                                    <input
-                                        type="date"
-                                        required
-                                        value={lessonDate}
-                                        onChange={(e) => setLessonDate(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
-                                    />
-                                </div>
-                                {moduleType === 'school' ? (
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Class time</label>
+                                        <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Lesson date</label>
                                         <input
-                                            type="time"
+                                            type="date"
                                             required
-                                            value={lessonTime}
-                                            onChange={(e) => setLessonTime(e.target.value)}
-                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
+                                            value={lessonDate}
+                                            onChange={(e) => setLessonDate(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50"
                                         />
                                     </div>
-                                ) : (
-                                    <div className="rounded-3xl border border-slate-200/70 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-                                        Course modules are recording-only and do not use a live meeting time.
+                                    {moduleType === 'school' ? (
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Class time</label>
+                                            <input
+                                                type="time"
+                                                required
+                                                value={lessonTime}
+                                                onChange={(e) => setLessonTime(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-3xl border border-slate-200/70 bg-white px-4 py-3 text-xs text-slate-600">
+                                            Course modules are recording-only and do not use a live meeting time.
+                                        </div>
+                                    )}
+                                    <div>
+                                        <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Status</label>
+                                        <select
+                                            value={status}
+                                            onChange={(e) => setStatus(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50"
+                                        >
+                                            <option value="draft">Draft</option>
+                                            <option value="published">Published</option>
+                                        </select>
                                     </div>
-                                )}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
-                                    <select
-                                        value={status}
-                                        onChange={(e) => setStatus(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none"
-                                    >
-                                        <option value="draft">Draft</option>
-                                        <option value="published">Published</option>
-                                    </select>
                                 </div>
-                            </div>
+                            </section>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Summary</label>
-                                <textarea
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    rows={3}
-                                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none resize-y"
-                                />
-                            </div>
+                            <section className="rounded-[1.5rem] border border-slate-200/80 bg-white p-4 sm:p-5">
+                                <div className="mb-4">
+                                    <h3 className="text-base font-bold text-slate-900">Teaching content</h3>
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        Keep your notes clear, structured, and student-friendly.
+                                    </p>
+                                </div>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                                    Lecture notes (text)
-                                </label>
-                                <textarea
-                                    value={contentText}
-                                    onChange={(e) => setContentText(e.target.value)}
-                                    rows={8}
-                                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none resize-y font-mono text-slate-800"
-                                    placeholder="Main teaching points, definitions, examples…"
-                                />
-                            </div>
+                                <div>
+                                    <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Summary</label>
+                                    <textarea
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        rows={3}
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none resize-y focus:ring-2 focus:ring-indigo-400/50"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Homework</label>
-                                <textarea
-                                    value={homework}
-                                    onChange={(e) => setHomework(e.target.value)}
-                                    rows={2}
-                                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400/50 outline-none resize-y"
-                                />
-                            </div>
+                                <div className="mt-4">
+                                    <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
+                                        Lecture notes (text)
+                                    </label>
+                                    <textarea
+                                        value={contentText}
+                                        onChange={(e) => setContentText(e.target.value)}
+                                        rows={8}
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-sm text-slate-800 outline-none resize-y focus:ring-2 focus:ring-indigo-400/50"
+                                        placeholder="Main teaching points, definitions, examples…"
+                                    />
+                                </div>
 
-                            <div className="border-t border-slate-100 pt-6 space-y-4">
-                                <h3 className="text-sm font-extrabold text-slate-800">Resources & links</h3>
-                                <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="mt-4">
+                                    <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Homework</label>
+                                    <textarea
+                                        value={homework}
+                                        onChange={(e) => setHomework(e.target.value)}
+                                        rows={2}
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none resize-y focus:ring-2 focus:ring-indigo-400/50"
+                                    />
+                                </div>
+                            </section>
+
+                            <div className="space-y-4 rounded-[1.5rem] border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 p-4 sm:p-5">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <h3 className="text-sm font-extrabold text-slate-800">Resources & links</h3>
+                                        <p className="mt-1 text-xs text-slate-500">Add PDFs, quizzes, worksheets, and supporting videos for this week.</p>
+                                    </div>
+                                    <span className="rounded-full bg-slate-900 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+                                        Shareable assets
+                                    </span>
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="sm:col-span-2">
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                                             Attach PDF with main form save (adds one more file)
@@ -627,7 +691,15 @@ const TutorLessonPage = () => {
                         </form>
                     </div>
 
-                    <div className="w-full lg:w-[340px] shrink-0 lg:sticky lg:top-24">
+                    <div className="w-full shrink-0 space-y-4 lg:sticky lg:top-24 lg:w-[340px]">
+                        <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Quick checklist</p>
+                            <ul className="mt-3 space-y-2 text-sm text-slate-600">
+                                <li className="rounded-xl bg-slate-50 px-3 py-2">✅ Add a clear summary for students.</li>
+                                <li className="rounded-xl bg-slate-50 px-3 py-2">📎 Upload supporting PDF notes or links.</li>
+                                <li className="rounded-xl bg-slate-50 px-3 py-2">🚀 Publish when the lesson is ready to share.</li>
+                            </ul>
+                        </div>
                         <ModuleAIAssistant
                             contentId={id}
                             contextLabel={`Week ${weekNumber} · ${title || 'Lesson'}`}
