@@ -189,6 +189,7 @@ const TutorMyRequests = () => {
                                         requestSubject={selectedRequest.subject}
                                         requestGrade={selectedRequest.gradeLevel}
                                         linkedLessons={selectedRequest.linkedLessons || []}
+                                        sharedResources={selectedRequest.sharedResources || []}
                                         onUpdate={handleResourceUpdate}
                                     />
                                 ) : null

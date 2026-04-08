@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getMyRequests, createRequest, updateRequest, deleteRequest } from '../services/studentRequestApi';
+import { getMyRequests, createRequest, updateRequest, deleteRequest, getRequestById } from '../services/studentRequestApi';
 import RequestCard from '../components/student/RequestCard';
 import RequestForm from '../components/student/RequestForm';
 import RequestModal from '../components/student/RequestModal';
@@ -81,6 +81,15 @@ const StudentRequests = () => {
             setError(err.response?.data?.message || 'Failed to update request');
         }
     };
+
+    const handleOpenRequest = useCallback(async (request) => {
+        try {
+            const response = await getRequestById(request._id);
+            setSelectedRequest(response.request || request);
+        } catch {
+            setSelectedRequest(request);
+        }
+    }, []);
 
     const handlePreviousPage = () => {
         if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -181,7 +190,7 @@ const StudentRequests = () => {
                                 <RequestCard
                                     key={request._id}
                                     request={request}
-                                    onClick={() => setSelectedRequest(request)}
+                                    onClick={() => handleOpenRequest(request)}
                                     showActions={true}
                                     onDelete={handleDeleteRequest}
                                 />

@@ -14,14 +14,38 @@ const notificationSchema = mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['answer', 'upvote'],
-      // type field indicates the type of notification, which can be either 'answer' or 'upvote'
+      enum: ['answer', 'upvote', 'request-resource-shared'],
       required: true,
     },
     post: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
       ref: 'StudyPost',
+      default: null,
+    },
+    studentRequest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'StudentRequest',
+      default: null,
+    },
+    title: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    message: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    actionLink: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    resourceType: {
+      type: String,
+      default: '',
+      trim: true,
     },
     isRead: {
       type: Boolean,

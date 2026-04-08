@@ -1,7 +1,8 @@
 import { useContext, useEffect, useState } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getRequestById, updateRequestStatus } from '../services/studentRequestApi';
+import { getRequestById, getSharedRequestPdfUrl, updateRequestStatus } from '../services/studentRequestApi';
+import { getSubjectPdfWindowUrl } from '../services/subjectContentApi';
 import StatusBadge from '../components/student/StatusBadge';
 import PriorityBadge from '../components/student/PriorityBadge';
 import Loader from '../components/Loader';
@@ -79,6 +80,10 @@ const RequestDetail = () => {
         };
         return transitions[currentStatus] || [];
     };
+
+    const directResources = (request?.sharedResources || []).filter(
+        (resource) => resource.resourceType !== 'lesson'
+    );
 
     if (loading) return <Loader text="Loading request details..." />;
 
@@ -186,6 +191,86 @@ const RequestDetail = () => {
                                     {request.description}
                                 </p>
                             </div>
+
+                            {request.linkedLessons?.length > 0 && (
+                                <div className="border-t border-gray-100 pt-8">
+                                    <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                        📚 Shared Module Lessons
+                                    </h2>
+                                    <div className="space-y-4">
+                                        {request.linkedLessons.map((lesson) => (
+                                            <div key={lesson._id} className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+                                                <p className="text-lg font-bold text-indigo-950">{lesson.title}</p>
+                                                <p className="text-sm text-indigo-600 font-semibold mt-1">
+                                                    {lesson.subject}
+                                                    {lesson.grade != null && ` · ${lesson.grade === 0 ? 'University' : `Grade ${lesson.grade}`}`}
+                                                    {lesson.weekNumber && ` · Week ${lesson.weekNumber}`}
+                                                </p>
+                                                {lesson.description && (
+                                                    <p className="text-sm text-slate-700 mt-3 leading-relaxed">{lesson.description}</p>
+                                                )}
+                                                <div className="flex flex-wrap gap-2 mt-4">
+                                                    {lesson.resources?.meetingLink && (
+                                                        <a href={lesson.resources.meetingLink} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors">🎥 Class Meeting</a>
+                                                    )}
+                                                    {lesson.resources?.quizFormLink && (
+                                                        <a href={lesson.resources.quizFormLink} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg bg-violet-100 text-violet-700 text-xs font-bold hover:bg-violet-200 transition-colors">📝 Quiz</a>
+                                                    )}
+                                                    {lesson.resources?.worksheetLink && (
+                                                        <a href={lesson.resources.worksheetLink} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 text-xs font-bold hover:bg-amber-200 transition-colors">📋 Worksheet</a>
+                                                    )}
+                                                    {lesson.resources?.answerSheetLink && (
+                                                        <a href={lesson.resources.answerSheetLink} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg bg-teal-100 text-teal-700 text-xs font-bold hover:bg-teal-200 transition-colors">✅ Answers</a>
+                                                    )}
+                                                    {lesson.resources?.referenceLinks?.filter(Boolean).map((link, index) => (
+                                                        <a key={`ref-${index}`} href={link} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold hover:bg-blue-200 transition-colors">🔗 Reference {index + 1}</a>
+                                                    ))}
+                                                    {lesson.resources?.videoLinks?.filter(Boolean).map((link, index) => (
+                                                        <a key={`vid-${index}`} href={link} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-bold hover:bg-red-200 transition-colors">▶ Video {index + 1}</a>
+                                                    ))}
+                                                    {lesson.resources?.pdfFiles?.map((pdf, index) => (
+                                                        <a key={`pdf-${index}`} href={getSubjectPdfWindowUrl(lesson._id, index)} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300 transition-colors">📄 {pdf.name || `Lesson PDF ${index + 1}`}</a>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {directResources.length > 0 && (
+                                <div className="border-t border-gray-100 pt-8">
+                                    <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                        📎 Direct Tutor Shares
+                                    </h2>
+                                    <div className="space-y-4">
+                                        {directResources.map((resource) => (
+                                            <div key={resource._id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div>
+                                                        <p className="text-lg font-bold text-slate-900">
+                                                            {resource.title || (resource.resourceType === 'pdf' ? 'Shared PDF' : 'Tutor note')}
+                                                        </p>
+                                                        <p className="text-xs text-slate-500 font-semibold mt-1">
+                                                            {resource.sharedBy?.name || 'Tutor'}
+                                                            {resource.sharedAt && ` · ${formatDate(resource.sharedAt)}`}
+                                                        </p>
+                                                    </div>
+                                                    <span className="px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold uppercase">
+                                                        {resource.resourceType}
+                                                    </span>
+                                                </div>
+                                                {resource.message && (
+                                                    <p className="text-sm text-slate-700 mt-4 whitespace-pre-wrap leading-relaxed">{resource.message}</p>
+                                                )}
+                                                {resource.file?.url && (
+                                                    <a href={getSharedRequestPdfUrl(request._id, resource._id)} target="_blank" rel="noreferrer" className="inline-flex mt-4 px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-bold hover:bg-red-200 transition-colors">📄 Download {resource.file.name || 'PDF'}</a>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Preferred Schedule */}
                             {request.preferredSchedule && (

@@ -1,5 +1,55 @@
 import mongoose from 'mongoose';
 
+const requestSharedFileSchema = new mongoose.Schema(
+  {
+    url: { type: String, default: '' },
+    publicId: { type: String, default: '' },
+    name: { type: String, default: '' }
+  },
+  { _id: false }
+);
+
+const requestSharedResourceSchema = new mongoose.Schema(
+  {
+    resourceType: {
+      type: String,
+      enum: ['lesson', 'pdf', 'note'],
+      required: true
+    },
+    title: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 150
+    },
+    message: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 2000
+    },
+    lesson: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SubjectContent',
+      default: null
+    },
+    file: {
+      type: requestSharedFileSchema,
+      default: () => ({})
+    },
+    sharedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    sharedAt: {
+      type: Date,
+      default: Date.now
+    }
+  },
+  { _id: true }
+);
+
 const studentRequestSchema = mongoose.Schema(
   {
     // Reference to the student who created this request
@@ -72,10 +122,19 @@ const studentRequestSchema = mongoose.Schema(
     },
 
     // Lessons shared by the assigned tutor to help the student with this request
-    linkedLessons: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'SubjectContent'
-    }]
+    linkedLessons: {
+      type: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SubjectContent'
+      }],
+      default: []
+    },
+
+    // Tutor-shared resources shown directly on the request for the student.
+    sharedResources: {
+      type: [requestSharedResourceSchema],
+      default: []
+    }
   },
   {
     timestamps: true

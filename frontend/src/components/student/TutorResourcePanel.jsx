@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchMySubjectContents } from '../../services/subjectContentApi';
-import { shareLesson, removeSharedLesson } from '../../services/studentRequestApi';
+import {
+    shareLesson,
+    removeSharedLesson,
+    shareCustomResource,
+    removeSharedResource
+} from '../../services/studentRequestApi';
 
 /**
  * TutorResourcePanel
@@ -13,15 +18,29 @@ import { shareLesson, removeSharedLesson } from '../../services/studentRequestAp
  *  - requestSubject   {String}  – e.g. "Mathematics"
  *  - requestGrade     {String}  – e.g. "Grade 10" | "University"
  *  - linkedLessons    {Array}   – currently linked lesson objects (populated)
+ *  - sharedResources  {Array}   – all shared request resources (lessons, PDFs, notes)
  *  - onUpdate         {Function} – called after share/remove so parent can refresh
  */
-const TutorResourcePanel = ({ requestId, requestSubject, requestGrade, linkedLessons = [], onUpdate }) => {
+const TutorResourcePanel = ({
+    requestId,
+    requestSubject,
+    requestGrade,
+    linkedLessons = [],
+    sharedResources = [],
+    onUpdate
+}) => {
     const [myLessons, setMyLessons] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null); // lessonId being toggled
+    const [customSubmitting, setCustomSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [showLinkedOnly, setShowLinkedOnly] = useState(false);
+    const [customShare, setCustomShare] = useState({
+        title: '',
+        message: '',
+        pdfFile: null
+    });
 
     // Convert gradeLevel string → number for matching SubjectContent.grade
     const gradeNum = useCallback(() => {
@@ -90,6 +109,48 @@ const TutorResourcePanel = ({ requestId, requestSubject, requestGrade, linkedLes
     };
 
     const relevantCount = myLessons.filter(isRelevant).length;
+    const allSharedResources = [...(sharedResources || [])].sort((left, right) => {
+        const leftTime = left?.sharedAt ? new Date(left.sharedAt).getTime() : 0;
+        const rightTime = right?.sharedAt ? new Date(right.sharedAt).getTime() : 0;
+        return rightTime - leftTime;
+    });
+
+    const handleCustomShare = async (event) => {
+        event.preventDefault();
+        setError('');
+        setCustomSubmitting(true);
+
+        try {
+            await shareCustomResource(
+                requestId,
+                {
+                    title: customShare.title,
+                    message: customShare.message
+                },
+                customShare.pdfFile
+            );
+
+            setCustomShare({ title: '', message: '', pdfFile: null });
+            if (onUpdate) await onUpdate();
+        } catch (err) {
+            setError(err?.response?.data?.message || 'Could not share the resource.');
+        } finally {
+            setCustomSubmitting(false);
+        }
+    };
+
+    const handleRemoveCustomResource = async (resourceId) => {
+        setActionLoading(resourceId);
+        setError('');
+        try {
+            await removeSharedResource(requestId, resourceId);
+            if (onUpdate) await onUpdate();
+        } catch (err) {
+            setError(err?.response?.data?.message || 'Could not remove the shared resource.');
+        } finally {
+            setActionLoading(null);
+        }
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -108,6 +169,46 @@ const TutorResourcePanel = ({ requestId, requestSubject, requestGrade, linkedLes
                     </span>
                 )}
             </div>
+
+            <form onSubmit={handleCustomShare} className="mb-4 rounded-2xl border border-slate-200 bg-white p-3 space-y-2">
+                <div>
+                    <p className="text-xs font-bold text-slate-700 uppercase mb-1">Direct Share</p>
+                    <p className="text-[11px] text-slate-500">Send a note, a PDF, or both directly on this request.</p>
+                </div>
+                <input
+                    type="text"
+                    value={customShare.title}
+                    onChange={(e) => setCustomShare((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="Title (optional)"
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+                <textarea
+                    value={customShare.message}
+                    onChange={(e) => setCustomShare((prev) => ({ ...prev, message: e.target.value }))}
+                    placeholder="Add a tutor note for the student"
+                    rows={3}
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
+                />
+                <label className="block text-xs font-semibold text-slate-600">
+                    Attach PDF
+                    <input
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        onChange={(e) => setCustomShare((prev) => ({ ...prev, pdfFile: e.target.files?.[0] || null }))}
+                        className="mt-1 block w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:font-bold file:text-indigo-700"
+                    />
+                </label>
+                {customShare.pdfFile && (
+                    <p className="text-[11px] text-indigo-600 font-semibold">Selected: {customShare.pdfFile.name}</p>
+                )}
+                <button
+                    type="submit"
+                    disabled={customSubmitting}
+                    className="w-full px-3 py-2 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                >
+                    {customSubmitting ? 'Sending...' : 'Send Note / PDF'}
+                </button>
+            </form>
 
             {/* Filters */}
             <div className="flex gap-2 mb-3">
@@ -136,8 +237,74 @@ const TutorResourcePanel = ({ requestId, requestSubject, requestGrade, linkedLes
                 </p>
             )}
 
+            {allSharedResources.length > 0 && (
+                <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-3">
+                    <p className="text-xs font-bold text-slate-700 uppercase mb-2">Already Shared</p>
+                    <div
+                        className="space-y-2 max-h-64 overflow-y-scroll pr-2 rounded-xl border border-slate-100 bg-slate-50/70 p-2"
+                        style={{ scrollbarWidth: 'thin' }}
+                    >
+                        {allSharedResources.map((resource) => (
+                            <div key={resource._id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-bold text-slate-900 truncate">
+                                            {resource.resourceType === 'lesson'
+                                                ? resource.lesson?.title || resource.title || 'Shared lesson'
+                                                : resource.title || (resource.resourceType === 'pdf' ? 'Shared PDF' : 'Tutor note')}
+                                        </p>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">
+                                            {resource.resourceType === 'lesson'
+                                                ? `Module lesson${resource.lesson?.subject ? ` · ${resource.lesson.subject}` : ''}`
+                                                : resource.resourceType === 'pdf'
+                                                ? 'PDF resource'
+                                                : 'Note'}
+                                            {resource.sharedAt ? ` · ${new Date(resource.sharedAt).toLocaleDateString()}` : ''}
+                                        </p>
+                                        {resource.resourceType === 'lesson' && resource.lesson && (
+                                            <p className="text-[11px] text-indigo-600 mt-1 font-semibold">
+                                                {resource.lesson.grade != null
+                                                    ? `${resource.lesson.grade === 0 ? 'University' : `Grade ${resource.lesson.grade}`}`
+                                                    : ''}
+                                                {resource.lesson.weekNumber ? ` · Week ${resource.lesson.weekNumber}` : ''}
+                                            </p>
+                                        )}
+                                        {resource.message && (
+                                            <p className="text-[11px] text-slate-600 mt-1 whitespace-pre-wrap">{resource.message}</p>
+                                        )}
+                                        {resource.resourceType === 'lesson' && resource.lesson?.description && (
+                                            <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">
+                                                {resource.lesson.description}
+                                            </p>
+                                        )}
+                                        {resource.file?.url && (
+                                            <a
+                                                href={resource.file.url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex mt-2 text-[11px] bg-red-100 text-red-700 px-2 py-1 rounded-lg font-semibold hover:bg-red-200 transition-colors"
+                                            >
+                                                📄 Open PDF
+                                            </a>
+                                        )}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveCustomResource(resource._id)}
+                                        disabled={actionLoading === resource._id}
+                                        className="shrink-0 text-xs px-2.5 py-1.5 rounded-lg bg-red-100 text-red-700 font-bold hover:bg-red-200 disabled:opacity-60"
+                                    >
+                                        {actionLoading === resource._id ? '...' : 'Remove'}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Lesson list */}
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            <div className="flex-1 overflow-y-scroll space-y-2 pr-2" style={{ scrollbarWidth: 'thin' }}>
                 {loading ? (
                     <div className="flex items-center justify-center py-8">
                         <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2" />

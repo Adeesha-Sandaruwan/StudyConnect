@@ -1,7 +1,9 @@
 import StudentRequest from '../models/StudentRequest.js';
 import User from '../models/User.js';
 import SubjectContent from '../models/SubjectContent.js';
+import Notification from '../models/Notification.js';
 import mongoose from 'mongoose';
+import fetch from 'node-fetch';
 import {
   sendRequestCreationEmail,
   sendAdminNotificationEmail,
@@ -9,6 +11,85 @@ import {
   sendTutorRequestEmail,
   sendStatusUpdateEmail
 } from '../services/emailService.js';
+
+const buildPdfDataFromFile = (file) => {
+  if (!file) {
+    return { pdfUrl: '', pdfPublicId: '', hasPdf: false, name: '' };
+  }
+
+  const pdfUrl = file.secure_url || file.path || file.url || '';
+  const pdfPublicId = file.filename || file.public_id || '';
+  const name = file.originalname || file.name || 'Shared PDF';
+
+  return {
+    pdfUrl,
+    pdfPublicId,
+    hasPdf: Boolean(pdfUrl),
+    name
+  };
+};
+
+const populateRequestRelations = async (request) => {
+  await request.populate('student', ['name', 'email', 'avatar', 'role']);
+  await request.populate('assignedTutor', ['name', 'email', 'avatar', 'role']);
+  await request.populate('linkedLessons', [
+    '_id',
+    'title',
+    'subject',
+    'grade',
+    'weekNumber',
+    'description',
+    'resources',
+    'status'
+  ]);
+  await request.populate('sharedResources.lesson', [
+    '_id',
+    'title',
+    'subject',
+    'grade',
+    'weekNumber',
+    'description',
+    'resources',
+    'status'
+  ]);
+  await request.populate('sharedResources.sharedBy', ['_id', 'name', 'avatar', 'role']);
+  return request;
+};
+
+const canManageRequestResources = (request, user) => {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  return Boolean(
+    request.assignedTutor && request.assignedTutor.toString() === user._id.toString()
+  );
+};
+
+const canViewRequestDetails = (request, user) => {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+
+  const isStudentOwner = request.student.toString() === user._id.toString();
+  const isAssignedTutor = Boolean(
+    request.assignedTutor && request.assignedTutor.toString() === user._id.toString()
+  );
+
+  return isStudentOwner || isAssignedTutor;
+};
+
+const createResourceShareNotification = async ({ request, sender, resourceType, title, message }) => {
+  if (!request?.student || !sender?._id) return;
+
+  await Notification.create({
+    recipient: request.student,
+    sender: sender._id,
+    type: 'request-resource-shared',
+    studentRequest: request._id,
+    title,
+    message,
+    actionLink: '/student-requests',
+    resourceType
+  });
+};
 
 // @desc    Get all student requests with optional filters
 // @route   GET /api/student-requests
@@ -65,6 +146,7 @@ const getMyRequests = async (req, res) => {
 
     const requests = await StudentRequest.find(filter)
       .populate('assignedTutor', ['name', 'email', 'avatar'])
+      .populate('sharedResources.sharedBy', ['_id', 'name', 'avatar', 'role'])
       .limit(limitNum)
       .skip(skip)
       .sort({ createdAt: -1 });
@@ -91,13 +173,10 @@ const getMyRequests = async (req, res) => {
 
 // @desc    Get single student request by ID
 // @route   GET /api/student-requests/:id
-// @access  Public
+// @access  Private (Owner, assigned tutor, or admin)
 const getRequestById = async (req, res) => {
   try {
-    const request = await StudentRequest.findById(req.params.id)
-      .populate('student', ['name', 'email', 'avatar', 'role'])
-      .populate('assignedTutor', ['name', 'email', 'avatar'])
-      .populate('linkedLessons', ['_id', 'title', 'subject', 'grade', 'weekNumber', 'description', 'resources', 'status']);
+    const request = await StudentRequest.findById(req.params.id);
 
     if (!request) {
       return res.status(404).json({ 
@@ -105,6 +184,15 @@ const getRequestById = async (req, res) => {
         message: 'Request not found' 
       });
     }
+
+    if (!canViewRequestDetails(request, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to view this request'
+      });
+    }
+
+    await populateRequestRelations(request);
 
     res.json({
       success: true,
@@ -649,6 +737,7 @@ const getTutorAssignedRequests = async (req, res) => {
     const assignedRequests = await StudentRequest.find(filter)
       .populate('student', ['_id', 'name', 'email', 'avatar', 'phone', 'institution'])
       .populate('assignedTutor', ['_id', 'name', 'email', 'avatar'])
+      .populate('sharedResources.sharedBy', ['_id', 'name', 'avatar', 'role'])
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip(skip);
@@ -767,11 +856,8 @@ const shareLesson = async (req, res) => {
     }
 
     const isAdmin = req.user.role === 'admin';
-    const isAssignedTutor =
-      request.assignedTutor &&
-      request.assignedTutor.toString() === req.user._id.toString();
 
-    if (!isAdmin && !isAssignedTutor) {
+    if (!canManageRequestResources(request, req.user)) {
       return res.status(403).json({
         success: false,
         message: 'Only the assigned tutor or an admin can share lessons on this request'
@@ -792,22 +878,46 @@ const shareLesson = async (req, res) => {
     }
 
     // Avoid duplicates
-    const alreadyLinked = request.linkedLessons.some(
-      (id) => id.toString() === lessonId
+    const alreadyLinked = request.linkedLessons.some((id) => id.toString() === lessonId);
+    const alreadySharedAsResource = request.sharedResources.some(
+      (resource) =>
+        resource.resourceType === 'lesson' &&
+        resource.lesson &&
+        resource.lesson.toString() === lessonId
     );
+
     if (!alreadyLinked) {
       request.linkedLessons.push(new mongoose.Types.ObjectId(lessonId));
-      await request.save();
     }
 
-    await request.populate('linkedLessons', [
-      '_id', 'title', 'subject', 'grade', 'weekNumber', 'description', 'resources', 'status'
-    ]);
+    if (!alreadySharedAsResource) {
+      request.sharedResources.push({
+        resourceType: 'lesson',
+        title: lesson.title,
+        message: '',
+        lesson: lesson._id,
+        sharedBy: req.user._id,
+        sharedAt: new Date()
+      });
+    }
+
+    await request.save();
+    await populateRequestRelations(request);
+
+    if (!alreadySharedAsResource) {
+      await createResourceShareNotification({
+        request,
+        sender: req.user,
+        resourceType: 'lesson',
+        title: lesson.title,
+        message: `${req.user.name} shared a module lesson for your ${request.subject} request.`
+      });
+    }
 
     res.json({
       success: true,
       message: 'Lesson shared with student successfully',
-      linkedLessons: request.linkedLessons
+      request
     });
   } catch (error) {
     console.error(error);
@@ -827,12 +937,7 @@ const removeSharedLesson = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Request not found' });
     }
 
-    const isAdmin = req.user.role === 'admin';
-    const isAssignedTutor =
-      request.assignedTutor &&
-      request.assignedTutor.toString() === req.user._id.toString();
-
-    if (!isAdmin && !isAssignedTutor) {
+    if (!canManageRequestResources(request, req.user)) {
       return res.status(403).json({
         success: false,
         message: 'Only the assigned tutor or an admin can manage shared lessons'
@@ -842,20 +947,171 @@ const removeSharedLesson = async (req, res) => {
     request.linkedLessons = request.linkedLessons.filter(
       (id) => id.toString() !== lessonId
     );
-    await request.save();
+    request.sharedResources = request.sharedResources.filter(
+      (resource) => !(resource.resourceType === 'lesson' && resource.lesson && resource.lesson.toString() === lessonId)
+    );
 
-    await request.populate('linkedLessons', [
-      '_id', 'title', 'subject', 'grade', 'weekNumber', 'description', 'resources', 'status'
-    ]);
+    await request.save();
+    await populateRequestRelations(request);
 
     res.json({
       success: true,
       message: 'Lesson removed successfully',
-      linkedLessons: request.linkedLessons
+      request
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Share a direct PDF and/or tutor note with the student on a request
+// @route   POST /api/student-requests/:id/resources/custom
+// @access  Private (Assigned tutor or Admin)
+const shareCustomResource = async (req, res) => {
+  try {
+    const request = await StudentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found' });
+    }
+
+    if (!canManageRequestResources(request, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the assigned tutor or an admin can share resources on this request'
+      });
+    }
+
+    const title = String(req.body.title || '').trim();
+    const message = String(req.body.message || '').trim();
+    const { pdfUrl, pdfPublicId, hasPdf, name } = buildPdfDataFromFile(req.file);
+
+    if (!message && !hasPdf) {
+      return res.status(400).json({
+        success: false,
+        message: 'Add a note or upload a PDF before sharing'
+      });
+    }
+
+    const resourceType = hasPdf ? 'pdf' : 'note';
+    request.sharedResources.push({
+      resourceType,
+      title: title || (hasPdf ? name : 'Tutor note'),
+      message,
+      file: hasPdf
+        ? { url: pdfUrl, publicId: pdfPublicId, name }
+        : { url: '', publicId: '', name: '' },
+      sharedBy: req.user._id,
+      sharedAt: new Date()
+    });
+
+    await request.save();
+    await populateRequestRelations(request);
+
+    await createResourceShareNotification({
+      request,
+      sender: req.user,
+      resourceType,
+      title: title || (hasPdf ? name : 'Tutor note'),
+      message: hasPdf
+        ? `${req.user.name} shared a PDF resource on your ${request.subject} request.`
+        : `${req.user.name} shared a tutor note on your ${request.subject} request.`
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Resource shared with student successfully',
+      request
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Remove a shared resource entry from a request
+// @route   DELETE /api/student-requests/:id/resources/shared/:resourceId
+// @access  Private (Assigned tutor or Admin)
+const removeSharedResource = async (req, res) => {
+  try {
+    const { resourceId } = req.params;
+
+    const request = await StudentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found' });
+    }
+
+    if (!canManageRequestResources(request, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the assigned tutor or an admin can manage shared resources'
+      });
+    }
+
+    const resource = request.sharedResources.id(resourceId);
+    if (!resource) {
+      return res.status(404).json({ success: false, message: 'Shared resource not found' });
+    }
+
+    if (resource.resourceType === 'lesson' && resource.lesson) {
+      request.linkedLessons = request.linkedLessons.filter(
+        (lessonId) => lessonId.toString() !== resource.lesson.toString()
+      );
+    }
+
+    resource.deleteOne();
+    await request.save();
+    await populateRequestRelations(request);
+
+    res.json({
+      success: true,
+      message: 'Shared resource removed successfully',
+      request
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Download a shared request PDF resource
+// @route   GET /api/student-requests/:id/resources/shared/:resourceId/file
+// @access  Private (Owner, assigned tutor, or admin)
+const downloadSharedResourceFile = async (req, res) => {
+  try {
+    const request = await StudentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found' });
+    }
+
+    if (!canViewRequestDetails(request, req.user)) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this file' });
+    }
+
+    const resource = request.sharedResources.id(req.params.resourceId);
+    if (!resource || !resource.file?.url) {
+      return res.status(404).json({ success: false, message: 'Shared PDF not found' });
+    }
+
+    const response = await fetch(resource.file.url);
+    if (!response.ok) {
+      return res.status(502).json({ success: false, message: 'Failed to fetch shared PDF' });
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const fileBuffer = Buffer.from(arrayBuffer);
+    const safeName = String(resource.file.name || resource.title || 'shared-resource.pdf')
+      .replace(/[^a-zA-Z0-9._-]/g, '-')
+      .replace(/-+/g, '-');
+    const fileName = safeName.toLowerCase().endsWith('.pdf') ? safeName : `${safeName}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', String(fileBuffer.length));
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    return res.status(200).send(fileBuffer);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -873,5 +1129,8 @@ export {
   getAvailableRequests,
   getRequestsBySubject,
   shareLesson,
-  removeSharedLesson
+  removeSharedLesson,
+  shareCustomResource,
+  removeSharedResource,
+  downloadSharedResourceFile
 };
