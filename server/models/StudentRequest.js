@@ -69,7 +69,13 @@ const studentRequestSchema = mongoose.Schema(
       type: String,
       enum: ['low', 'medium', 'high'],
       default: 'medium'
-    }
+    },
+
+    // Lessons shared by the assigned tutor to help the student with this request
+    linkedLessons: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SubjectContent'
+    }]
   },
   {
     timestamps: true

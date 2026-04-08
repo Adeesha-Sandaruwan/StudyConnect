@@ -19,7 +19,9 @@ import {
   updateRequestStatus,
   getTutorAssignedRequests,
   getAvailableRequests,
-  getRequestsBySubject
+  getRequestsBySubject,
+  shareLesson,
+  removeSharedLesson
 } from '../controllers/studentRequestController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { admin } from '../middleware/adminMiddleware.js';
@@ -76,6 +78,12 @@ router.put('/:id/tutor/accept', protect, tutor, acceptRequestByTutor);
 
 // PUT /api/student-requests/:id/status - Update status (Admin or Tutor only)
 router.put('/:id/status', protect, adminOrTutor, validateRequestStatus, updateRequestStatus);
+
+// POST /api/student-requests/:id/resources - Share a lesson with student (Assigned tutor or Admin)
+router.post('/:id/resources', protect, adminOrTutor, shareLesson);
+
+// DELETE /api/student-requests/:id/resources/:lessonId - Remove a shared lesson (Assigned tutor or Admin)
+router.delete('/:id/resources/:lessonId', protect, adminOrTutor, removeSharedLesson);
 
 /**
  * GENERIC :id ROUTES (MUST come last)

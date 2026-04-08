@@ -216,3 +216,29 @@ export async function getTutorUsers() {
     });
     return data;
 }
+
+// ============================================================================
+// MODULE INTEGRATION — RESOURCE SHARING
+// ============================================================================
+
+/**
+ * Share a lesson with the student on an assigned request (tutor or admin only)
+ * @param {String} requestId - Student request ID
+ * @param {String} lessonId  - SubjectContent lesson ID to attach
+ * @returns {Object} - {success, message, linkedLessons: []}
+ */
+export async function shareLesson(requestId, lessonId) {
+    const { data } = await api.post(`${root}/${requestId}/resources`, { lessonId });
+    return data;
+}
+
+/**
+ * Remove a previously shared lesson from a request (tutor or admin only)
+ * @param {String} requestId  - Student request ID
+ * @param {String} lessonId   - SubjectContent lesson ID to detach
+ * @returns {Object} - {success, message, linkedLessons: []}
+ */
+export async function removeSharedLesson(requestId, lessonId) {
+    const { data } = await api.delete(`${root}/${requestId}/resources/${lessonId}`);
+    return data;
+}

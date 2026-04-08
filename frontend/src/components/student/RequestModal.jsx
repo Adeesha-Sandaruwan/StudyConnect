@@ -9,7 +9,7 @@ import Loader from '../Loader';
  * Shows full request info with ability to edit or close
  */
 
-const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, allowEdit = false }) => {
+const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, allowEdit = false, resourcePanel = null }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState(null);
 
@@ -58,7 +58,7 @@ const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, a
     return (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
             <div 
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                className={`bg-white rounded-3xl shadow-2xl w-full overflow-hidden flex flex-col max-h-[90vh] ${resourcePanel ? 'max-w-5xl' : 'max-w-2xl'}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {isLoading && <Loader fullScreen={false} text="" />}
@@ -83,8 +83,11 @@ const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, a
                             </button>
                         </div>
 
-                        {/* Content */}
-                        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                        {/* Content — two-column when resourcePanel provided */}
+                        <div className={`flex flex-1 min-h-0 ${resourcePanel ? 'flex-row' : 'flex-col'}`}>
+
+                        {/* Left column: request details */}
+                        <div className={`p-6 overflow-y-auto space-y-6 ${resourcePanel ? 'flex-1 min-w-0 border-r border-gray-100' : 'flex-1'}`}>
                             {/* Status & Meta Info */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -194,7 +197,115 @@ const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, a
                                     </p>
                                 </div>
                             )}
+
+                            {/* Shared Resources from Tutor — visible when lessons are linked */}
+                            {request.linkedLessons && request.linkedLessons.length > 0 && (
+                                <div className="border-t border-gray-100 pt-4">
+                                    <p className="text-xs font-bold text-gray-600 uppercase mb-3">
+                                        📚 Resources from Your Tutor
+                                    </p>
+                                    <div className="space-y-2.5">
+                                        {request.linkedLessons.map((lesson) => (
+                                            <div
+                                                key={lesson._id || lesson}
+                                                className="bg-indigo-50 border border-indigo-200 rounded-xl p-3"
+                                            >
+                                                <p className="font-bold text-indigo-900 text-sm">{lesson.title}</p>
+                                                <p className="text-[11px] text-indigo-500 mt-0.5">
+                                                    {lesson.subject}
+                                                    {lesson.grade != null && ` · ${lesson.grade === 0 ? 'University' : `Grade ${lesson.grade}`}`}
+                                                    {lesson.weekNumber && ` · Week ${lesson.weekNumber}`}
+                                                </p>
+                                                {lesson.description && (
+                                                    <p className="text-xs text-slate-600 mt-1 line-clamp-2">
+                                                        {lesson.description}
+                                                    </p>
+                                                )}
+                                                {/* Resource links */}
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    {lesson.resources?.meetingLink && (
+                                                        <a
+                                                            href={lesson.resources.meetingLink}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold hover:bg-green-200 transition-colors"
+                                                        >
+                                                            🎥 Class Meeting
+                                                        </a>
+                                                    )}
+                                                    {lesson.resources?.quizFormLink && (
+                                                        <a
+                                                            href={lesson.resources.quizFormLink}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-violet-100 text-violet-700 px-2 py-1 rounded-lg font-semibold hover:bg-violet-200 transition-colors"
+                                                        >
+                                                            📝 Quiz
+                                                        </a>
+                                                    )}
+                                                    {lesson.resources?.worksheetLink && (
+                                                        <a
+                                                            href={lesson.resources.worksheetLink}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-amber-100 text-amber-700 px-2 py-1 rounded-lg font-semibold hover:bg-amber-200 transition-colors"
+                                                        >
+                                                            📋 Worksheet
+                                                        </a>
+                                                    )}
+                                                    {lesson.resources?.answerSheetLink && (
+                                                        <a
+                                                            href={lesson.resources.answerSheetLink}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-teal-100 text-teal-700 px-2 py-1 rounded-lg font-semibold hover:bg-teal-200 transition-colors"
+                                                        >
+                                                            ✅ Answers
+                                                        </a>
+                                                    )}
+                                                    {lesson.resources?.referenceLinks?.filter(Boolean).map((link, i) => (
+                                                        <a
+                                                            key={i}
+                                                            href={link}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded-lg font-semibold hover:bg-blue-200 transition-colors"
+                                                        >
+                                                            🔗 Reference {i + 1}
+                                                        </a>
+                                                    ))}
+                                                    {lesson.resources?.videoLinks?.filter(Boolean).map((link, i) => (
+                                                        <a
+                                                            key={i}
+                                                            href={link}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-red-100 text-red-700 px-2 py-1 rounded-lg font-semibold hover:bg-red-200 transition-colors"
+                                                        >
+                                                            ▶ Video {i + 1}
+                                                        </a>
+                                                    ))}
+                                                    {lesson.resources?.pdfFiles?.length > 0 && (
+                                                        <span className="text-[11px] bg-gray-100 text-gray-600 px-2 py-1 rounded-lg font-semibold">
+                                                            📄 {lesson.resources.pdfFiles.length} PDF file{lesson.resources.pdfFiles.length > 1 ? 's' : ''} (open from lesson page)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
+                        {/* Right column: resource panel (tutor only) */}
+                        {resourcePanel && (
+                            <div className="w-80 shrink-0 p-5 overflow-y-auto bg-slate-50 flex flex-col">
+                                {resourcePanel}
+                            </div>
+                        )}
+
+                        </div>{/* end two-column wrapper */}
 
                         {/* Footer */}
                         <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">

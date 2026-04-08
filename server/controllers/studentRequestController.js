@@ -1,5 +1,6 @@
 import StudentRequest from '../models/StudentRequest.js';
 import User from '../models/User.js';
+import SubjectContent from '../models/SubjectContent.js';
 import mongoose from 'mongoose';
 import {
   sendRequestCreationEmail,
@@ -95,7 +96,8 @@ const getRequestById = async (req, res) => {
   try {
     const request = await StudentRequest.findById(req.params.id)
       .populate('student', ['name', 'email', 'avatar', 'role'])
-      .populate('assignedTutor', ['name', 'email', 'avatar']);
+      .populate('assignedTutor', ['name', 'email', 'avatar'])
+      .populate('linkedLessons', ['_id', 'title', 'subject', 'grade', 'weekNumber', 'description', 'resources', 'status']);
 
     if (!request) {
       return res.status(404).json({ 
@@ -748,6 +750,115 @@ const getRequestsBySubject = async (req, res) => {
   }
 };
 
+// @desc    Share a lesson with the student on an assigned request
+// @route   POST /api/student-requests/:id/resources
+// @access  Private (Assigned tutor or Admin)
+const shareLesson = async (req, res) => {
+  try {
+    const { lessonId } = req.body;
+
+    if (!lessonId) {
+      return res.status(400).json({ success: false, message: 'lessonId is required' });
+    }
+
+    const request = await StudentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found' });
+    }
+
+    const isAdmin = req.user.role === 'admin';
+    const isAssignedTutor =
+      request.assignedTutor &&
+      request.assignedTutor.toString() === req.user._id.toString();
+
+    if (!isAdmin && !isAssignedTutor) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the assigned tutor or an admin can share lessons on this request'
+      });
+    }
+
+    const lesson = await SubjectContent.findById(lessonId);
+    if (!lesson) {
+      return res.status(404).json({ success: false, message: 'Lesson not found' });
+    }
+
+    // Tutors may only share their own lessons
+    if (!isAdmin && lesson.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only share lessons that you created'
+      });
+    }
+
+    // Avoid duplicates
+    const alreadyLinked = request.linkedLessons.some(
+      (id) => id.toString() === lessonId
+    );
+    if (!alreadyLinked) {
+      request.linkedLessons.push(new mongoose.Types.ObjectId(lessonId));
+      await request.save();
+    }
+
+    await request.populate('linkedLessons', [
+      '_id', 'title', 'subject', 'grade', 'weekNumber', 'description', 'resources', 'status'
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Lesson shared with student successfully',
+      linkedLessons: request.linkedLessons
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Remove a shared lesson from a request
+// @route   DELETE /api/student-requests/:id/resources/:lessonId
+// @access  Private (Assigned tutor or Admin)
+const removeSharedLesson = async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+
+    const request = await StudentRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found' });
+    }
+
+    const isAdmin = req.user.role === 'admin';
+    const isAssignedTutor =
+      request.assignedTutor &&
+      request.assignedTutor.toString() === req.user._id.toString();
+
+    if (!isAdmin && !isAssignedTutor) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the assigned tutor or an admin can manage shared lessons'
+      });
+    }
+
+    request.linkedLessons = request.linkedLessons.filter(
+      (id) => id.toString() !== lessonId
+    );
+    await request.save();
+
+    await request.populate('linkedLessons', [
+      '_id', 'title', 'subject', 'grade', 'weekNumber', 'description', 'resources', 'status'
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Lesson removed successfully',
+      linkedLessons: request.linkedLessons
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export {
   getAllRequests,
   getMyRequests,
@@ -760,5 +871,7 @@ export {
   updateRequestStatus,
   getTutorAssignedRequests,
   getAvailableRequests,
-  getRequestsBySubject
+  getRequestsBySubject,
+  shareLesson,
+  removeSharedLesson
 };
