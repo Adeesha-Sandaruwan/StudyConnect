@@ -406,7 +406,7 @@ export default function Feedbacks() {
         {/* ── Footer ── */}
         <Box component="footer" sx={{ borderTop: "1.5px solid #e8eaf0", py: 3, textAlign: "center" }}>
           <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontSize: "0.82rem", color: "#94a3b8" }}>
-            © {new Date().getFullYear()} FeedbackHub — Built with React + MUI
+            @ {new Date().getFullYear()} FeedbackHub — Built with React + MUI
           </Typography>
         </Box>
 
