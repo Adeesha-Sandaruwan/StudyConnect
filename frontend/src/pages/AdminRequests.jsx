@@ -187,12 +187,6 @@ const AdminRequests = () => {
         }
     ];
 
-    if (user && user.role !== 'admin') {
-        return <Navigate to={user.role === 'tutor' ? '/tutor-dashboard' : '/student-dashboard'} replace />;
-    }
-
-    if (loading && requests.length === 0) return <Loader text="Loading all requests..." />;
-
     const getStatusStats = () => {
         const stats = {
             total: totalRequests,
@@ -225,6 +219,12 @@ const AdminRequests = () => {
         }
         return requests;
     }, [requests, sectionTab]);
+
+    if (user && user.role !== 'admin') {
+        return <Navigate to={user.role === 'tutor' ? '/tutor-dashboard' : '/student-dashboard'} replace />;
+    }
+
+    if (loading && requests.length === 0) return <Loader text="Loading all requests..." />;
 
     return (
         <RequestPageShell
