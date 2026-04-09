@@ -5,6 +5,7 @@ import { getTutorAssignedRequests, getRequestById } from '../services/studentReq
 import RequestCard from '../components/student/RequestCard';
 import RequestModal from '../components/student/RequestModal';
 import TutorResourcePanel from '../components/student/TutorResourcePanel';
+import RequestPageShell from '../components/student/RequestPageShell';
 import Loader from '../components/Loader';
 
 /**
@@ -83,27 +84,13 @@ const TutorMyRequests = () => {
     };
 
     return (
-        <div className="min-h-screen relative overflow-hidden">
-            {/* Background gradient */}
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(14,165,233,0.12),transparent),radial-gradient(ellipse_60%_40%_at_100%_30%,rgba(99,102,241,0.1),transparent)]" />
-            
-            <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
-                
-                {/* Header */}
-                <header className="mb-10">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600 mb-2">
-                        👨‍🏫 My Assignments
-                    </p>
-                    <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-3">
-                        Assigned{' '}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-indigo-600">
-                            Tutoring Requests
-                        </span>
-                    </h1>
-                    <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-2xl">
-                        View all the tutoring requests assigned to you. Update status and communicate with students.
-                    </p>
-                </header>
+        <RequestPageShell
+            badge="👨‍🏫 My Assignments"
+            title="Assigned"
+            highlight="Tutoring Requests"
+            description="View all the tutoring requests assigned to you. Update status and communicate with students."
+            maxWidth="max-w-6xl"
+        >
 
                 {/* Error Alert */}
                 {error && (
@@ -196,8 +183,7 @@ const TutorMyRequests = () => {
                             }
                         />
                     )}
-            </div>
-        </div>
+        </RequestPageShell>
     );
 };
 

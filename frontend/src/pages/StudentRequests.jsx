@@ -5,6 +5,7 @@ import { getMyRequests, createRequest, updateRequest, deleteRequest, getRequestB
 import RequestCard from '../components/student/RequestCard';
 import RequestForm from '../components/student/RequestForm';
 import RequestModal from '../components/student/RequestModal';
+import RequestPageShell from '../components/student/RequestPageShell';
 import Loader from '../components/Loader';
 
 /**
@@ -106,35 +107,21 @@ const StudentRequests = () => {
     if (loading) return <Loader text="Loading your requests..." />;
 
     return (
-        <div className="min-h-screen relative overflow-hidden">
-            {/* Background gradient */}
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(14,165,233,0.12),transparent),radial-gradient(ellipse_60%_40%_at_100%_30%,rgba(99,102,241,0.1),transparent)]" />
-            
-            <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
-                
-                {/* Header */}
-                <header className="mb-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-                    <div className="space-y-3 max-w-2xl">
-                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">
-                            📋 My Requests
-                        </p>
-                        <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                            Your Tutoring{' '}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-indigo-600">
-                                Requests
-                            </span>
-                        </h1>
-                        <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-                            Manage your tutoring requests, track tutor assignments, and monitor request status.
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => setShowCreateForm(!showCreateForm)}
-                        className="self-start lg:self-auto px-6 py-3 bg-[#5b7cfa] text-white rounded-xl font-bold hover:bg-[#4a6be0] transition-all hover:-translate-y-0.5 shadow-md flex items-center gap-2"
-                    >
-                        ✨ Create Request
-                    </button>
-                </header>
+        <RequestPageShell
+            badge="📋 My Requests"
+            title="Your Tutoring"
+            highlight="Requests"
+            description="Manage your tutoring requests, track tutor assignments, and monitor request status."
+            maxWidth="max-w-6xl"
+            headerActions={
+                <button
+                    onClick={() => setShowCreateForm(!showCreateForm)}
+                    className="px-6 py-3 bg-[#5b7cfa] text-white rounded-xl font-bold hover:bg-[#4a6be0] transition-all hover:-translate-y-0.5 shadow-md flex items-center gap-2"
+                >
+                    ✨ Create Request
+                </button>
+            }
+        >
 
                 {/* Error Alert */}
                 {error && (
@@ -238,8 +225,7 @@ const StudentRequests = () => {
                         allowEdit={true}
                     />
                 )}
-            </div>
-        </div>
+        </RequestPageShell>
     );
 };
 

@@ -5,6 +5,7 @@ import { getAllRequests, assignTutor, getTutorUsers, updateRequestStatus } from 
 import RequestCard from '../components/student/RequestCard';
 import RequestFilters from '../components/student/RequestFilters';
 import RequestModal from '../components/student/RequestModal';
+import RequestPageShell from '../components/student/RequestPageShell';
 import Loader from '../components/Loader';
 
 /**
@@ -204,27 +205,12 @@ const AdminRequests = () => {
     const stats = getStatusStats();
 
     return (
-        <div className="min-h-screen relative overflow-hidden">
-            {/* Background gradient */}
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(14,165,233,0.12),transparent),radial-gradient(ellipse_60%_40%_at_100%_30%,rgba(99,102,241,0.1),transparent)]" />
-            
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
-                
-                {/* Header */}
-                <header className="mb-10">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600 mb-2">
-                        ⚙️ Admin Panel
-                    </p>
-                    <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-3">
-                        Manage All{' '}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-indigo-600">
-                            Student Requests
-                        </span>
-                    </h1>
-                    <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-2xl">
-                        View, filter, and manage all student tutoring requests across the platform. Assign tutors and monitor request status.
-                    </p>
-                </header>
+        <RequestPageShell
+            badge="⚙️ Admin Panel"
+            title="Manage All"
+            highlight="Student Requests"
+            description="View, filter, and manage all student tutoring requests across the platform. Assign tutors and monitor request status."
+        >
 
                 {/* Error Alert */}
                 {error && (
@@ -485,8 +471,7 @@ const AdminRequests = () => {
                         }}
                     />
                 )}
-            </div>
-        </div>
+        </RequestPageShell>
     );
 };
 
