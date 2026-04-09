@@ -24,7 +24,7 @@ import RequestDetail from './pages/RequestDetail';
 import TutorMyRequests from './pages/TutorMyRequests';
 import TutorAvailableRequests from './pages/TutorAvailableRequests';
 import AdminRequests from './pages/AdminRequests';
-import Feedbacks from './components/Feedback/Feedbacks'; // ✅ Added import
+import Feedbacks from './pages/Feedbacks'; // ✅ IMPORTANT
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useContext(AuthContext);
@@ -50,40 +50,60 @@ function App() {
             
             <div className="flex-1">
                 <Routes>
+
+                    {/* Public Routes */}
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={user ? <Navigate to={getHomeRoute()} replace /> : <AuthPage />} />
                     <Route path="/register" element={user ? <Navigate to={getHomeRoute()} replace /> : <AuthPage />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
-                    
                     <Route path="/resetpassword/:resettoken" element={<ResetPassword />} />
                     <Route path="/reset-password/:resettoken" element={<ResetPassword />} />
-                    
+
+                    {/* Protected Routes */}
                     <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                    <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
 
+                    {/* Dashboards */}
+                    <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
                     <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+                    <Route path="/tutor-dashboard" element={<ProtectedRoute><TutorDashboard /></ProtectedRoute>} />
+
+                    {/* Student */}
                     <Route path="/student-dashboard/lesson/:lessonId" element={<ProtectedRoute><StudentLessonPage /></ProtectedRoute>} />
                     <Route path="/student-dashboard/module/:creatorId/:grade/:subjectSlug" element={<ProtectedRoute><StudentModulePage /></ProtectedRoute>} />
                     <Route path="/student-requests" element={<ProtectedRoute><StudentRequests /></ProtectedRoute>} />
                     <Route path="/browse-requests" element={<ProtectedRoute><BrowseRequests /></ProtectedRoute>} />
                     <Route path="/request/:id" element={<ProtectedRoute><RequestDetail /></ProtectedRoute>} />
-                    
-                    <Route path="/tutor-dashboard" element={<ProtectedRoute><TutorDashboard /></ProtectedRoute>} />
+
+                    {/* Tutor */}
                     <Route path="/tutor-dashboard/lesson/:id" element={<ProtectedRoute><TutorLessonPage /></ProtectedRoute>} />
                     <Route path="/tutor-dashboard/module/:grade/:subjectSlug" element={<ProtectedRoute><TutorModulePage /></ProtectedRoute>} />
                     <Route path="/tutor/my-requests" element={<ProtectedRoute><TutorMyRequests /></ProtectedRoute>} />
                     <Route path="/tutor/available-requests" element={<ProtectedRoute><TutorAvailableRequests /></ProtectedRoute>} />
+
+                    {/* Admin */}
                     <Route path="/admin/requests" element={<ProtectedRoute><AdminRequests /></ProtectedRoute>} />
-                    
+
+                    {/* Posts */}
                     <Route path="/posts" element={<ProtectedRoute><StudyPosts /></ProtectedRoute>} />
                     <Route path="/posts/:id" element={<ProtectedRoute><SinglePost /></ProtectedRoute>} />
+
+                    {/* Notifications */}
                     <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
-                    {/* ✅ NEW ROUTE ADDED */}
-                    <Route path="/feedbacks" element={<ProtectedRoute><Feedbacks /></ProtectedRoute>} />
+                    {/* ✅ FEEDBACK PAGE (THIS IS WHAT YOU WANT) */}
+                    <Route 
+                        path="/feedbacks" 
+                        element={
+                            <ProtectedRoute>
+                                <Feedbacks />
+                            </ProtectedRoute>
+                        } 
+                    />
 
+                    {/* Fallback */}
                     <Route path="*" element={<Navigate to="/" replace />} />
+
                 </Routes>
             </div>
         </div>
