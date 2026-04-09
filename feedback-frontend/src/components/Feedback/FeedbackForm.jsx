@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import SendIcon from "@mui/icons-material/Send";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import CancelIcon from "@mui/icons-material/Cancel";
 import FeedbackIcon from "@mui/icons-material/Feedback";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
 import {
   Box,
   Button,
@@ -15,58 +18,53 @@ import {
   Rating,
   Fade,
   IconButton,
+  Paper,
+  Chip,
+  Snackbar,
+  InputAdornment,
 } from "@mui/material";
 
-// ─────────────────────────────────────────────────────────────
-// API Base URL — all feedback endpoints are prefixed with this
-// ─────────────────────────────────────────────────────────────
+// API Base URL
 const API_BASE = "http://localhost:5000/api/feedback";
 
-// ─────────────────────────────────────────────────────────────
-// FeedbackForm Component
-//
-// Handles two modes:
-//   1. CREATE mode  → shown when `editingFeedback` is null/undefined
-//   2. EDIT mode    → shown when `editingFeedback` is a feedback object
-//
-// Props:
-//   onFeedbackCreated  — callback fired after successful create or update
-//   editingFeedback    — the feedback object to edit (null = create mode)
-//   onCancelEdit       — callback to cancel editing and return to create mode
-// ─────────────────────────────────────────────────────────────
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+  exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
+};
+
+const fieldVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: (i) => ({
+    opacity: 1,
+    x: 0,
+    transition: { delay: i * 0.05, duration: 0.3 },
+  }),
+};
+
 export default function FeedbackForm({ onFeedbackCreated, editingFeedback, onCancelEdit }) {
-
-  // Determine if we are in edit mode based on whether a feedback object was passed
   const isEditing = !!editingFeedback;
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  // ── Empty form template used to reset the form after submit ──
   const emptyForm = {
     tutorName: "",
     tutorEmail: "",
     lesson: "",
     feedback: "",
-    rating: 3, // default rating is 3 stars
+    rating: 3,
   };
 
-  // ── Local state ──
-  const [form, setForm] = useState(emptyForm);   // form field values
-  const [loading, setLoading] = useState(false); // true while API call is in progress
-  const [error, setError] = useState("");        // error message from API
-  const [success, setSuccess] = useState("");    // success message after API call
+  const [form, setForm] = useState(emptyForm);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  // ─────────────────────────────────────────────────────────────
-  // useEffect — Populate form fields when switching to edit mode
-  //
-  // When `editingFeedback` changes (i.e. user clicks Edit on a row),
-  // pre-fill the form with the existing feedback data so the user
-  // can see and modify the current values.
-  //
-  // When `editingFeedback` is null (cancel or after submit),
-  // reset form back to empty state.
-  // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (editingFeedback) {
-      // Pre-fill each field with existing feedback values
       setForm({
         tutorName: editingFeedback.tutorName || "",
         tutorEmail: editingFeedback.tutorEmail || "",
@@ -74,403 +72,580 @@ export default function FeedbackForm({ onFeedbackCreated, editingFeedback, onCan
         feedback: editingFeedback.feedback || "",
         rating: editingFeedback.rating || 3,
       });
-      // Clear any previous messages when switching to edit mode
       setError("");
       setSuccess("");
+      setFieldErrors({});
+      setTouchedFields({});
     } else {
-      // Reset form to empty when not editing
       setForm(emptyForm);
+      setFormSubmitted(false);
     }
   }, [editingFeedback]);
 
-  // ─────────────────────────────────────────────────────────────
-  // handleChange — Controlled input handler
-  //
-  // Updates the corresponding field in the `form` state whenever
-  // the user types in any text input.
-  // ─────────────────────────────────────────────────────────────
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const validateField = (name, value) => {
+    switch (name) {
+      case "tutorName":
+        if (!value.trim()) return "Tutor name is required";
+        if (value.length < 2) return "Name must be at least 2 characters";
+        if (value.length > 50) return "Name must be less than 50 characters";
+        return "";
+      case "tutorEmail":
+        if (!value.trim()) return "Email is required";
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) return "Please enter a valid email address";
+        return "";
+      case "lesson":
+        if (!value.trim()) return "Lesson is required";
+        if (value.length < 3) return "Lesson must be at least 3 characters";
+        return "";
+      case "feedback":
+        if (!value.trim()) return "Feedback is required";
+        if (value.length < 10) return "Please provide more detailed feedback (min 10 characters)";
+        if (value.length > 500) return "Feedback must be less than 500 characters";
+        return "";
+      default:
+        return "";
+    }
+  };
 
-  // ─────────────────────────────────────────────────────────────
-  // handleSubmit — CREATE or UPDATE feedback
-  //
-  // Determines which API call to make based on `isEditing`:
-  //
-  //   CREATE  →  POST /api/feedback/createFeedback
-  //              Sends all form fields as JSON body
-  //              Returns the newly created feedback document
-  //
-  //   UPDATE  →  PUT /api/feedback/updateFeedback/:id
-  //              Uses the `_id` from `editingFeedback` in the URL
-  //              Sends updated form fields as JSON body
-  //              Returns the updated feedback document
-  //
-  // On success:
-  //   - Shows a success alert
-  //   - Resets the form to empty
-  //   - Calls `onFeedbackCreated` to refresh the list and switch tab
-  //
-  // On failure:
-  //   - Shows the error message returned by the API
-  // ─────────────────────────────────────────────────────────────
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    
+    if (touchedFields[name]) {
+      const error = validateField(name, value);
+      setFieldErrors(prev => ({ ...prev, [name]: error }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouchedFields(prev => ({ ...prev, [name]: true }));
+    const error = validateField(name, value);
+    setFieldErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    let isValid = true;
+
+    Object.keys(form).forEach(key => {
+      if (key !== "rating") {
+        const error = validateField(key, form[key]);
+        if (error) {
+          errors[key] = error;
+          isValid = false;
+        }
+      }
+    });
+
+    setFieldErrors(errors);
+    return isValid;
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); // prevent default HTML form submission
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      setSnackbar({
+        open: true,
+        message: "Please fix the errors in the form",
+        severity: "error",
+      });
+      return;
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
 
     try {
       let res;
+      const submitData = { ...form, rating: Number(form.rating) };
 
       if (isEditing) {
-        // ── UPDATE (CRUD: Update) ──────────────────────────────
-        // PUT request to update an existing feedback by its MongoDB _id
         res = await fetch(`${API_BASE}/updateFeedback/${editingFeedback._id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          credentials: "include", // send cookies for session/auth
-          body: JSON.stringify(form), // send updated form data
+          credentials: "include",
+          body: JSON.stringify(submitData),
         });
       } else {
-        // ── CREATE (CRUD: Create) ──────────────────────────────
-        // POST request to create a new feedback document
         res = await fetch(`${API_BASE}/createFeedback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include", // send cookies for session/auth
-          body: JSON.stringify(form), // send new form data
+          credentials: "include",
+          body: JSON.stringify(submitData),
         });
       }
 
-      // Parse JSON response from the server
       const data = await res.json();
 
-      // If HTTP status is not 2xx, throw an error with the server message
       if (!res.ok) throw new Error(data.message || "Something went wrong");
 
-      // Show appropriate success message based on operation
+      setFormSubmitted(true);
       setSuccess(isEditing ? "Feedback updated successfully!" : "Feedback submitted successfully!");
+      
+      setSnackbar({
+        open: true,
+        message: isEditing ? "✨ Feedback updated successfully!" : "🎉 Feedback submitted successfully!",
+        severity: "success",
+      });
 
-      // Reset form fields to empty after successful submission
-      setForm(emptyForm);
-
-      // Notify parent component to refresh feedback list and switch to table tab
-      onFeedbackCreated?.();
-
+      setTimeout(() => {
+        setForm(emptyForm);
+        setFormSubmitted(false);
+        onFeedbackCreated?.();
+      }, 1500);
     } catch (err) {
-      // Display error message in the Alert component
       setError(err.message);
+      setSnackbar({
+        open: true,
+        message: err.message,
+        severity: "error",
+      });
     } finally {
-      // Always stop the loading spinner regardless of success or failure
       setLoading(false);
     }
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────────────────────────
+  const characterCount = form.feedback.length;
+  const isFeedbackValid = characterCount >= 10 && characterCount <= 500;
+  const showCharacterWarning = touchedFields.feedback && characterCount > 0 && characterCount < 10;
+
   return (
-    <Fade in timeout={400}>
-      <Box
-        sx={{
-          background: "#ffffff",
-          borderRadius: "24px",
-          border: "1.5px solid #e8eaf0",
-          boxShadow: "0 12px 48px rgba(37,99,235,0.12)",
-          overflow: "hidden",
-          width: "100%",
-        }}
+    <>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
       >
-        {/* ── Card Header ── */}
-        {/* Shows different icon and title based on create vs edit mode */}
-        <Box
+        <Paper
+          elevation={0}
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            px: 4,
-            py: 3,
-            borderBottom: "1.5px solid #f0f2f7",
+            background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+            borderRadius: "28px",
+            border: "1px solid rgba(37,99,235,0.1)",
+            boxShadow: "0 20px 40px -12px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.05)",
+            overflow: "hidden",
+            position: "relative",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "4px",
+              background: isEditing
+                ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
+                : "linear-gradient(90deg, #2563eb, #60a5fa)",
+            },
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            {/* Icon badge — orange in edit mode, blue in create mode */}
-            <Box
-              sx={{
-                width: 50,
-                height: 50,
-                borderRadius: "15px",
-                bgcolor: isEditing ? "#f59e0b" : "#2563eb",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                flexShrink: 0,
-                boxShadow: isEditing
-                  ? "0 4px 14px rgba(245,158,11,0.35)"
-                  : "0 4px 14px rgba(37,99,235,0.30)",
-              }}
-            >
-              {/* EditNoteIcon for edit mode, FeedbackIcon for create mode */}
-              {isEditing
-                ? <EditNoteIcon sx={{ fontSize: 24 }} />
-                : <FeedbackIcon sx={{ fontSize: 24 }} />}
-            </Box>
+          {/* Animated background particles */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: -50,
+              right: -50,
+              width: 200,
+              height: 200,
+              borderRadius: "50%",
+              background: isEditing
+                ? "radial-gradient(circle, rgba(245,158,11,0.05) 0%, rgba(245,158,11,0) 70%)"
+                : "radial-gradient(circle, rgba(37,99,235,0.05) 0%, rgba(37,99,235,0) 70%)",
+              pointerEvents: "none",
+            }}
+          />
 
-            <Box>
-              {/* Title changes based on mode */}
-              <Typography sx={{
-                fontFamily: "'Outfit', sans-serif",
-                fontWeight: 800,
-                fontSize: "1.15rem",
-                color: "#0f172a",
-                lineHeight: 1.3,
-              }}>
-                {isEditing ? "Edit Feedback" : "Submit Feedback"}
-              </Typography>
-              {/* Subtitle changes based on mode */}
-              <Typography sx={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: "0.85rem",
-                color: "#94a3b8",
-                lineHeight: 1.5,
-                mt: 0.2,
-              }}>
-                {isEditing
-                  ? "Update your existing feedback below"
-                  : "We value your opinion — share your experience"}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Cancel button — only visible in edit mode */}
-          {isEditing && (
-            <IconButton
-              onClick={onCancelEdit} // triggers parent to clear editingFeedback
-              size="medium"
-              sx={{
-                color: "#94a3b8",
-                bgcolor: "#f1f5f9",
-                borderRadius: "12px",
-                width: 38,
-                height: 38,
-                "&:hover": { bgcolor: "#e2e8f0", color: "#64748b" },
-              }}
-            >
-              <CancelIcon />
-            </IconButton>
-          )}
-        </Box>
-
-        {/* ── Form Body ── */}
-        <Box sx={{ p: 4 }}>
-
-          {/* Error alert — shown when API returns an error */}
-          {error && (
-            <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setError("")}>
-              {error}
-            </Alert>
-          )}
-
-          {/* Success alert — shown after successful create or update */}
-          {success && (
-            <Alert severity="success" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setSuccess("")}>
-              {success}
-            </Alert>
-          )}
-
-          {/* Form element — onSubmit triggers handleSubmit */}
-          <Box component="form" onSubmit={handleSubmit}>
-
-            {/* ── Row 1: Tutor Name + Tutor Email ── */}
-            <Box sx={{ display: "flex", gap: 2.5, mb: 2.5 }}>
-
-              {/* Tutor Name field — required, maps to form.tutorName */}
-              <TextField
-                label="Tutor Name"
-                name="tutorName"
-                value={form.tutorName}
-                onChange={handleChange}
-                required
-                fullWidth
-                placeholder="e.g. Mr. John Silva"
-                variant="outlined"
-                sx={fieldSx}
-              />
-
-              {/* Tutor Email field — required, type=email for validation */}
-              <TextField
-                label="Tutor Email"
-                name="tutorEmail"
-                type="email"
-                value={form.tutorEmail}
-                onChange={handleChange}
-                required
-                fullWidth
-                placeholder="tutor@example.com"
-                variant="outlined"
-                sx={fieldSx}
-              />
-            </Box>
-
-            {/* ── Row 2: Lesson + Rating ── */}
-            <Box sx={{ display: "flex", gap: 2.5, mb: 2.5 }}>
-
-              {/* Lesson field — required, maps to form.lesson */}
-              <TextField
-                label="Lesson"
-                name="lesson"
-                value={form.lesson}
-                onChange={handleChange}
-                required
-                fullWidth
-                placeholder="e.g. Mathematics - Chapter 5"
-                variant="outlined"
-                sx={fieldSx}
-              />
-
-              {/* Rating selector — uses MUI Rating component */}
-              {/* Value maps to form.rating (1–5 stars) */}
-              <Box
-                sx={{
-                  minWidth: 210,
-                  height: 62,
-                  border: "1.5px solid #e8eaf0",
-                  borderRadius: "14px",
-                  px: 2.5,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1.5,
-                  bgcolor: "#fafbff",
-                  flexShrink: 0,
-                  transition: "border-color 0.2s",
-                  "&:hover": { borderColor: "#93c5fd" },
-                }}
+          {/* Header */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              px: { xs: 3, sm: 4 },
+              py: { xs: 2.5, sm: 3 },
+              borderBottom: "1px solid rgba(0,0,0,0.06)",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2.5 }}>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Typography sx={{
-                  fontFamily: "'Outfit', sans-serif",
-                  fontSize: "0.88rem",
-                  color: "#64748b",
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                }}>
-                  Rating:
+                <Box
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: "18px",
+                    background: isEditing
+                      ? "linear-gradient(135deg, #f59e0b, #fbbf24)"
+                      : "linear-gradient(135deg, #2563eb, #60a5fa)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    flexShrink: 0,
+                    boxShadow: isEditing
+                      ? "0 8px 20px rgba(245,158,11,0.25)"
+                      : "0 8px 20px rgba(37,99,235,0.25)",
+                  }}
+                >
+                  {isEditing
+                    ? <EditNoteIcon sx={{ fontSize: 28 }} />
+                    : <FeedbackIcon sx={{ fontSize: 28 }} />}
+                </Box>
+              </motion.div>
+
+              <Box>
+                <Typography
+                  sx={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontWeight: 800,
+                    fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                    background: "linear-gradient(135deg, #1e293b, #334155)",
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    color: "transparent",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {isEditing ? "Edit Feedback" : "Share Your Experience"}
                 </Typography>
-
-                {/* Star rating — onChange updates form.rating */}
-                <Rating
-                  value={Number(form.rating)}
-                  onChange={(_, val) => setForm({ ...form, rating: val })}
-                  size="large"
-                  icon={<StarIcon sx={{ color: "#f59e0b", fontSize: 26 }} />}
-                  emptyIcon={<StarBorderIcon sx={{ color: "#d1d5db", fontSize: 26 }} />}
-                />
-
-                {/* Display current rating value as text */}
-                <Typography sx={{
-                  fontFamily: "'Outfit', sans-serif",
-                  fontSize: "0.82rem",
-                  color: "#94a3b8",
-                  whiteSpace: "nowrap",
-                }}>
-                  ({form.rating} / 5)
+                <Typography
+                  sx={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: "0.875rem",
+                    color: "#64748b",
+                    mt: 0.5,
+                  }}
+                >
+                  {isEditing
+                    ? "Update your feedback to help us improve"
+                    : "Your insights help us create better learning experiences"}
                 </Typography>
               </Box>
             </Box>
 
-            {/* ── Row 3: Feedback textarea + Submit button ── */}
-            <Box sx={{ display: "flex", gap: 2.5, alignItems: "flex-start" }}>
-
-              {/* Feedback textarea — multiline, required, maps to form.feedback */}
-              <TextField
-                label="Feedback"
-                name="feedback"
-                value={form.feedback}
-                onChange={handleChange}
-                required
-                fullWidth
-                multiline
-                rows={5}
-                placeholder="Share your feedback about this lesson..."
-                variant="outlined"
-                sx={fieldSx}
-              />
-
-              {/* Submit button — triggers CREATE or UPDATE based on isEditing */}
-              {/* Shows spinner while loading, orange in edit mode, blue in create mode */}
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={loading} // disabled while API call is in progress
-                endIcon={loading
-                  ? <CircularProgress size={18} color="inherit" />
-                  : <SendIcon sx={{ fontSize: 20 }} />}
-                sx={{
-                  flexShrink: 0,
-                  width: 210,
-                  height: 62,
-                  mt: 0.5,
-                  fontFamily: "'Outfit', sans-serif",
-                  fontWeight: 700,
-                  fontSize: "1rem",
-                  borderRadius: "14px",
-                  textTransform: "none",
-                  letterSpacing: "0.01em",
-                  bgcolor: isEditing ? "#f59e0b" : "#2563eb",
-                  boxShadow: isEditing
-                    ? "0 4px 18px rgba(245,158,11,0.35)"
-                    : "0 4px 18px rgba(37,99,235,0.30)",
-                  "&:hover": {
-                    bgcolor: isEditing ? "#d97706" : "#1d4ed8",
-                    boxShadow: isEditing
-                      ? "0 6px 24px rgba(245,158,11,0.45)"
-                      : "0 6px 24px rgba(37,99,235,0.40)",
-                    transform: "translateY(-1px)",
-                  },
-                  transition: "all 0.18s ease",
-                }}
+            {isEditing && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
               >
-                {/* Button label changes based on loading state and mode */}
-                {loading
-                  ? "Processing..."
-                  : isEditing
-                    ? "Update Feedback"   // UPDATE label
-                    : "Submit Feedback"}  
-              </Button>
-            </Box>
-
+                <IconButton
+                  onClick={onCancelEdit}
+                  size="medium"
+                  sx={{
+                    color: "#94a3b8",
+                    bgcolor: "rgba(0,0,0,0.04)",
+                    borderRadius: "14px",
+                    width: 42,
+                    height: 42,
+                    transition: "all 0.2s",
+                    "&:hover": {
+                      bgcolor: "#fee2e2",
+                      color: "#ef4444",
+                      transform: "rotate(90deg)",
+                    },
+                  }}
+                >
+                  <CancelIcon />
+                </IconButton>
+              </motion.div>
+            )}
           </Box>
-        </Box>
-      </Box>
-    </Fade>
+
+          {/* Form Body */}
+          <Box sx={{ p: { xs: 3, sm: 4 } }}>
+            <AnimatePresence mode="wait">
+              {formSubmitted ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                >
+                  <Box
+                    sx={{
+                      textAlign: "center",
+                      py: 8,
+                      background: "linear-gradient(135deg, #f0fdf4, #dcfce7)",
+                      borderRadius: "20px",
+                    }}
+                  >
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                    >
+                      <CheckCircleIcon sx={{ fontSize: 64, color: "#22c55e", mb: 2 }} />
+                    </motion.div>
+                    <Typography variant="h6" sx={{ color: "#166534", fontWeight: 600, mb: 1 }}>
+                      {success}
+                    </Typography>
+                    <Typography sx={{ color: "#15803d" }}>
+                      Redirecting to feedback list...
+                    </Typography>
+                  </Box>
+                </motion.div>
+              ) : (
+                <Box component="form" onSubmit={handleSubmit}>
+                  {/* Row 1: Tutor Name + Tutor Email */}
+                  <Box sx={{ display: "flex", gap: 2.5, mb: 2.5, flexWrap: "wrap" }}>
+                    {["tutorName", "tutorEmail"].map((field, index) => (
+                      <motion.div
+                        key={field}
+                        custom={index}
+                        variants={fieldVariants}
+                        initial="hidden"
+                        animate="visible"
+                        style={{ flex: 1, minWidth: "200px" }}
+                      >
+                        <TextField
+                          label={field === "tutorName" ? "Tutor Name" : "Tutor Email"}
+                          name={field}
+                          type={field === "tutorEmail" ? "email" : "text"}
+                          value={form[field]}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          required
+                          fullWidth
+                          placeholder={
+                            field === "tutorName"
+                              ? "e.g., Mr. John Silva"
+                              : "tutor@example.com"
+                          }
+                          error={!!fieldErrors[field] && touchedFields[field]}
+                          helperText={touchedFields[field] && fieldErrors[field]}
+                          variant="outlined"
+                          sx={fieldSx}
+                          InputProps={{
+                            startAdornment: field === "tutorEmail" && (
+                              <InputAdornment position="start">
+                                <Typography sx={{ color: "#94a3b8" }}>📧</Typography>
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+                      </motion.div>
+                    ))}
+                  </Box>
+
+                  {/* Row 2: Lesson + Rating */}
+                  <Box sx={{ display: "flex", gap: 2.5, mb: 2.5, flexWrap: "wrap" }}>
+                    <motion.div
+                      custom={2}
+                      variants={fieldVariants}
+                      initial="hidden"
+                      animate="visible"
+                      style={{ flex: 2 }}
+                    >
+                      <TextField
+                        label="Lesson / Subject"
+                        name="lesson"
+                        value={form.lesson}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        required
+                        fullWidth
+                        placeholder="e.g., Advanced Calculus - Derivatives"
+                        error={!!fieldErrors.lesson && touchedFields.lesson}
+                        helperText={touchedFields.lesson && fieldErrors.lesson}
+                        variant="outlined"
+                        sx={fieldSx}
+                      />
+                    </motion.div>
+
+                    <motion.div
+                      custom={3}
+                      variants={fieldVariants}
+                      initial="hidden"
+                      animate="visible"
+                      style={{ flex: 1 }}
+                    >
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          border: "1.5px solid #e8eaf0",
+                          borderRadius: "16px",
+                          background: "#ffffff",
+                          transition: "all 0.2s",
+                          "&:hover": { borderColor: "#93c5fd", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" },
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "#64748b",
+                            fontWeight: 600,
+                            mb: 1,
+                            ml: 1,
+                          }}
+                        >
+                          Overall Rating
+                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2, px: 1 }}>
+                          <Rating
+                            value={Number(form.rating)}
+                            onChange={(_, val) => {
+                              setForm({ ...form, rating: val });
+                              setTouchedFields({ ...touchedFields, rating: true });
+                            }}
+                            size="large"
+                            icon={<StarIcon sx={{ color: "#f59e0b", fontSize: 28 }} />}
+                            emptyIcon={<StarBorderIcon sx={{ color: "#cbd5e1", fontSize: 28 }} />}
+                          />
+                          <Chip
+                            label={`${form.rating} / 5`}
+                            size="small"
+                            sx={{
+                              bgcolor: "#fef3c7",
+                              color: "#d97706",
+                              fontWeight: 600,
+                              fontSize: "0.75rem",
+                            }}
+                          />
+                        </Box>
+                      </Box>
+                    </motion.div>
+                  </Box>
+
+                  {/* Row 3: Feedback */}
+                  <motion.div
+                    custom={4}
+                    variants={fieldVariants}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    <TextField
+                      label="Your Feedback"
+                      name="feedback"
+                      value={form.feedback}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      required
+                      fullWidth
+                      multiline
+                      rows={4}
+                      placeholder="Share your detailed feedback about the lesson, teaching style, and learning outcomes..."
+                      error={(!!fieldErrors.feedback && touchedFields.feedback) || showCharacterWarning}
+                      helperText={
+                        (touchedFields.feedback && fieldErrors.feedback) ||
+                        (showCharacterWarning && `Add ${10 - characterCount} more characters`) ||
+                        (characterCount > 0 && `${characterCount}/500 characters`)
+                      }
+                      variant="outlined"
+                      sx={fieldSx}
+                    />
+                  </motion.div>
+
+                  {/* Submit Button */}
+                  <motion.div
+                    custom={5}
+                    variants={fieldVariants}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    <Box sx={{ mt: 3.5, display: "flex", gap: 2, justifyContent: "flex-end" }}>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={loading}
+                        startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
+                        sx={{
+                          px: 4,
+                          py: 1.5,
+                          fontFamily: "'Inter', sans-serif",
+                          fontWeight: 700,
+                          fontSize: "0.95rem",
+                          borderRadius: "14px",
+                          textTransform: "none",
+                          background: isEditing
+                            ? "linear-gradient(135deg, #f59e0b, #fbbf24)"
+                            : "linear-gradient(135deg, #2563eb, #60a5fa)",
+                          boxShadow: "0 4px 14px rgba(0,0,0,0.1)",
+                          transition: "all 0.2s",
+                          "&:hover": {
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+                          },
+                        }}
+                      >
+                        {loading
+                          ? "Processing..."
+                          : isEditing
+                            ? "Update Feedback"
+                            : "Submit Feedback"}
+                      </Button>
+                    </Box>
+                  </motion.div>
+                </Box>
+              )}
+            </AnimatePresence>
+          </Box>
+        </Paper>
+      </motion.div>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ borderRadius: "12px", alignItems: "center" }}
+          iconMapping={{
+            success: <CheckCircleIcon fontSize="inherit" />,
+            error: <ErrorIcon fontSize="inherit" />,
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Shared TextField styles
-// Applied to all input fields for consistent look:
-//   - Rounded corners (14px)
-//   - Light background (#fafbff)
-//   - Blue border on focus
-//   - Taller input height via padding
-// ─────────────────────────────────────────────────────────────
+// Modern TextField styles
 const fieldSx = {
   "& .MuiOutlinedInput-root": {
-    borderRadius: "14px",
-    fontFamily: "'Outfit', sans-serif",
+    borderRadius: "16px",
+    fontFamily: "'Inter', sans-serif",
     fontSize: "0.95rem",
-    bgcolor: "#fafbff",
-    "& fieldset": { borderColor: "#e8eaf0", borderWidth: "1.5px" },
-    "&:hover fieldset": { borderColor: "#93c5fd" },           // light blue on hover
-    "&.Mui-focused fieldset": { borderColor: "#2563eb", borderWidth: "2px" }, // blue on focus
-    "& input": { py: "16px", px: "16px" }, // taller input height
+    background: "#ffffff",
+    transition: "all 0.2s",
+    "& fieldset": {
+      borderColor: "#e2e8f0",
+      borderWidth: "1.5px",
+    },
+    "&:hover fieldset": {
+      borderColor: "#93c5fd",
+    },
+    "&.Mui-focused fieldset": {
+      borderColor: "#2563eb",
+      borderWidth: "2px",
+      boxShadow: "0 0 0 3px rgba(37,99,235,0.1)",
+    },
   },
   "& .MuiInputLabel-root": {
-    fontFamily: "'Outfit', sans-serif",
-    fontSize: "0.92rem",
-    color: "#94a3b8",
+    fontFamily: "'Inter', sans-serif",
+    fontSize: "0.9rem",
+    color: "#64748b",
+    "&.Mui-focused": {
+      color: "#2563eb",
+      fontWeight: 500,
+    },
   },
-  "& .MuiInputLabel-root.Mui-focused": {
-    color: "#2563eb", // blue label on focus
+  "& .MuiFormHelperText-root": {
+    fontFamily: "'Inter', sans-serif",
+    fontSize: "0.75rem",
+    marginLeft: 1,
   },
 };
