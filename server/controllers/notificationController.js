@@ -6,6 +6,7 @@ const getNotifications = async (req, res) => {
     const notifications = await Notification.find({ recipient: req.user._id })
       .populate('sender', 'name avatar role')
       .populate('post', 'title')
+      .populate('studentRequest', 'subject status')
       .sort({ createdAt: -1 });
 
     res.json(notifications);

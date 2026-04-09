@@ -1,9 +1,10 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getTutorAssignedRequests } from '../services/studentRequestApi';
+import { getTutorAssignedRequests, getRequestById } from '../services/studentRequestApi';
 import RequestCard from '../components/student/RequestCard';
 import RequestModal from '../components/student/RequestModal';
+import TutorResourcePanel from '../components/student/TutorResourcePanel';
 import Loader from '../components/Loader';
 
 /**
@@ -37,6 +38,31 @@ const TutorMyRequests = () => {
             setLoading(false);
         }
     };
+
+    // Open a request card: fetch full data (including linkedLessons) then show modal
+    const handleOpenRequest = useCallback(async (request) => {
+        try {
+            const res = await getRequestById(request._id);
+            setSelectedRequest(res.request || request);
+        } catch {
+            setSelectedRequest(request);
+        }
+    }, []);
+
+    // Re-fetch selected request after resource share/remove
+    const handleResourceUpdate = useCallback(async () => {
+        if (!selectedRequest) return;
+        try {
+            const res = await getRequestById(selectedRequest._id);
+            setSelectedRequest(res.request);
+            // Also refresh the list card so counts stay accurate
+            setRequests((prev) =>
+                prev.map((r) => (r._id === selectedRequest._id ? { ...r, ...(res.request || {}) } : r))
+            );
+        } catch {
+            // silently ignore
+        }
+    }, [selectedRequest]);
 
     // Filter requests by status
     const filteredRequests = filterStatus === 'all' 
@@ -140,24 +166,36 @@ const TutorMyRequests = () => {
                             <RequestCard
                                 key={request._id}
                                 request={request}
-                                onClick={() => setSelectedRequest(request)}
+                                    onClick={() => handleOpenRequest(request)}
                             />
                         ))}
                     </div>
                 )}
 
-                {/* Request Detail Modal */}
-                {selectedRequest && (
-                    <RequestModal
-                        isOpen={!!selectedRequest}
-                        request={selectedRequest}
-                        onClose={() => setSelectedRequest(null)}
-                        onUpdate={() => {
-                            setSelectedRequest(null);
-                            loadRequests();
-                        }}
-                    />
-                )}
+                    {/* Request Detail Modal with Resource Sharing Panel */}
+                    {selectedRequest && (
+                        <RequestModal
+                            isOpen={!!selectedRequest}
+                            request={selectedRequest}
+                            onClose={() => setSelectedRequest(null)}
+                            onUpdate={() => {
+                                setSelectedRequest(null);
+                                loadRequests();
+                            }}
+                            resourcePanel={
+                                selectedRequest.assignedTutor ? (
+                                    <TutorResourcePanel
+                                        requestId={selectedRequest._id}
+                                        requestSubject={selectedRequest.subject}
+                                        requestGrade={selectedRequest.gradeLevel}
+                                        linkedLessons={selectedRequest.linkedLessons || []}
+                                        sharedResources={selectedRequest.sharedResources || []}
+                                        onUpdate={handleResourceUpdate}
+                                    />
+                                ) : null
+                            }
+                        />
+                    )}
             </div>
         </div>
     );

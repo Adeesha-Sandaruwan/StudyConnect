@@ -1,0 +1,57 @@
+config:
+  target: "http://localhost:5000"
+  phases:
+    - duration: 20
+      arrivalRate: 3
+      name: "Student request warm up"
+    - duration: 40
+      arrivalRate: 5
+      rampTo: 12
+      name: "Student request steady load"
+    - duration: 20
+      arrivalRate: 12
+      rampTo: 20
+      name: "Student request peak load"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Browse public requests - IT23555358"
+    flow:
+      - get:
+          url: "/api/student-requests?page=1&limit=10"
+          expect:
+            - statusCode: 200
+
+  - name: "Student request self-service flow - IT23555358"
+    flow:
+      - get:
+          url: "/api/student-requests/my-requests?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.STUDENT_REQUEST_TOKEN }}"
+          expect:
+            - statusCode: 200
+      - post:
+          url: "/api/student-requests"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.STUDENT_REQUEST_TOKEN }}"
+          json:
+            subject: "ICT"
+            description: "Artillery performance test request for student request management."
+            gradeLevel: "Grade 11"
+            requestType: "ongoing"
+            preferredSchedule:
+              - "Saturday 10 AM"
+            priority: "medium"
+          expect:
+            - statusCode: 201
+
+  - name: "Tutor assigned-request overview - IT23555358"
+    flow:
+      - get:
+          url: "/api/student-requests/tutor/assigned?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.TUTOR_REQUEST_TOKEN }}"
+          expect:
+            - statusCode: 200

@@ -40,7 +40,11 @@ const Notifications = () => {
     };
 
     const handleNotificationClick = async (notif) => {
-        navigate(`/posts/${notif.post?._id}`);
+        if (notif.type === 'request-resource-shared') {
+            navigate('/student-requests');
+        } else {
+            navigate(`/posts/${notif.post?._id}`);
+        }
         
         if (!notif.isRead) {
             try {
@@ -67,6 +71,46 @@ const Notifications = () => {
         return Math.floor(seconds) + "s ago";
     };
 
+    const getNotificationCopy = (notif) => {
+        if (notif.type === 'request-resource-shared') {
+            const subject = notif.studentRequest?.subject || 'your request';
+            return {
+                iconBg: 'bg-indigo-100 text-indigo-600',
+                icon: (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2M22 12A10 10 0 112 12a10 10 0 0120 0z"></path></svg>
+                ),
+                text: (
+                    <>
+                        <span className="font-extrabold">{notif.sender?.name || 'Your tutor'}</span>
+                        {' shared '}
+                        <span className="font-semibold">{notif.title || notif.resourceType || 'a resource'}</span>
+                        {' on '}
+                        <span className="font-semibold">{subject}</span>
+                        {notif.message ? `.` : ''}
+                    </>
+                ),
+                subtext: notif.message || 'Open your request to see the shared lesson, note, or PDF.'
+            };
+        }
+
+        return {
+            iconBg: notif.type === 'upvote' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-[#5b7cfa]',
+            icon: notif.type === 'upvote' ? (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+            ) : (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+            ),
+            text: (
+                <>
+                    <span className="font-extrabold">{notif.sender?.name || 'Someone'}</span>
+                    {notif.type === 'upvote' ? ' upvoted your post ' : ' answered your post '}
+                    <span className="font-semibold">"{notif.post?.title || 'a deleted post'}"</span>
+                </>
+            ),
+            subtext: ''
+        };
+    };
+
     if (isLoading) {
         return (
             <div className="min-h-[80vh] flex justify-center items-center">
@@ -79,7 +123,7 @@ const Notifications = () => {
         <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 font-sans pb-24">
             <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8 mb-8">
                 <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight mb-2">Notifications</h1>
-                <p className="text-gray-500 text-sm mb-8">Stay updated on answers and upvotes on your study posts.</p>
+                <p className="text-gray-500 text-sm mb-8">Stay updated on study post activity and tutor resources shared on your requests.</p>
 
                 {error && (
                     <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 font-semibold border-l-4 border-red-500">
@@ -95,7 +139,10 @@ const Notifications = () => {
                     </div>
                 ) : (
                     <div className="flex flex-col gap-4">
-                        {notifications.map(notif => (
+                        {notifications.map(notif => {
+                            const copy = getNotificationCopy(notif);
+
+                            return (
                             <div 
                                 key={notif._id} 
                                 onClick={() => handleNotificationClick(notif)}
@@ -110,25 +157,20 @@ const Notifications = () => {
                                         </div>
                                     )}
                                     <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
-                                        {notif.type === 'upvote' ? (
-                                            <div className="w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
-                                            </div>
-                                        ) : (
-                                            <div className="w-5 h-5 bg-blue-100 text-[#5b7cfa] rounded-full flex items-center justify-center">
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                                            </div>
-                                        )}
+                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${copy.iconBg}`}>
+                                            {copy.icon}
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start gap-2">
-                                        <p className="text-sm text-gray-800 leading-snug">
-                                            <span className="font-extrabold">{notif.sender?.name || 'Someone'}</span> 
-                                            {notif.type === 'upvote' ? ' upvoted your post ' : ' answered your post '}
-                                            <span className="font-semibold">"{notif.post?.title || 'a deleted post'}"</span>
-                                        </p>
+                                        <div>
+                                            <p className="text-sm text-gray-800 leading-snug">{copy.text}</p>
+                                            {copy.subtext && (
+                                                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{copy.subtext}</p>
+                                            )}
+                                        </div>
                                         {!notif.isRead && (
                                             <div className="w-2.5 h-2.5 bg-[#5b7cfa] rounded-full shrink-0 mt-1"></div>
                                         )}
@@ -138,7 +180,7 @@ const Notifications = () => {
                                     </span>
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 )}
             </div>

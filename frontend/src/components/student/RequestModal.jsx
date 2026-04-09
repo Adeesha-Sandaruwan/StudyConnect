@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import StatusBadge from './StatusBadge';
 import PriorityBadge from './PriorityBadge';
 import Loader from '../Loader';
+import { getSubjectPdfWindowUrl } from '../../services/subjectContentApi';
+import { getSharedRequestPdfUrl } from '../../services/studentRequestApi';
 
 /**
  * RequestModal Component
@@ -9,7 +11,7 @@ import Loader from '../Loader';
  * Shows full request info with ability to edit or close
  */
 
-const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, allowEdit = false }) => {
+const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, allowEdit = false, resourcePanel = null }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState(null);
 
@@ -55,10 +57,14 @@ const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, a
         setIsEditing(false);
     };
 
+    const directResources = (request.sharedResources || []).filter(
+        (resource) => resource.resourceType !== 'lesson'
+    );
+
     return (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
             <div 
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                className={`bg-white rounded-3xl shadow-2xl w-full overflow-hidden flex flex-col ${resourcePanel ? 'max-w-6xl max-h-[94vh]' : 'max-w-2xl max-h-[90vh]'}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {isLoading && <Loader fullScreen={false} text="" />}
@@ -83,8 +89,11 @@ const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, a
                             </button>
                         </div>
 
-                        {/* Content */}
-                        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                        {/* Content — two-column when resourcePanel provided */}
+                        <div className={`flex flex-1 min-h-0 ${resourcePanel ? 'flex-row min-h-[76vh]' : 'flex-col'}`}>
+
+                        {/* Left column: request details */}
+                        <div className={`p-6 overflow-y-auto space-y-6 ${resourcePanel ? 'flex-1 min-w-0 border-r border-gray-100' : 'flex-1'}`}>
                             {/* Status & Meta Info */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -194,7 +203,170 @@ const RequestModal = ({ isOpen, request, onClose, onUpdate, isLoading = false, a
                                     </p>
                                 </div>
                             )}
+
+                            {/* Shared module lessons from the tutor */}
+                            {request.linkedLessons && request.linkedLessons.length > 0 && (
+                                <div className="border-t border-gray-100 pt-4">
+                                    <p className="text-xs font-bold text-gray-600 uppercase mb-3">
+                                        📚 Shared Module Lessons
+                                    </p>
+                                    <div className="space-y-2.5">
+                                        {request.linkedLessons.map((lesson) => (
+                                            <div
+                                                key={lesson._id || lesson}
+                                                className="bg-indigo-50 border border-indigo-200 rounded-xl p-3"
+                                            >
+                                                <p className="font-bold text-indigo-900 text-sm">{lesson.title}</p>
+                                                <p className="text-[11px] text-indigo-500 mt-0.5">
+                                                    {lesson.subject}
+                                                    {lesson.grade != null && ` · ${lesson.grade === 0 ? 'University' : `Grade ${lesson.grade}`}`}
+                                                    {lesson.weekNumber && ` · Week ${lesson.weekNumber}`}
+                                                </p>
+                                                {lesson.description && (
+                                                    <p className="text-xs text-slate-600 mt-1 line-clamp-2">
+                                                        {lesson.description}
+                                                    </p>
+                                                )}
+                                                {/* Resource links */}
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    {lesson.resources?.meetingLink && (
+                                                        <a
+                                                            href={lesson.resources.meetingLink}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold hover:bg-green-200 transition-colors"
+                                                        >
+                                                            🎥 Class Meeting
+                                                        </a>
+                                                    )}
+                                                    {lesson.resources?.quizFormLink && (
+                                                        <a
+                                                            href={lesson.resources.quizFormLink}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-violet-100 text-violet-700 px-2 py-1 rounded-lg font-semibold hover:bg-violet-200 transition-colors"
+                                                        >
+                                                            📝 Quiz
+                                                        </a>
+                                                    )}
+                                                    {lesson.resources?.worksheetLink && (
+                                                        <a
+                                                            href={lesson.resources.worksheetLink}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-amber-100 text-amber-700 px-2 py-1 rounded-lg font-semibold hover:bg-amber-200 transition-colors"
+                                                        >
+                                                            📋 Worksheet
+                                                        </a>
+                                                    )}
+                                                    {lesson.resources?.answerSheetLink && (
+                                                        <a
+                                                            href={lesson.resources.answerSheetLink}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-teal-100 text-teal-700 px-2 py-1 rounded-lg font-semibold hover:bg-teal-200 transition-colors"
+                                                        >
+                                                            ✅ Answers
+                                                        </a>
+                                                    )}
+                                                    {lesson.resources?.referenceLinks?.filter(Boolean).map((link, i) => (
+                                                        <a
+                                                            key={i}
+                                                            href={link}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-blue-100 text-blue-700 px-2 py-1 rounded-lg font-semibold hover:bg-blue-200 transition-colors"
+                                                        >
+                                                            🔗 Reference {i + 1}
+                                                        </a>
+                                                    ))}
+                                                    {lesson.resources?.videoLinks?.filter(Boolean).map((link, i) => (
+                                                        <a
+                                                            key={i}
+                                                            href={link}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-[11px] bg-red-100 text-red-700 px-2 py-1 rounded-lg font-semibold hover:bg-red-200 transition-colors"
+                                                        >
+                                                            ▶ Video {i + 1}
+                                                        </a>
+                                                    ))}
+                                                    {lesson.resources?.pdfFiles?.length > 0 && (
+                                                        lesson.resources.pdfFiles.map((pdf, index) => (
+                                                            <a
+                                                                key={`${lesson._id}-pdf-${index}`}
+                                                                href={getSubjectPdfWindowUrl(lesson._id, index)}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="text-[11px] bg-gray-100 text-gray-700 px-2 py-1 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+                                                            >
+                                                                📄 {pdf.name || `Lesson PDF ${index + 1}`}
+                                                            </a>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Direct tutor shares (notes + uploaded PDFs) */}
+                            {directResources.length > 0 && (
+                                <div className="border-t border-gray-100 pt-4">
+                                    <p className="text-xs font-bold text-gray-600 uppercase mb-3">
+                                        📎 Direct Shares from Tutor
+                                    </p>
+                                    <div className="space-y-3">
+                                        {directResources.map((resource) => (
+                                            <div
+                                                key={resource._id}
+                                                className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-bold text-slate-900">
+                                                            {resource.title || (resource.resourceType === 'pdf' ? 'Shared PDF' : 'Tutor note')}
+                                                        </p>
+                                                        <p className="text-[11px] text-slate-500 mt-0.5">
+                                                            {resource.sharedBy?.name || 'Tutor'}
+                                                            {resource.sharedAt && ` · ${formatDate(resource.sharedAt)}`}
+                                                        </p>
+                                                    </div>
+                                                    <span className="shrink-0 text-[10px] px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 font-bold uppercase">
+                                                        {resource.resourceType}
+                                                    </span>
+                                                </div>
+                                                {resource.message && (
+                                                    <p className="text-sm text-slate-700 mt-3 whitespace-pre-wrap leading-relaxed">
+                                                        {resource.message}
+                                                    </p>
+                                                )}
+                                                {resource.file?.url && (
+                                                    <a
+                                                        href={getSharedRequestPdfUrl(request._id, resource._id)}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="inline-flex mt-3 text-[11px] bg-red-100 text-red-700 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-red-200 transition-colors"
+                                                    >
+                                                        📄 Download {resource.file.name || 'PDF'}
+                                                    </a>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
+                        {/* Right column: resource panel (tutor only) */}
+                        {resourcePanel && (
+                            <div className="w-[30rem] shrink-0 p-6 overflow-y-auto bg-slate-50 flex flex-col border-l border-slate-100">
+                                {resourcePanel}
+                            </div>
+                        )}
+
+                        </div>{/* end two-column wrapper */}
 
                         {/* Footer */}
                         <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">

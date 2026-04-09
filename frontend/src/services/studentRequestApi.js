@@ -216,3 +216,70 @@ export async function getTutorUsers() {
     });
     return data;
 }
+
+// ============================================================================
+// MODULE INTEGRATION — RESOURCE SHARING
+// ============================================================================
+
+/**
+ * Share a lesson with the student on an assigned request (tutor or admin only)
+ * @param {String} requestId - Student request ID
+ * @param {String} lessonId  - SubjectContent lesson ID to attach
+ * @returns {Object} - {success, message, linkedLessons: []}
+ */
+export async function shareLesson(requestId, lessonId) {
+    const { data } = await api.post(`${root}/${requestId}/resources`, { lessonId });
+    return data;
+}
+
+/**
+ * Remove a previously shared lesson from a request (tutor or admin only)
+ * @param {String} requestId  - Student request ID
+ * @param {String} lessonId   - SubjectContent lesson ID to detach
+ * @returns {Object} - {success, message, linkedLessons: []}
+ */
+export async function removeSharedLesson(requestId, lessonId) {
+    const { data } = await api.delete(`${root}/${requestId}/resources/${lessonId}`);
+    return data;
+}
+
+/**
+ * Share a tutor note and/or PDF directly on the request.
+ * @param {String} requestId - Student request ID
+ * @param {Object} payload - { title, message }
+ * @param {File|null} pdfFile - Optional uploaded PDF
+ * @returns {Object} - {success, message, request}
+ */
+export async function shareCustomResource(requestId, payload = {}, pdfFile = null) {
+    const formData = new FormData();
+
+    if (payload.title != null) formData.append('title', payload.title);
+    if (payload.message != null) formData.append('message', payload.message);
+    if (pdfFile) formData.append('pdf', pdfFile);
+
+    const { data } = await api.post(`${root}/${requestId}/resources/custom`, formData);
+    return data;
+}
+
+/**
+ * Remove a custom shared resource entry by its resource id.
+ * @param {String} requestId - Student request ID
+ * @param {String} resourceId - Shared resource subdocument ID
+ * @returns {Object} - {success, message, request}
+ */
+export async function removeSharedResource(requestId, resourceId) {
+    const { data } = await api.delete(`${root}/${requestId}/resources/shared/${resourceId}`);
+    return data;
+}
+
+/**
+ * Build the protected download URL for a shared request PDF.
+ * @param {String} requestId - Student request ID
+ * @param {String} resourceId - Shared resource subdocument ID
+ * @returns {String}
+ */
+export function getSharedRequestPdfUrl(requestId, resourceId) {
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const trimmed = base.replace(/\/$/, '');
+    return `${trimmed}${root}/${requestId}/resources/shared/${resourceId}/file`;
+}

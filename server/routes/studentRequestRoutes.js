@@ -19,8 +19,14 @@ import {
   updateRequestStatus,
   getTutorAssignedRequests,
   getAvailableRequests,
-  getRequestsBySubject
+  getRequestsBySubject,
+  shareLesson,
+  removeSharedLesson,
+  shareCustomResource,
+  removeSharedResource,
+  downloadSharedResourceFile
 } from '../controllers/studentRequestController.js';
+import upload from '../middleware/uploadMiddleware.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { admin } from '../middleware/adminMiddleware.js';
 import { checkStudentOwner } from '../middleware/ownerMiddleware.js';
@@ -77,6 +83,21 @@ router.put('/:id/tutor/accept', protect, tutor, acceptRequestByTutor);
 // PUT /api/student-requests/:id/status - Update status (Admin or Tutor only)
 router.put('/:id/status', protect, adminOrTutor, validateRequestStatus, updateRequestStatus);
 
+// POST /api/student-requests/:id/resources - Share a lesson with student (Assigned tutor or Admin)
+router.post('/:id/resources', protect, adminOrTutor, shareLesson);
+
+// POST /api/student-requests/:id/resources/custom - Share a PDF and/or note with student (Assigned tutor or Admin)
+router.post('/:id/resources/custom', protect, adminOrTutor, upload.single('pdf'), shareCustomResource);
+
+// GET /api/student-requests/:id/resources/shared/:resourceId/file - Download a shared PDF resource
+router.get('/:id/resources/shared/:resourceId/file', protect, downloadSharedResourceFile);
+
+// DELETE /api/student-requests/:id/resources/:lessonId - Remove a shared lesson (Assigned tutor or Admin)
+router.delete('/:id/resources/:lessonId', protect, adminOrTutor, removeSharedLesson);
+
+// DELETE /api/student-requests/:id/resources/shared/:resourceId - Remove a shared custom resource (Assigned tutor or Admin)
+router.delete('/:id/resources/shared/:resourceId', protect, adminOrTutor, removeSharedResource);
+
 /**
  * GENERIC :id ROUTES (MUST come last)
  */
@@ -87,7 +108,7 @@ router.put('/:id', protect, checkStudentOwner, validateStudentRequestUpdate, upd
 // DELETE /api/student-requests/:id - Delete request (Owner or Admin)
 router.delete('/:id', protect, checkStudentOwner, deleteRequest);
 
-// GET /api/student-requests/:id - Get request by ID (Public)
-router.get('/:id', getRequestById);
+// GET /api/student-requests/:id - Get request by ID (Owner, assigned tutor, or admin)
+router.get('/:id', protect, getRequestById);
 
 export default router;
