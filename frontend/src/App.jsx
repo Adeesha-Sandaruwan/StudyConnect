@@ -24,6 +24,7 @@ import RequestDetail from './pages/RequestDetail';
 import TutorMyRequests from './pages/TutorMyRequests';
 import TutorAvailableRequests from './pages/TutorAvailableRequests';
 import AdminRequests from './pages/AdminRequests';
+import Feedbacks from './components/Feedback/Feedbacks';
 
 
 const ProtectedRoute = ({ children }) => {
