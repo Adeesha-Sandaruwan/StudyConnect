@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { getMyRequests, createRequest, updateRequest, deleteRequest, getRequestById } from '../services/studentRequestApi';
@@ -6,6 +6,7 @@ import RequestCard from '../components/student/RequestCard';
 import RequestForm from '../components/student/RequestForm';
 import RequestModal from '../components/student/RequestModal';
 import RequestPageShell from '../components/student/RequestPageShell';
+import RequestViewTabs from '../components/student/RequestViewTabs';
 import Loader from '../components/Loader';
 
 /**
@@ -24,6 +25,7 @@ const StudentRequests = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
+    const [statusTab, setStatusTab] = useState('all');
 
     const itemsPerPage = 10;
 
@@ -100,6 +102,18 @@ const StudentRequests = () => {
         if (currentPage < totalPages) setCurrentPage(currentPage + 1);
     };
 
+    const statusCounts = useMemo(() => ({
+        all: requests.length,
+        open: requests.filter((r) => r.status === 'open').length,
+        'in-progress': requests.filter((r) => r.status === 'in-progress').length,
+        completed: requests.filter((r) => r.status === 'completed').length
+    }), [requests]);
+
+    const filteredRequests = useMemo(() => {
+        if (statusTab === 'all') return requests;
+        return requests.filter((request) => request.status === statusTab);
+    }, [requests, statusTab]);
+
     if (user && user.role !== 'student') {
         return <Navigate to={user.role === 'tutor' ? '/tutor-dashboard' : '/admin'} replace />;
     }
@@ -114,12 +128,23 @@ const StudentRequests = () => {
             description="Manage your tutoring requests, track tutor assignments, and monitor request status."
             maxWidth="max-w-6xl"
             headerActions={
-                <button
-                    onClick={() => setShowCreateForm(!showCreateForm)}
-                    className="px-6 py-3 bg-[#5b7cfa] text-white rounded-xl font-bold hover:bg-[#4a6be0] transition-all hover:-translate-y-0.5 shadow-md flex items-center gap-2"
-                >
-                    ✨ Create Request
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className="px-3 py-1.5 rounded-full bg-white/85 border border-sky-100 text-sky-700 text-xs font-bold">
+                        My Requests: {totalRequests}
+                    </span>
+                    <RequestViewTabs
+                        items={[
+                            { label: 'My Requests', to: '/student-requests', active: true },
+                            { label: 'Browse Requests', to: '/browse-requests', active: false }
+                        ]}
+                    />
+                    <button
+                        onClick={() => setShowCreateForm(!showCreateForm)}
+                        className="px-6 py-3 bg-[#5b7cfa] text-white rounded-xl font-bold hover:bg-[#4a6be0] transition-all hover:-translate-y-0.5 shadow-md flex items-center gap-2"
+                    >
+                        ✨ Create Request
+                    </button>
+                </div>
             }
         >
 
@@ -150,6 +175,20 @@ const StudentRequests = () => {
                     </div>
                 )}
 
+                <div className="mb-6 flex flex-wrap items-center gap-3">
+                    <RequestViewTabs
+                        items={[
+                            { label: `All (${statusCounts.all})`, active: statusTab === 'all', onClick: () => setStatusTab('all') },
+                            { label: `Open (${statusCounts.open})`, active: statusTab === 'open', onClick: () => setStatusTab('open') },
+                            { label: `In Progress (${statusCounts['in-progress']})`, active: statusTab === 'in-progress', onClick: () => setStatusTab('in-progress') },
+                            { label: `Completed (${statusCounts.completed})`, active: statusTab === 'completed', onClick: () => setStatusTab('completed') }
+                        ]}
+                    />
+                    <span className="px-3 py-1.5 rounded-full bg-white/85 border border-gray-200 text-xs font-semibold text-gray-600">
+                        Showing {filteredRequests.length} in this section
+                    </span>
+                </div>
+
                 {/* Requests Grid */}
                 {requests.length === 0 ? (
                     <div className="text-center py-16">
@@ -165,15 +204,21 @@ const StudentRequests = () => {
                             Create Your First Request
                         </button>
                     </div>
+                ) : filteredRequests.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
+                        <div className="text-6xl mb-4">🔎</div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">No Requests in This Section</h3>
+                        <p className="text-gray-600">Switch to another tab to see requests in different statuses.</p>
+                    </div>
                 ) : (
                     <>
                         <div className="mb-5">
                             <p className="text-sm font-semibold text-gray-600">
-                                📊 Showing {requests.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min(currentPage * itemsPerPage, totalRequests)} of {totalRequests}
+                                📊 Showing {filteredRequests.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min((currentPage - 1) * itemsPerPage + filteredRequests.length, totalRequests)} of {totalRequests}
                             </p>
                         </div>
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {requests.map(request => (
+                            {filteredRequests.map(request => (
                                 <RequestCard
                                     key={request._id}
                                     request={request}

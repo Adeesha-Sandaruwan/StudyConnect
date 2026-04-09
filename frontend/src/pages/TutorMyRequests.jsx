@@ -6,6 +6,7 @@ import RequestCard from '../components/student/RequestCard';
 import RequestModal from '../components/student/RequestModal';
 import TutorResourcePanel from '../components/student/TutorResourcePanel';
 import RequestPageShell from '../components/student/RequestPageShell';
+import RequestViewTabs from '../components/student/RequestViewTabs';
 import Loader from '../components/Loader';
 
 /**
@@ -90,6 +91,14 @@ const TutorMyRequests = () => {
             highlight="Tutoring Requests"
             description="View all the tutoring requests assigned to you. Update status and communicate with students."
             maxWidth="max-w-6xl"
+            headerActions={
+                <RequestViewTabs
+                    items={[
+                        { label: 'Browse Available', to: '/tutor/available-requests', active: false },
+                        { label: 'My Assigned', to: '/tutor/my-requests', active: true }
+                    ]}
+                />
+            }
         >
 
                 {/* Error Alert */}

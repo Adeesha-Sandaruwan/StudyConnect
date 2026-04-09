@@ -6,6 +6,7 @@ import RequestCard from '../components/student/RequestCard';
 import RequestFilters from '../components/student/RequestFilters';
 import RequestModal from '../components/student/RequestModal';
 import RequestPageShell from '../components/student/RequestPageShell';
+import RequestViewTabs from '../components/student/RequestViewTabs';
 import Loader from '../components/Loader';
 
 /**
@@ -100,6 +101,14 @@ const BrowseRequests = () => {
             title="Find Student"
             highlight="Requests"
             description="Browse all available tutoring requests from students. Filter by subject, grade level, and priority to find the perfect match."
+            headerActions={
+                <RequestViewTabs
+                    items={[
+                        { label: 'My Requests', to: '/student-requests', active: false },
+                        { label: 'Browse Requests', to: '/browse-requests', active: true }
+                    ]}
+                />
+            }
         >
 
                 {/* Error Alert */}

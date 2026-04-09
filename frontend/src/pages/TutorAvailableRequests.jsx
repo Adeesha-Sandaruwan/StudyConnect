@@ -6,6 +6,7 @@ import RequestCard from '../components/student/RequestCard';
 import RequestFilters from '../components/student/RequestFilters';
 import RequestModal from '../components/student/RequestModal';
 import RequestPageShell from '../components/student/RequestPageShell';
+import RequestViewTabs from '../components/student/RequestViewTabs';
 import Loader from '../components/Loader';
 
 /**
@@ -114,6 +115,14 @@ const TutorAvailableRequests = () => {
             title="Find New"
             highlight="Tutoring Opportunities"
             description="Browse unassigned student requests waiting for a tutor. Filter by subject, grade level, and priority to find requests that match your expertise."
+            headerActions={
+                <RequestViewTabs
+                    items={[
+                        { label: 'Browse Available', to: '/tutor/available-requests', active: true },
+                        { label: 'My Assigned', to: '/tutor/my-requests', active: false }
+                    ]}
+                />
+            }
         >
 
                 {/* Error Alert */}

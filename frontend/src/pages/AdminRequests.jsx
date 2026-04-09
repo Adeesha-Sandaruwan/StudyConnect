@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { getAllRequests, assignTutor, getTutorUsers, updateRequestStatus } from '../services/studentRequestApi';
@@ -6,6 +6,7 @@ import RequestCard from '../components/student/RequestCard';
 import RequestFilters from '../components/student/RequestFilters';
 import RequestModal from '../components/student/RequestModal';
 import RequestPageShell from '../components/student/RequestPageShell';
+import RequestViewTabs from '../components/student/RequestViewTabs';
 import Loader from '../components/Loader';
 
 /**
@@ -27,6 +28,7 @@ const AdminRequests = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
+    const [sectionTab, setSectionTab] = useState('all');
     const itemsPerPage = 8;
 
     const [filters, setFilters] = useState({
@@ -203,6 +205,26 @@ const AdminRequests = () => {
     };
 
     const stats = getStatusStats();
+    const sectionCounts = useMemo(() => ({
+        all: requests.length,
+        unassigned: requests.filter((r) => !r.assignedTutor).length,
+        rejected: requests.filter((r) => r.status === 'rejected' || r.status === 'cancelled').length,
+        completed: requests.filter((r) => r.status === 'completed').length
+    }), [requests]);
+
+    const filteredRequests = useMemo(() => {
+        if (sectionTab === 'all') return requests;
+        if (sectionTab === 'unassigned') {
+            return requests.filter((request) => !request.assignedTutor);
+        }
+        if (sectionTab === 'rejected') {
+            return requests.filter((request) => request.status === 'rejected' || request.status === 'cancelled');
+        }
+        if (sectionTab === 'completed') {
+            return requests.filter((request) => request.status === 'completed');
+        }
+        return requests;
+    }, [requests, sectionTab]);
 
     return (
         <RequestPageShell
@@ -210,6 +232,16 @@ const AdminRequests = () => {
             title="Manage All"
             highlight="Student Requests"
             description="View, filter, and manage all student tutoring requests across the platform. Assign tutors and monitor request status."
+            headerActions={
+                <RequestViewTabs
+                    items={[
+                        { label: `All (${sectionCounts.all})`, active: sectionTab === 'all', onClick: () => setSectionTab('all') },
+                        { label: `Unassigned (${sectionCounts.unassigned})`, active: sectionTab === 'unassigned', onClick: () => setSectionTab('unassigned') },
+                        { label: `Flagged/Rejected (${sectionCounts.rejected})`, active: sectionTab === 'rejected', onClick: () => setSectionTab('rejected') },
+                        { label: `Completed (${sectionCounts.completed})`, active: sectionTab === 'completed', onClick: () => setSectionTab('completed') }
+                    ]}
+                />
+            }
         >
 
                 {/* Error Alert */}
@@ -253,7 +285,7 @@ const AdminRequests = () => {
                         <div className="mb-6 flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-semibold text-gray-600">
-                                    📊 Showing {requests.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min(currentPage * itemsPerPage, totalRequests)} of {totalRequests}
+                                    📊 Showing {filteredRequests.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min((currentPage - 1) * itemsPerPage + filteredRequests.length, totalRequests)} of {totalRequests}
                                 </p>
                             </div>
                         </div>
@@ -273,16 +305,24 @@ const AdminRequests = () => {
                                     Clear All Filters
                                 </button>
                             </div>
+                        ) : filteredRequests.length === 0 ? (
+                            <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
+                                <div className="text-6xl mb-4">🗂️</div>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-2">No Requests in This Section</h3>
+                                <p className="text-gray-600">
+                                    Choose a different admin section tab to inspect other requests.
+                                </p>
+                            </div>
                         ) : (
                             <>
                                 <div className="grid gap-6 md:grid-cols-2 mb-8">
-                                    {requests.map(request => (
+                                    {filteredRequests.map(request => (
                                         <RequestCard
                                             key={request._id}
                                             request={request}
                                             onClick={() => setSelectedRequest(request)}
                                             customActions={
-                                                <div className="space-y-3">
+                                                <div className="space-y-3 lg:sticky lg:top-4">
                                                     {request.status === 'open' && !request.assignedTutor && (
                                                         <div className="flex gap-2 items-center">
                                                             <select
