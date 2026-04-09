@@ -24,8 +24,7 @@ import RequestDetail from './pages/RequestDetail';
 import TutorMyRequests from './pages/TutorMyRequests';
 import TutorAvailableRequests from './pages/TutorAvailableRequests';
 import AdminRequests from './pages/AdminRequests';
-import Feedbacks from './components/Feedback/Feedbacks';
-
+import Feedbacks from './components/Feedback/Feedbacks'; // ✅ Added import
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useContext(AuthContext);
@@ -80,6 +79,9 @@ function App() {
                     <Route path="/posts" element={<ProtectedRoute><StudyPosts /></ProtectedRoute>} />
                     <Route path="/posts/:id" element={<ProtectedRoute><SinglePost /></ProtectedRoute>} />
                     <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+
+                    {/* ✅ NEW ROUTE ADDED */}
+                    <Route path="/feedbacks" element={<ProtectedRoute><Feedbacks /></ProtectedRoute>} />
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
