@@ -12,19 +12,21 @@ import {
   sendStatusUpdateEmail
 } from '../services/emailService.js';
 
+// Helper: Extract file metadata from Cloudinary upload response
 const buildPdfDataFromFile = (file) => {
   if (!file) {
     return { pdfUrl: '', pdfPublicId: '', hasPdf: false, name: '' };
   }
 
-  const pdfUrl = file.secure_url || file.path || file.url || '';
-  const pdfPublicId = file.filename || file.public_id || '';
-  const name = file.originalname || file.name || 'Shared PDF';
+  // Map Cloudinary response fields
+  const pdfUrl = file.secure_url || file.path || file.url || ''; // HTTPS URL
+  const pdfPublicId = file.filename || file.public_id || ''; // For deletion
+  const name = file.originalname || file.name || 'Shared PDF'; // Original filename
 
   return {
     pdfUrl,
     pdfPublicId,
-    hasPdf: Boolean(pdfUrl),
+    hasPdf: Boolean(pdfUrl), // Flag if file was uploaded
     name
   };
 };
@@ -56,21 +58,24 @@ const populateRequestRelations = async (request) => {
   return request;
 };
 
+// Helper: Check if user can share/remove resources (assigned tutor or admin only)
 const canManageRequestResources = (request, user) => {
   if (!user) return false;
-  if (user.role === 'admin') return true;
+  if (user.role === 'admin') return true; // Admins can manage any request's resources
+  // Tutors can only manage resources on requests assigned to them
   return Boolean(
     request.assignedTutor && request.assignedTutor.toString() === user._id.toString()
   );
 };
 
+// Helper: Check if user can view full request details with PII
 const canViewRequestDetails = (request, user) => {
   if (!user) return false;
   if (user.role === 'admin') return true;
 
-  const isStudentOwner = request.student.toString() === user._id.toString();
+  const isStudentOwner = request.student.toString() === user._id.toString(); // Student viewing their own
   const isAssignedTutor = Boolean(
-    request.assignedTutor && request.assignedTutor.toString() === user._id.toString()
+    request.assignedTutor && request.assignedTutor.toString() === user._id.toString() // Tutor helping this request
   );
 
   return isStudentOwner || isAssignedTutor;
@@ -98,9 +103,10 @@ const getAllRequests = async (req, res) => {
   try {
     const { status, subject, gradeLevel, priority, page = 1, limit = 10 } = req.query;
 
-    // Build filter object
+    // Build filter object for query
     const filter = {};
     if (status) {
+      // Treat 'rejected' status as both 'rejected' and 'cancelled' terminal states
       filter.status = status === 'rejected' ? { $in: ['rejected', 'cancelled'] } : status;
     }
     if (subject) filter.subject = subject;
@@ -109,9 +115,11 @@ const getAllRequests = async (req, res) => {
 
     const skip = (page - 1) * limit;
 
+    // IMPORTANT: PII Redaction for public endpoint
+    // Only populate ['name', 'avatar'] - email is explicitly excluded for privacy
     const requests = await StudentRequest.find(filter)
-      .populate('student', ['name', 'avatar'])
-      .populate('assignedTutor', ['name', 'avatar'])
+      .populate('student', ['name', 'avatar']) // Public: no email exposed
+      .populate('assignedTutor', ['name', 'avatar']) // Public: no email exposed
       .limit(limit * 1)
       .skip(skip)
       .sort({ createdAt: -1 });
@@ -817,8 +825,9 @@ const getRequestsBySubject = async (req, res) => {
 
     const skip = (page - 1) * limit;
 
+    // IMPORTANT: PII Redaction - exclude email from public subject browse
     const requests = await StudentRequest.find({ subject, status: 'open' })
-      .populate('student', ['name', 'avatar'])
+      .populate('student', ['name', 'avatar']) // Public: no email
       .limit(limit * 1)
       .skip(skip)
       .sort({ createdAt: -1 });
@@ -857,6 +866,7 @@ const shareLesson = async (req, res) => {
 
     const isAdmin = req.user.role === 'admin';
 
+    // Only assigned tutor or admin can share resources
     if (!canManageRequestResources(request, req.user)) {
       return res.status(403).json({
         success: false,
@@ -869,7 +879,7 @@ const shareLesson = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Lesson not found' });
     }
 
-    // Tutors may only share their own lessons
+    // Tutors may only share their own lessons (admins can share any)
     if (!isAdmin && lesson.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -877,7 +887,7 @@ const shareLesson = async (req, res) => {
       });
     }
 
-    // Avoid duplicates
+    // Avoid duplicate resource entries on the same request
     const alreadyLinked = request.linkedLessons.some((id) => id.toString() === lessonId);
     const alreadySharedAsResource = request.sharedResources.some(
       (resource) =>
@@ -891,6 +901,7 @@ const shareLesson = async (req, res) => {
     }
 
     if (!alreadySharedAsResource) {
+      // Add this lesson to sharedResources array so student sees it
       request.sharedResources.push({
         resourceType: 'lesson',
         title: lesson.title,
@@ -904,6 +915,7 @@ const shareLesson = async (req, res) => {
     await request.save();
     await populateRequestRelations(request);
 
+    // Notify student only if this is a new share
     if (!alreadySharedAsResource) {
       await createResourceShareNotification({
         request,
@@ -975,6 +987,7 @@ const shareCustomResource = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Request not found' });
     }
 
+    // Only assigned tutor or admin can share
     if (!canManageRequestResources(request, req.user)) {
       return res.status(403).json({
         success: false,
@@ -984,8 +997,10 @@ const shareCustomResource = async (req, res) => {
 
     const title = String(req.body.title || '').trim();
     const message = String(req.body.message || '').trim();
+    // Extract file metadata from Cloudinary upload
     const { pdfUrl, pdfPublicId, hasPdf, name } = buildPdfDataFromFile(req.file);
 
+    // Require either a note or PDF
     if (!message && !hasPdf) {
       return res.status(400).json({
         success: false,
@@ -993,14 +1008,16 @@ const shareCustomResource = async (req, res) => {
       });
     }
 
+    // Determine resource type based on what was provided
     const resourceType = hasPdf ? 'pdf' : 'note';
+    // Add resource to the request's sharedResources array
     request.sharedResources.push({
       resourceType,
-      title: title || (hasPdf ? name : 'Tutor note'),
+      title: title || (hasPdf ? name : 'Tutor note'), // Use provided title or default
       message,
       file: hasPdf
-        ? { url: pdfUrl, publicId: pdfPublicId, name }
-        : { url: '', publicId: '', name: '' },
+        ? { url: pdfUrl, publicId: pdfPublicId, name } // Attach Cloudinary file info
+        : { url: '', publicId: '', name: '' }, // No file for notes
       sharedBy: req.user._id,
       sharedAt: new Date()
     });
@@ -1008,6 +1025,7 @@ const shareCustomResource = async (req, res) => {
     await request.save();
     await populateRequestRelations(request);
 
+    // Notify student that a resource was shared
     await createResourceShareNotification({
       request,
       sender: req.user,

@@ -11,38 +11,44 @@ import Loader from '../components/Loader';
 
 /**
  * BrowseRequests Page
- * Public page for tutors to browse available student requests
- * Supports advanced filtering and pagination
+ * Public page for tutors (authenticated) to browse available student requests
+ * Supports advanced filtering by subject, grade, priority status
+ * Tutors can browse and view request details before accepting
  */
 
 const BrowseRequests = () => {
     const { user } = useContext(AuthContext);
+    // State for requests list
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // Modal to display request details
     const [selectedRequest, setSelectedRequest] = useState(null);
+    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
 
+    // Advanced filter state: support multi-select for priority and status
     const [filters, setFilters] = useState({
-        subject: '',
-        gradeLevel: '',
-        priority: [],
-        status: []
+        subject: '', // Single select: Mathematics, English, Science, etc
+        gradeLevel: '', // Single select: Grade 6-12, University
+        priority: [], // Multi-select: low, medium, high
+        status: [] // Multi-select: open, in-progress, completed, rejected
     });
 
     const itemsPerPage = 10;
 
     useEffect(() => {
-        loadRequests();
+        loadRequests(); // Reload requests when filters or page changes
     }, [filters, currentPage]);
 
+    // Load requests from public browse endpoint with filters
     const loadRequests = async () => {
         setLoading(true);
         setError('');
         try {
-            // Build filter object
+            // Build filter object - API expects single values, not arrays
             const apiFilters = {
                 subject: filters.subject || undefined,
                 gradeLevel: filters.gradeLevel || undefined,
@@ -50,6 +56,7 @@ const BrowseRequests = () => {
                 status: filters.status.length > 0 ? filters.status[0] : undefined,
             };
 
+            // Fetch all public requests with these filters
             const response = await getAllRequests(apiFilters, currentPage, itemsPerPage);
             setRequests(response.requests || []);
             setTotalPages(response.pagination?.pages || 1);
@@ -62,11 +69,13 @@ const BrowseRequests = () => {
         }
     };
 
+    // Update active filters and reset to page 1
     const handleFilterChange = (newFilters) => {
         setFilters(newFilters);
         setCurrentPage(1); // Reset to first page on filter change
     };
 
+    // Clear all filters
     const handleClearFilters = () => {
         setFilters({
             subject: '',

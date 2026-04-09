@@ -12,31 +12,38 @@ import Loader from '../components/Loader';
 /**
  * StudentRequests Page
  * Display student's own requests with create, edit, delete functionality
+ * Features: Create new request, view list with pagination, edit status, delete, filter by status
  */
 
 const StudentRequests = () => {
     const { user } = useContext(AuthContext);
+    // State for requests list and pagination
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // State for create/edit modal forms
     const [showCreateForm, setShowCreateForm] = useState(false);
-    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [selectedRequest, setSelectedRequest] = useState(null); // For detail/edit modal
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Pagination: track current page and total pages
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
+    // Filter: show all requests or filter by status (open, in-progress, completed)
     const [statusTab, setStatusTab] = useState('all');
 
     const itemsPerPage = 10;
 
     useEffect(() => {
-        loadRequests();
+        loadRequests(); // Fetch requests when page or filters change
     }, [currentPage]);
 
+    // Load student's own requests with pagination
     const loadRequests = async () => {
         setLoading(true);
         setError('');
         try {
+            // API call to fetch only this student's requests
             const response = await getMyRequests(currentPage, itemsPerPage);
             setRequests(response.requests || []);
             setTotalPages(response.pagination?.pages || 1);
@@ -49,13 +56,15 @@ const StudentRequests = () => {
         }
     };
 
+    // Handle creating a new request
     const handleCreateRequest = async (formData) => {
         setIsSubmitting(true);
         try {
+            // Send request to backend API
             const response = await createRequest(formData);
-            setShowCreateForm(false);
-            setCurrentPage(1);
-            await loadRequests();
+            setShowCreateForm(false); // Close form modal
+            setCurrentPage(1); // Reset to first page
+            await loadRequests(); // Refresh list
             setError('');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create request');
@@ -64,32 +73,37 @@ const StudentRequests = () => {
         }
     };
 
+    // Delete a request (with confirmation)
     const handleDeleteRequest = async (requestId) => {
         if (!window.confirm('Are you sure you want to delete this request?')) return;
         
         try {
             await deleteRequest(requestId);
-            await loadRequests();
+            await loadRequests(); // Refresh list after deletion
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to delete request');
         }
     };
 
+    // Update request details (subject, description, schedule, etc)
     const handleUpdateRequest = async (requestId, payload) => {
         try {
             await updateRequest(requestId, payload);
-            await loadRequests();
-            setSelectedRequest(null);
+            await loadRequests(); // Refresh list
+            setSelectedRequest(null); // Close detail modal
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to update request');
         }
     };
 
+    // Open detail modal for a request
     const handleOpenRequest = useCallback(async (request) => {
         try {
+            // Fetch full request details (with shared resources, linked lessons, etc)
             const response = await getRequestById(request._id);
             setSelectedRequest(response.request || request);
         } catch {
+            // Fallback: show what we already have
             setSelectedRequest(request);
         }
     }, []);
@@ -102,6 +116,7 @@ const StudentRequests = () => {
         if (currentPage < totalPages) setCurrentPage(currentPage + 1);
     };
 
+    // Count requests by status for tab badges (memoized to avoid repeated filter)
     const statusCounts = useMemo(() => ({
         all: requests.length,
         open: requests.filter((r) => r.status === 'open').length,
@@ -109,6 +124,7 @@ const StudentRequests = () => {
         completed: requests.filter((r) => r.status === 'completed').length
     }), [requests]);
 
+    // Filter client-side by selected status tab (no extra API call needed)
     const filteredRequests = useMemo(() => {
         if (statusTab === 'all') return requests;
         return requests.filter((request) => request.status === statusTab);

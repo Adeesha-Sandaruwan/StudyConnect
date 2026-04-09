@@ -11,21 +11,27 @@ import Loader from '../components/Loader';
 
 /**
  * TutorAvailableRequests Page
- * Browse open unassigned requests available for tutors
- * Supports filtering by subject, priority, gradeLevel
+ * Browse open unassigned requests available for tutors to self-assign
+ * Tutors can see requests without a tutor and accept them directly
+ * Supports filtering by subject, grade, priority
  */
 
 const TutorAvailableRequests = () => {
     const { user } = useContext(AuthContext);
+    // State for requests list
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // Modal to display request details
     const [selectedRequest, setSelectedRequest] = useState(null);
+    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
+    // Track which request is being accepted (for loading state)
     const [acceptingRequestId, setAcceptingRequestId] = useState('');
 
+    // Filter state for available requests
     const [filters, setFilters] = useState({
         subject: '',
         gradeLevel: '',
@@ -90,16 +96,18 @@ const TutorAvailableRequests = () => {
         }
     };
 
+    // Handle tutor accepting an open request
     const handleAcceptRequest = async (requestId) => {
-        setAcceptingRequestId(requestId);
+        setAcceptingRequestId(requestId); // Track loading state for this specific request
         setError('');
         try {
+            // API call: assign this tutor to the request (status -> in-progress)
             await acceptRequestAsTutor(requestId);
-            await loadRequests();
+            await loadRequests(); // Refresh list (accepted request disappears)
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to accept request');
         } finally {
-            setAcceptingRequestId('');
+            setAcceptingRequestId(''); // Clear loading state
         }
     };
 

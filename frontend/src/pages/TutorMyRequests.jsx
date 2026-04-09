@@ -11,26 +11,32 @@ import Loader from '../components/Loader';
 
 /**
  * TutorMyRequests Page
- * Display tutor's assigned requests (read-only view)
- * Shows student info, request details, schedule, and status
+ * Display tutor's assigned requests (read-only view with resource sharing)
+ * Shows student info, request details, schedule, status, shared resources
+ * Tutors can share lessons/PDFs/notes with the student from this page
  */
 
 const TutorMyRequests = () => {
     const { user } = useContext(AuthContext);
+    // State for assigned request list
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // Modal showing full request details and resource sharing panel
     const [selectedRequest, setSelectedRequest] = useState(null);
+    // Filter by request status
     const [filterStatus, setFilterStatus] = useState('all');
 
     useEffect(() => {
-        loadRequests();
+        loadRequests(); // Load this tutor's assigned requests on mount
     }, []);
 
+    // Load all requests assigned to this tutor
     const loadRequests = async () => {
         setLoading(true);
         setError('');
         try {
+            // API fetches only requests where assignedTutor = this user
             const response = await getTutorAssignedRequests();
             setRequests(response.requests || []);
         } catch (err) {
@@ -44,20 +50,21 @@ const TutorMyRequests = () => {
     // Open a request card: fetch full data (including linkedLessons) then show modal
     const handleOpenRequest = useCallback(async (request) => {
         try {
+            // Fetch full request with populated sharedResources and linkedLessons
             const res = await getRequestById(request._id);
             setSelectedRequest(res.request || request);
         } catch {
-            setSelectedRequest(request);
+            setSelectedRequest(request); // Fallback to card data
         }
     }, []);
 
-    // Re-fetch selected request after resource share/remove
+    // Re-fetch selected request after resource share/remove to update panel state
     const handleResourceUpdate = useCallback(async () => {
         if (!selectedRequest) return;
         try {
             const res = await getRequestById(selectedRequest._id);
-            setSelectedRequest(res.request);
-            // Also refresh the list card so counts stay accurate
+            setSelectedRequest(res.request); // Update modal with fresh data
+            // Also refresh the list card so resource counts stay accurate
             setRequests((prev) =>
                 prev.map((r) => (r._id === selectedRequest._id ? { ...r, ...(res.request || {}) } : r))
             );
@@ -66,7 +73,7 @@ const TutorMyRequests = () => {
         }
     }, [selectedRequest]);
 
-    // Filter requests by status
+    // Client-side filter by status tab (no API call needed)
     const filteredRequests = filterStatus === 'all' 
         ? requests 
         : requests.filter(r => r.status === filterStatus);

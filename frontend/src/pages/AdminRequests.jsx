@@ -12,25 +12,34 @@ import Loader from '../components/Loader';
 /**
  * AdminRequests Page
  * Admin panel for managing all student requests across the platform
- * View, filter, and assign tutors to requests
+ * Features: View all requests, filter, assign/reassign tutors, update status
+ * Only accessible to admin role users
  */
 
 const AdminRequests = () => {
     const { user } = useContext(AuthContext);
+    // State for request list and pagination
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // Modal to show request detail or assignment panel
     const [selectedRequest, setSelectedRequest] = useState(null);
+    // Tutor list for assignment dropdown
     const [tutors, setTutors] = useState([]);
+    // Track selected tutor per request in assignment dropdown
     const [selectedTutorByRequest, setSelectedTutorByRequest] = useState({});
+    // Loading states for assignment and status update operations
     const [assigningRequestId, setAssigningRequestId] = useState('');
     const [statusUpdatingRequestId, setStatusUpdatingRequestId] = useState('');
+    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
+    // Section tabs (all, unassigned, assigned)
     const [sectionTab, setSectionTab] = useState('all');
     const itemsPerPage = 8;
 
+    // Filter state: subject, grade, priority, status
     const [filters, setFilters] = useState({
         subject: '',
         gradeLevel: '',
@@ -39,14 +48,15 @@ const AdminRequests = () => {
     });
 
     useEffect(() => {
-        loadRequests();
+        loadRequests(); // Reload when filters or page changes
     }, [filters, currentPage]);
 
+    // Load all requests with current filters for admin view
     const loadRequests = async () => {
         setLoading(true);
         setError('');
         try {
-            // Build filter object
+            // Build filter object - API expects single values
             const apiFilters = {
                 subject: filters.subject || undefined,
                 gradeLevel: filters.gradeLevel || undefined,
@@ -60,11 +70,12 @@ const AdminRequests = () => {
             setTotalPages(response.pagination?.pages || 1);
             setTotalRequests(response.pagination?.total || 0);
 
+            // Pre-populate tutor selection dropdowns with existing assignments
             setSelectedTutorByRequest((prev) => {
                 const next = { ...prev };
                 nextRequests.forEach((r) => {
                     if (!(r._id in next)) {
-                        next[r._id] = r.assignedTutor?._id || '';
+                        next[r._id] = r.assignedTutor?._id || ''; // Default to current tutor
                     }
                 });
                 return next;
@@ -77,6 +88,7 @@ const AdminRequests = () => {
         }
     };
 
+    // Load all tutor users for assignment dropdown
     const loadTutors = async () => {
         try {
             const response = await getTutorUsers();
@@ -87,7 +99,7 @@ const AdminRequests = () => {
     };
 
     useEffect(() => {
-        loadTutors();
+        loadTutors(); // Load tutors list on mount (needed for assignment dropdowns)
     }, []);
 
     const handleFilterChange = (newFilters) => {
@@ -117,29 +129,33 @@ const AdminRequests = () => {
         }
     };
 
+    // Admin assigns a tutor to a specific request
     const handleAssignTutor = async (requestId) => {
-        const tutorId = selectedTutorByRequest[requestId];
+        const tutorId = selectedTutorByRequest[requestId]; // Get selected tutor for this request
         if (!tutorId) {
             setError('Please select a tutor before assigning.');
             return;
         }
 
-        setAssigningRequestId(requestId);
+        setAssigningRequestId(requestId); // Show loading state on this button
         try {
+            // API assigns tutor and changes request status to in-progress
             await assignTutor(requestId, tutorId);
             setError('');
-            setSelectedTutorByRequest((prev) => ({ ...prev, [requestId]: '' }));
-            await loadRequests();
+            setSelectedTutorByRequest((prev) => ({ ...prev, [requestId]: '' })); // Clear dropdown
+            await loadRequests(); // Refresh list
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to assign tutor');
         } finally {
-            setAssigningRequestId('');
+            setAssigningRequestId(''); // Clear loading state
         }
     };
 
+    // Admin removes tutor assignment from a request (reverts to 'open')
     const handleRemoveTutor = async (requestId) => {
         setAssigningRequestId(requestId);
         try {
+            // API with no tutorId clears assignment and reverts to 'open'
             await assignTutor(requestId);
             setError('');
             setSelectedTutorByRequest((prev) => ({ ...prev, [requestId]: '' }));
@@ -151,9 +167,11 @@ const AdminRequests = () => {
         }
     };
 
+    // Admin changes the status of a request
     const handleUpdateStatus = async (requestId, status) => {
-        setStatusUpdatingRequestId(requestId);
+        setStatusUpdatingRequestId(requestId); // Show loading state on this request
         try {
+            // API updates status and sends email notification to student and tutor
             await updateRequestStatus(requestId, status);
             setError('');
             await loadRequests();
@@ -164,6 +182,7 @@ const AdminRequests = () => {
         }
     };
 
+    // Status options for admin action buttons displayed on each request card
     const statusButtons = [
         {
             value: 'open',

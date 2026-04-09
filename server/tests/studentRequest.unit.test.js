@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+// Mock the StudentRequest model methods
 const mockStudentRequestCreate = jest.fn();
 const mockStudentRequestFindById = jest.fn();
+// Mock User model methods
 const mockUserFindById = jest.fn();
 const mockUserFind = jest.fn();
+// Mock Notification model
 const mockNotificationCreate = jest.fn();
 
+// Mock email service functions
 const mockSendRequestCreationEmail = jest.fn();
 const mockSendAdminNotificationEmail = jest.fn();
 const mockSendTutorAssignmentEmail = jest.fn();
@@ -14,15 +18,15 @@ const mockSendStatusUpdateEmail = jest.fn();
 
 jest.unstable_mockModule('../models/StudentRequest.js', () => ({
     default: {
-        create: mockStudentRequestCreate,
-        findById: mockStudentRequestFindById,
+        create: mockStudentRequestCreate, // Mock database create
+        findById: mockStudentRequestFindById, // Mock find by ID
     },
 }));
 
 jest.unstable_mockModule('../models/User.js', () => ({
     default: {
-        findById: mockUserFindById,
-        find: mockUserFind,
+        findById: mockUserFindById, // Mock user lookup
+        find: mockUserFind, // Mock user search (for admins/tutors)
     },
 }));
 
@@ -32,16 +36,16 @@ jest.unstable_mockModule('../models/SubjectContent.js', () => ({
 
 jest.unstable_mockModule('../models/Notification.js', () => ({
     default: {
-        create: mockNotificationCreate,
+        create: mockNotificationCreate, // Mock notification creation
     },
 }));
 
 jest.unstable_mockModule('../services/emailService.js', () => ({
-    sendRequestCreationEmail: mockSendRequestCreationEmail,
-    sendAdminNotificationEmail: mockSendAdminNotificationEmail,
-    sendTutorAssignmentEmail: mockSendTutorAssignmentEmail,
-    sendTutorRequestEmail: mockSendTutorRequestEmail,
-    sendStatusUpdateEmail: mockSendStatusUpdateEmail,
+    sendRequestCreationEmail: mockSendRequestCreationEmail, // Confirmation to student
+    sendAdminNotificationEmail: mockSendAdminNotificationEmail, // Alert to admins/tutors
+    sendTutorAssignmentEmail: mockSendTutorAssignmentEmail, // Tutor assignment notification
+    sendTutorRequestEmail: mockSendTutorRequestEmail, // Tutor assignment/removal notification
+    sendStatusUpdateEmail: mockSendStatusUpdateEmail, // Status change notification
 }));
 
 const { createRequest, shareCustomResource } = await import('../controllers/studentRequestController.js');
@@ -57,10 +61,11 @@ function buildRes() {
 
 describe('Student request controller unit tests', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        jest.clearAllMocks(); // Reset all mocks before each test
     });
 
     it('creates a student request and sends notifications', async () => {
+        // Test case: Student creates a request, emails are sent to admins/tutors
         const req = {
             user: { _id: 'student-1' },
             body: {
@@ -113,6 +118,8 @@ describe('Student request controller unit tests', () => {
     });
 
     it('shares a direct tutor note and creates a student notification', async () => {
+        // Test case: Tutor shares a note on their assigned request
+        // Verifies: note is stored in sharedResources, student notification is created
         const req = {
             params: { id: 'request-1' },
             user: { _id: 'tutor-1', role: 'tutor', name: 'Tutor Tester' },
@@ -120,7 +127,7 @@ describe('Student request controller unit tests', () => {
                 title: 'Session note',
                 message: 'Please read chapter 3 before our next class.',
             },
-            file: null,
+            file: null, // No PDF, just note text
         };
         const res = buildRes();
 

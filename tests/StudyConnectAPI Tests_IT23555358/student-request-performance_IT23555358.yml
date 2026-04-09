@@ -1,44 +1,48 @@
 config:
-  target: "http://localhost:5000"
-  ensure:
-    maxErrorRate: 1
-    p95: 1200
-    p99: 2200
+  target: "http://localhost:5000" # Backend API server URL
+  ensure: # SLA quality gates - test FAILS if these thresholds are exceeded
+    maxErrorRate: 1 # Maximum 1% error rate allowed under load
+    p95: 1200 # 95th percentile response time must be under 1200ms
+    p99: 2200 # 99th percentile response time must be under 2200ms
   phases:
     - duration: 20
       arrivalRate: 3
-      name: "Student request warm up"
+      name: "Student request warm up" # Gradual ramp-up to warm the server
     - duration: 40
       arrivalRate: 5
       rampTo: 12
-      name: "Student request steady load"
+      name: "Student request steady load" # Typical production load
     - duration: 20
       arrivalRate: 12
       rampTo: 20
-      name: "Student request peak load"
+      name: "Student request peak load" # Simulate burst traffic
   defaults:
     headers:
-      Content-Type: "application/json"
+      Content-Type: "application/json" # All requests use JSON
 
 scenarios:
+  # Scenario 1: Browse public requests (unauthenticated)
+  # Tests the main public listing endpoint with PII-redacted response
   - name: "Browse public requests - IT23555358"
     flow:
       - get:
           url: "/api/student-requests?page=1&limit=10"
           expect:
-            - statusCode: 200
-            - contentType: json
+            - statusCode: 200 # Expect successful response
+            - contentType: json # Expect JSON response
 
+  # Scenario 2: Student self-service flow
+  # Tests viewing own requests and creating a new request (authenticated)
   - name: "Student request self-service flow - IT23555358"
     flow:
       - get:
           url: "/api/student-requests/my-requests?page=1&limit=10"
           headers:
-            Authorization: "Bearer {{ $processEnvironment.STUDENT_REQUEST_TOKEN }}"
+            Authorization: "Bearer {{ $processEnvironment.STUDENT_REQUEST_TOKEN }}" # Student JWT
           expect:
-            - statusCode: 200
+            - statusCode: 200 # Expect student's own requests
       - post:
-          url: "/api/student-requests"
+          url: "/api/student-requests" # Create a new request
           headers:
             Authorization: "Bearer {{ $processEnvironment.STUDENT_REQUEST_TOKEN }}"
           json:
@@ -50,15 +54,17 @@ scenarios:
               - "Saturday 10 AM"
             priority: "medium"
           expect:
-            - statusCode: 201
+            - statusCode: 201 # Expect created status
             - contentType: json
 
+  # Scenario 3: Tutor assigned-request overview
+  # Tests tutor dashboard endpoint (authenticated tutor token)
   - name: "Tutor assigned-request overview - IT23555358"
     flow:
       - get:
           url: "/api/student-requests/tutor/assigned?page=1&limit=10"
           headers:
-            Authorization: "Bearer {{ $processEnvironment.TUTOR_REQUEST_TOKEN }}"
+            Authorization: "Bearer {{ $processEnvironment.TUTOR_REQUEST_TOKEN }}" # Tutor JWT
           expect:
-            - statusCode: 200
+            - statusCode: 200 # Expect tutor's assigned requests
             - contentType: json
