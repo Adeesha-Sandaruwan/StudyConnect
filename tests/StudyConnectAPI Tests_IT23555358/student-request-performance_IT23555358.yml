@@ -1,5 +1,9 @@
 config:
   target: "http://localhost:5000"
+  ensure:
+    maxErrorRate: 1
+    p95: 1200
+    p99: 2200
   phases:
     - duration: 20
       arrivalRate: 3
@@ -23,6 +27,7 @@ scenarios:
           url: "/api/student-requests?page=1&limit=10"
           expect:
             - statusCode: 200
+            - contentType: json
 
   - name: "Student request self-service flow - IT23555358"
     flow:
@@ -46,6 +51,7 @@ scenarios:
             priority: "medium"
           expect:
             - statusCode: 201
+            - contentType: json
 
   - name: "Tutor assigned-request overview - IT23555358"
     flow:
@@ -55,3 +61,4 @@ scenarios:
             Authorization: "Bearer {{ $processEnvironment.TUTOR_REQUEST_TOKEN }}"
           expect:
             - statusCode: 200
+            - contentType: json

@@ -110,8 +110,8 @@ const getAllRequests = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const requests = await StudentRequest.find(filter)
-      .populate('student', ['name', 'email', 'avatar'])
-      .populate('assignedTutor', ['name', 'email', 'avatar'])
+      .populate('student', ['name', 'avatar'])
+      .populate('assignedTutor', ['name', 'avatar'])
       .limit(limit * 1)
       .skip(skip)
       .sort({ createdAt: -1 });
@@ -818,7 +818,7 @@ const getRequestsBySubject = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const requests = await StudentRequest.find({ subject, status: 'open' })
-      .populate('student', ['name', 'email', 'avatar'])
+      .populate('student', ['name', 'avatar'])
       .limit(limit * 1)
       .skip(skip)
       .sort({ createdAt: -1 });

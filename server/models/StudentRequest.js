@@ -141,6 +141,14 @@ const studentRequestSchema = mongoose.Schema(
   }
 );
 
+// Common query patterns: public browse filters and tutor/admin dashboards.
+studentRequestSchema.index({ status: 1, createdAt: -1 });
+studentRequestSchema.index({ subject: 1, status: 1, createdAt: -1 });
+studentRequestSchema.index({ gradeLevel: 1, status: 1, createdAt: -1 });
+studentRequestSchema.index({ priority: 1, status: 1, createdAt: -1 });
+studentRequestSchema.index({ assignedTutor: 1, status: 1, createdAt: -1 });
+studentRequestSchema.index({ student: 1, createdAt: -1 });
+
 const StudentRequest = mongoose.model('StudentRequest', studentRequestSchema);
 
 export default StudentRequest;
