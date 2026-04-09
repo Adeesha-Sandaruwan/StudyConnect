@@ -166,139 +166,214 @@ const StudentModulePage = () => {
     }
 
     const backHref = '/student-dashboard';
-
+    const moduleProgress = getModuleCompletion(lessons, user?._id, completedLessonIds);
     const activeLesson = lessons.find((l) => l._id === aiLessonId);
+    const nextLesson =
+        lessons.find((lesson) => !completedLessonIds.includes(String(lesson._id))) || lessons[0] || null;
 
     return (
-        <div className="min-h-screen relative overflow-hidden">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#eef2f6] via-sky-50/30 to-indigo-50/40" />
+        <div className="min-h-screen relative overflow-hidden bg-[linear-gradient(180deg,#f8fcff_0%,#eef8ff_45%,#f8fbff_100%)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.14),transparent_20%),radial-gradient(circle_at_top_right,rgba(99,102,241,0.12),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(217,70,239,0.10),transparent_22%)]" />
+            <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(14,116,144,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(14,116,144,0.05)_1px,transparent_1px)] [background-size:26px_26px]" />
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
-                <Link to={backHref} className="inline-flex text-xs font-bold text-indigo-600 hover:text-indigo-500 mb-4">
+                <Link
+                    to={backHref}
+                    className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/90 px-4 py-2 text-xs font-bold text-sky-700 shadow-sm backdrop-blur hover:border-cyan-300 hover:text-cyan-700"
+                >
                     ← All modules
                 </Link>
 
-                <header className="rounded-3xl border border-white/70 bg-white/80 backdrop-blur-md shadow-lg shadow-indigo-500/5 p-6 sm:p-8 mb-8">
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-600 text-white flex items-center justify-center text-xl font-black shrink-0">
-                            {meta.tutorName ? meta.tutorName.slice(0, 1).toUpperCase() : 'T'}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                                {subject}
-                                <span className="text-slate-400 font-bold text-lg sm:text-xl ml-2">
-                                    · {grade === 0 ? 'Course module' : `Grade ${grade}`}
+                <header className="relative mb-8 overflow-hidden rounded-[2rem] border border-cyan-100/80 bg-white/85 p-5 sm:p-7 shadow-[0_30px_100px_-40px_rgba(34,211,238,0.28)] backdrop-blur-xl">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.14),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.12),transparent_30%)]" />
+                    <div className="relative grid gap-6 xl:grid-cols-[1.35fr_0.85fr]">
+                        <div className="space-y-5">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-700">
+                                    Student module
                                 </span>
-                            </h1>
-                            <p className="text-sm text-slate-600 mt-2">
-                                <span className="font-bold text-slate-800">{meta.tutorName || 'Tutor'}</span>
-                                <span className="text-slate-400"> · </span>
-                                {lessons.length} published week{lessons.length === 1 ? '' : 's'}
-                            </p>
-                            {lessons.length ? (
-                                <div className="mt-4 text-sm">
-                                    <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
-                                        <span>
-                                                {getModuleCompletion(lessons, user?._id, completedLessonIds).completedCount} / {lessons.length} done
+                                <span className="rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-fuchsia-700">
+                                    {moduleType === 'course' ? 'Self-paced' : 'Live weekly flow'}
+                                </span>
+                            </div>
+
+                            <div className="flex items-start gap-4">
+                                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.4rem] bg-gradient-to-br from-cyan-400 via-sky-500 to-indigo-500 text-xl font-black text-white shadow-[0_0_24px_rgba(34,211,238,0.25)]">
+                                    {meta.tutorName ? meta.tutorName.slice(0, 1).toUpperCase() : 'T'}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
+                                        <span className="bg-gradient-to-r from-sky-700 via-cyan-600 to-violet-600 bg-clip-text text-transparent">
+                                            {subject}
                                         </span>
-                                            <span>{getModuleCompletion(lessons, user?._id, completedLessonIds).percent}%</span>
+                                        <span className="ml-2 text-lg font-bold text-slate-500 sm:text-xl">
+                                            · {grade === 0 ? 'Course module' : `Grade ${grade}`}
+                                        </span>
+                                    </h1>
+                                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+                                        Learn with <span className="font-bold text-slate-900">{meta.tutorName || 'Tutor'}</span> through
+                                        an immersive week-by-week path with notes, resources, and guided progress.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-3">
+                                <div className="rounded-[1.25rem] border border-cyan-100 bg-white/90 p-4 shadow-sm">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Progress</p>
+                                    <p className="mt-2 text-2xl font-black text-slate-900">{moduleProgress.percent}%</p>
+                                    <p className="mt-1 text-xs text-slate-600">
+                                        {moduleProgress.completedCount} / {lessons.length || 0} weeks complete
+                                    </p>
+                                </div>
+                                <div className="rounded-[1.25rem] border border-sky-100 bg-sky-50/70 p-4 shadow-sm">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Published weeks</p>
+                                    <p className="mt-2 text-2xl font-black text-slate-900">{lessons.length}</p>
+                                    <p className="mt-1 text-xs text-slate-600">Structured learning steps ready to open.</p>
+                                </div>
+                                <div className="rounded-[1.25rem] border border-violet-100 bg-violet-50/70 p-4 shadow-sm">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Tutor</p>
+                                    <p className="mt-2 text-base font-bold text-slate-900 truncate">{meta.tutorName || 'Tutor'}</p>
+                                    <p className="mt-1 text-xs text-slate-600">Your guide for this learning track.</p>
+                                </div>
+                            </div>
+
+                            {lessons.length ? (
+                                <div>
+                                    <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600">
+                                        <span>Module completion</span>
+                                        <span>{moduleProgress.percent}%</span>
                                     </div>
-                                    <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                                    <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
                                         <div
-                                            className="h-full rounded-full bg-indigo-600"
-                                                style={{ width: `${getModuleCompletion(lessons, user?._id, completedLessonIds).percent}%` }}
+                                            className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-sky-500 to-violet-500 shadow-[0_0_14px_rgba(34,211,238,0.35)]"
+                                            style={{ width: `${moduleProgress.percent}%` }}
                                         />
                                     </div>
                                 </div>
                             ) : null}
 
-                            <section className="mt-5 px-3 py-3 border border-indigo-100 bg-indigo-50 rounded-2xl">
-                                <h3 className="text-sm font-bold text-indigo-900 mb-1">Announcements</h3>
-                                {annLoading ? (
-                                    <div className="text-xs text-slate-500">Loading announcements…</div>
-                                ) : annError ? (
-                                    <div className="text-xs text-red-700">{annError}</div>
-                                ) : announcements.length === 0 ? (
-                                    <div className="text-xs text-slate-500">No announcements yet.</div>
-                                ) : (
-                                    <ul className="space-y-2">
-                                        {announcements.map((a) => (
-                                            <li key={a._id} className="text-xs text-indigo-900">
-                                                <div className="rounded-md border border-indigo-200 bg-white px-2 py-1">
-                                                    {formatAnnouncement(a.message)}
-                                                </div>
-                                                <div className="text-[10px] text-slate-400">
-                                                    by {a.createdBy?.name || 'Admin'} • {new Date(a.createdAt).toLocaleDateString()}
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </section>
-                        </div>                    </div>
+                            {nextLesson ? (
+                                <Link
+                                    to={`/student-dashboard/lesson/${nextLesson._id}`}
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-500 px-5 py-3 text-sm font-black text-white shadow-[0_12px_28px_-12px_rgba(34,211,238,0.45)] transition-transform hover:scale-[1.01]"
+                                >
+                                    Continue with Week {nextLesson.weekNumber}
+                                    <span aria-hidden="true">→</span>
+                                </Link>
+                            ) : null}
+                        </div>
+
+                        <section className="rounded-[1.5rem] border border-cyan-100 bg-gradient-to-br from-white to-cyan-50/70 p-4 sm:p-5 text-sm text-slate-700 shadow-sm">
+                            <div className="mb-3 flex items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="text-base font-bold text-slate-900">Announcements</h3>
+                                    <p className="mt-1 text-xs text-slate-500">Latest updates for this module.</p>
+                                </div>
+                                <span className="rounded-full bg-cyan-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-700">
+                                    {announcements.length} posts
+                                </span>
+                            </div>
+                            {annLoading ? (
+                                <div className="rounded-xl border border-slate-200 bg-white/80 p-3 text-xs text-slate-500">Loading announcements…</div>
+                            ) : annError ? (
+                                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{annError}</div>
+                            ) : announcements.length === 0 ? (
+                                <div className="rounded-xl border border-dashed border-slate-200 bg-white/70 p-3 text-xs text-slate-500">No announcements yet.</div>
+                            ) : (
+                                <ul className="space-y-2.5">
+                                    {announcements.map((a) => (
+                                        <li key={a._id} className="text-xs text-slate-700">
+                                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 leading-relaxed shadow-sm">
+                                                {formatAnnouncement(a.message)}
+                                            </div>
+                                            <div className="mt-1 text-[10px] text-slate-400">
+                                                by {a.createdBy?.name || 'Admin'} • {new Date(a.createdAt).toLocaleDateString()}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </section>
+                    </div>
                 </header>
 
                 {loading ? (
-                    <p className="text-center text-slate-500 py-12 animate-pulse font-medium">Loading lessons…</p>
+                    <div className="rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-10 text-center text-sm font-medium text-slate-500 shadow-sm backdrop-blur animate-pulse">
+                        Loading lessons…
+                    </div>
                 ) : error ? (
-                    <div className="rounded-2xl border border-red-100 bg-red-50 text-red-800 px-4 py-3 text-sm">{error}</div>
+                    <div className="rounded-[1.5rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
                 ) : (
-                    <div className="flex flex-col lg:flex-row lg:items-start gap-8">
-                        <div className="flex-1 min-w-0 space-y-3">
+                    <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+                        <div className="flex-1 min-w-0 space-y-4">
                             {lessons.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-8 text-center text-slate-600 text-sm">
+                                <div className="rounded-[1.75rem] border border-dashed border-cyan-200 bg-white/80 p-8 text-center text-sm text-slate-600 shadow-sm backdrop-blur">
                                     No published lessons found for this module, or the link is outdated.
                                     <div className="mt-4">
-                                        <Link to={backHref} className="font-bold text-indigo-600">
+                                        <Link to={backHref} className="font-bold text-sky-700 hover:text-cyan-700">
                                             Back to dashboard
                                         </Link>
                                     </div>
                                 </div>
                             ) : (
                                 <>
-                                    <p className="text-xs text-slate-500 mb-1">Tap a week to open the full lesson.</p>
-                                    <ul className="space-y-3">
+                                    <div className="rounded-[1.25rem] border border-cyan-100 bg-white/80 px-4 py-3 text-sm text-slate-600 shadow-sm backdrop-blur">
+                                        Open a week to explore notes, files, and guided resources in a larger polished study view.
+                                    </div>
+                                    <ul className="space-y-4">
                                         {lessons.map((lesson) => {
                                             const lessonPdfs = getLessonPdfDisplayList(lesson);
+                                            const isDone = completedLessonIds.includes(String(lesson._id));
                                             return (
                                                 <li key={lesson._id}>
                                                     <Link
                                                         to={`/student-dashboard/lesson/${lesson._id}`}
-                                                        className="flex flex-col sm:flex-row sm:items-center gap-4 px-5 sm:px-6 py-5 rounded-3xl border border-slate-200/90 bg-white/95 backdrop-blur-sm shadow-sm hover:border-indigo-300 hover:shadow-lg hover:bg-white transition-all group"
+                                                        className="group relative block overflow-hidden rounded-[1.75rem] border border-cyan-100 bg-white/90 px-5 py-5 shadow-[0_18px_60px_-34px_rgba(34,211,238,0.35)] transition-all hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-[0_22px_70px_-30px_rgba(99,102,241,0.20)]"
                                                     >
-                                                        <div className="flex items-center gap-4 min-w-0 flex-1">
-                                                            <span className="shrink-0 inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-600 text-white text-base font-black group-hover:scale-105 transition-transform">
-                                                                W{lesson.weekNumber}
-                                                            </span>
-                                                            <div className="min-w-0">
-                                                                <div className="flex items-center gap-2 mb-1">
-                                                                    <h2 className="font-bold text-slate-900 text-lg truncate group-hover:text-indigo-700 transition-colors">
-                                                                        {lesson.title}
-                                                                    </h2>
-                                                                    <span
-                                                                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                                                            completedLessonIds.includes(String(lesson._id))
-                                                                                ? 'bg-emerald-100 text-emerald-700'
-                                                                                : 'bg-slate-100 text-slate-600'
-                                                                        }`}
-                                                                    >
-                                                                        {completedLessonIds.includes(String(lesson._id)) ? 'Done' : 'Pending'}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-sm text-slate-500">
-                                                                    {lesson.lessonDate ? formatLessonDateTime(lesson.lessonDate, true) : ''}
-                                                                    {lessonPdfs.length ? (
-                                                                        <span className="text-indigo-600 font-semibold">
-                                                                            {' '}
-                                                                            · {lessonPdfs.length} PDF
-                                                                            {lessonPdfs.length === 1 ? '' : 's'}
+                                                        <div className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.08),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.08),transparent_34%)]" />
+                                                        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
+                                                            <div className="flex min-w-0 flex-1 items-start gap-4">
+                                                                <span className="inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.25rem] bg-gradient-to-br from-cyan-400 via-sky-500 to-indigo-500 text-base font-black text-white shadow-[0_0_18px_rgba(34,211,238,0.25)] transition-transform group-hover:scale-105">
+                                                                    W{lesson.weekNumber}
+                                                                </span>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                                                                        <h2 className="truncate text-xl font-bold text-slate-900 transition-colors group-hover:text-sky-700">
+                                                                            {lesson.title}
+                                                                        </h2>
+                                                                        <span
+                                                                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                                                                isDone
+                                                                                    ? 'bg-emerald-100 text-emerald-700'
+                                                                                    : 'bg-slate-100 text-slate-600'
+                                                                            }`}
+                                                                        >
+                                                                            {isDone ? 'Done' : 'Pending'}
                                                                         </span>
-                                                                    ) : null}
-                                                                </p>
+                                                                    </div>
+                                                                    <p className="text-sm leading-relaxed text-slate-600">
+                                                                        {lesson.description
+                                                                            ? lesson.description.slice(0, 120) +
+                                                                              (lesson.description.length > 120 ? '…' : '')
+                                                                            : 'Open this week to view the lesson summary and guided study notes.'}
+                                                                    </p>
+                                                                    <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.18em]">
+                                                                        {lesson.lessonDate ? (
+                                                                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-600">
+                                                                                {formatLessonDateTime(lesson.lessonDate, true)}
+                                                                            </span>
+                                                                        ) : null}
+                                                                        {lessonPdfs.length ? (
+                                                                            <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-cyan-700">
+                                                                                {lessonPdfs.length} PDF{lessonPdfs.length === 1 ? '' : 's'}
+                                                                            </span>
+                                                                        ) : null}
+                                                                    </div>
+                                                                </div>
                                                             </div>
+                                                            <span className="shrink-0 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700 sm:pr-3">
+                                                                View lesson →
+                                                            </span>
                                                         </div>
-                                                        <span className="shrink-0 text-xs font-bold text-indigo-600 sm:pr-2">
-                                                            View lesson →
-                                                        </span>
                                                     </Link>
                                                 </li>
                                             );
@@ -310,14 +385,27 @@ const StudentModulePage = () => {
 
                         {lessons.length > 0 ? (
                             <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0 lg:sticky lg:top-24 space-y-4">
-                                <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur px-4 py-4 shadow-sm">
-                                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                                <div className="rounded-[1.5rem] border border-cyan-100 bg-white/85 p-4 text-slate-700 shadow-sm backdrop-blur">
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-700">Your momentum</p>
+                                    <p className="mt-2 text-2xl font-black text-slate-900">{moduleProgress.percent}% complete</p>
+                                    <p className="mt-1 text-sm text-slate-600">
+                                        {moduleProgress.completedCount} of {lessons.length} weeks finished.
+                                    </p>
+                                    {nextLesson ? (
+                                        <p className="mt-3 rounded-xl bg-sky-50 px-3 py-2 text-xs text-slate-700">
+                                            Next best step: <span className="font-bold text-slate-900">Week {nextLesson.weekNumber}</span>
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="rounded-[1.5rem] border border-cyan-100 bg-white/85 px-4 py-4 text-slate-700 shadow-sm backdrop-blur">
+                                    <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-cyan-700">
                                         Assistant context
                                     </label>
                                     <select
                                         value={aiLessonId}
                                         onChange={(e) => setAiLessonId(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 bg-white text-sm text-slate-800 px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
                                     >
                                         {lessons.map((l) => (
                                             <option key={l._id} value={l._id}>

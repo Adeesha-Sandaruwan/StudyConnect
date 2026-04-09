@@ -256,147 +256,199 @@ const TutorModulePage = () => {
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
                 <div className="flex flex-col lg:flex-row lg:items-start gap-8">
                     <div className="flex-1 min-w-0 space-y-6">
-                        <header className="space-y-2">
-                            <Link
-                                to="/tutor-dashboard"
-                                className="inline-flex text-xs font-bold text-indigo-600 hover:text-indigo-500 transition-colors"
-                            >
-                                ← Back to tutor hub
-                            </Link>
-                            <div className="flex flex-wrap items-end gap-3">
-                                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
-                                    {subject}
-                                </h1>
-                                <span className="mb-1.5 inline-flex items-center rounded-full bg-slate-900 text-white text-xs font-bold px-3 py-1">
-                                    {grade === 0 ? 'Course module' : `Grade ${grade}`}
-                                </span>
-                            </div>
-                            <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
-                                Your module groups every week you teach this subject. Open a week to edit notes and files, or
-                                ask the assistant using any week as context.
-                            </p>
-                            <div className="flex flex-wrap gap-2 pt-1 items-center">
-                                <span className="text-xs font-semibold text-slate-600 bg-white/80 border border-slate-200/80 rounded-full px-3 py-1">
-                                    {lessons.length} week{lessons.length === 1 ? '' : 's'}
-                                </span>
-                                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">
-                                    {publishedCount} published
-                                </span>
-                                <Link
-                                    to={`/tutor-dashboard?newWeek=1&grade=${grade}&subject=${encodeURIComponent(subject)}`}
-                                    className="text-xs font-bold text-indigo-600 hover:text-indigo-500 ml-1"
-                                >
-                                    ＋ Add week to this module
-                                </Link>
-                                {lessons.length > 0 ? (
-                                    <button
-                                        type="button"
-                                        onClick={handleDeleteModule}
-                                        disabled={deletingModule}
-                                        className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        {deletingModule ? 'Deleting module…' : 'Delete module'}
-                                    </button>
-                                ) : null}
-                            </div>
-
-                            <section className="text-sm mt-6">
-                                <h3 className="font-bold text-slate-800 text-base mb-2">Module announcements</h3>
-                                {annLoading ? (
-                                    <div className="rounded-lg p-3 bg-slate-100 text-slate-500 text-xs">Loading announcements…</div>
-                                ) : annError ? (
-                                    <div className="rounded-lg p-3 bg-red-100 text-red-800 text-xs">{annError}</div>
-                                ) : announcements.length === 0 ? (
-                                    <div className="rounded-lg p-3 bg-slate-50 text-slate-500 text-xs">No announcements yet.</div>
-                                ) : (
-                                    <ul className="space-y-2">
-                                        {announcements.map((a) => {
-                                            const isOwner = user && (user.role === 'admin' || user.role === 'tutor');
-                                            const isEditing = editingAnnouncementId === a._id;
-
-                                            if (isEditing) {
-                                                return (
-                                                    <li key={a._id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
-                                                        <textarea
-                                                            value={editingAnnouncementText}
-                                                            onChange={(e) => setEditingAnnouncementText(e.target.value)}
-                                                            rows={3}
-                                                            className="w-full rounded-md border border-indigo-200 p-2 text-sm"
-                                                        />
-                                                        <div className="mt-2 flex items-center gap-2">
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleSaveEdit}
-                                                                className="text-xs font-bold text-indigo-700"
-                                                            >
-                                                                Save
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleEditCancel}
-                                                                className="text-xs font-semibold text-slate-500"
-                                                            >
-                                                                Cancel
-                                                            </button>
-                                                        </div>
-                                                    </li>
-                                                );
-                                            }
-
-                                            return (
-                                                <li key={a._id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed">
-                                                    <p className="text-slate-700">{formatAnnouncement(a.message)}</p>
-                                                    <p className="text-[11px] text-slate-400 mt-1">
-                                                        by {a.createdBy?.name || 'Admin'} • {new Date(a.createdAt).toLocaleString()}
-                                                    </p>
-                                                    {isOwner ? (
-                                                        <div className="mt-1 flex gap-3">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleEditStart(a)}
-                                                                className="text-[11px] font-bold text-blue-600 hover:text-blue-700"
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDelete(a._id)}
-                                                                className="text-[11px] font-bold text-red-600 hover:text-red-700"
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        </div>
-                                                    ) : null}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                )}
-
-                                {user?.role === 'admin' || user?.role === 'tutor' ? (
-                                    <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
-                                        <p className="text-xs text-slate-500 mb-1">Use **bold**, *italic*, ==highlight==</p>
-                                        <textarea
-                                            value={newAnnouncement}
-                                            onChange={(e) => setNewAnnouncement(e.target.value)}
-                                            rows={3}
-                                            className="w-full rounded-lg border border-indigo-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                                            placeholder="Type announcement text here..."
-                                        />
-                                        <div className="mt-2 flex flex-wrap gap-2 items-center">
-                                            <button
-                                                type="button"
-                                                onClick={handleCreateAnnouncement}
-                                                disabled={savingAnnouncement}
-                                                className="rounded-lg bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 hover:bg-indigo-700 disabled:opacity-50"
+                        <header className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/85 p-5 sm:p-6 shadow-xl shadow-indigo-500/10 backdrop-blur-xl">
+                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.16),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.12),transparent_32%)]" />
+                            <div className="relative space-y-5">
+                                <div className="flex flex-wrap items-start justify-between gap-4">
+                                    <div className="space-y-2">
+                                        <Link
+                                            to="/tutor-dashboard"
+                                            className="inline-flex text-xs font-bold text-indigo-600 hover:text-indigo-500 transition-colors"
+                                        >
+                                            ← Back to tutor hub
+                                        </Link>
+                                        <div className="flex flex-wrap items-end gap-3">
+                                            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+                                                {subject}
+                                            </h1>
+                                            <span className="mb-1.5 inline-flex items-center rounded-full bg-slate-900 text-white text-xs font-bold px-3 py-1">
+                                                {grade === 0 ? 'Course module' : `Grade ${grade}`}
+                                            </span>
+                                        </div>
+                                        <p className="max-w-2xl text-sm leading-relaxed text-slate-600">
+                                            Your module groups every week you teach this subject. Open a week to edit notes and
+                                            files, or ask the assistant using any week as context.
+                                        </p>
+                                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                                            <span className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-600">
+                                                {lessons.length} week{lessons.length === 1 ? '' : 's'}
+                                            </span>
+                                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                                {publishedCount} published
+                                            </span>
+                                            <Link
+                                                to={`/tutor-dashboard?newWeek=1&grade=${grade}&subject=${encodeURIComponent(subject)}`}
+                                                className="ml-1 inline-flex rounded-full bg-indigo-600 px-3 py-1 text-xs font-bold text-white shadow-sm shadow-indigo-500/20 hover:bg-indigo-500"
                                             >
-                                                {savingAnnouncement ? 'Saving…' : 'Post announcement'}
-                                            </button>
-                                            <span className="text-xs text-slate-500">Tutor/Admin</span>
+                                                ＋ Add week to this module
+                                            </Link>
+                                            {lessons.length > 0 ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDeleteModule}
+                                                    disabled={deletingModule}
+                                                    className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                                >
+                                                    {deletingModule ? 'Deleting module…' : 'Delete module'}
+                                                </button>
+                                            ) : null}
                                         </div>
                                     </div>
-                                ) : null}
-                            </section>
+
+                                    <div className="rounded-[1.25rem] border border-indigo-100 bg-white/85 px-4 py-3 text-sm text-slate-600 shadow-sm">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-indigo-600">
+                                            Teaching focus
+                                        </p>
+                                        <p className="mt-2 max-w-xs leading-relaxed">
+                                            Keep lessons, announcements, and AI support together in one polished space for this
+                                            subject.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                    <div className="rounded-[1.25rem] border border-slate-200/80 bg-white/80 p-4 shadow-sm">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Weeks</p>
+                                        <p className="mt-2 text-2xl font-black text-slate-900">{lessons.length}</p>
+                                    </div>
+                                    <div className="rounded-[1.25rem] border border-emerald-100 bg-emerald-50/80 p-4 shadow-sm">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">Published</p>
+                                        <p className="mt-2 text-2xl font-black text-emerald-900">{publishedCount}</p>
+                                    </div>
+                                    <div className="rounded-[1.25rem] border border-amber-100 bg-amber-50/80 p-4 shadow-sm">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700">Drafts</p>
+                                        <p className="mt-2 text-2xl font-black text-amber-900">{lessons.length - publishedCount}</p>
+                                    </div>
+                                    <div className="rounded-[1.25rem] border border-violet-100 bg-violet-50/80 p-4 shadow-sm">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-violet-700">Announcements</p>
+                                        <p className="mt-2 text-2xl font-black text-violet-900">{announcements.length}</p>
+                                    </div>
+                                </div>
+
+                                <section className="rounded-[1.5rem] border border-indigo-100/80 bg-gradient-to-br from-white to-indigo-50/70 p-4 sm:p-5 text-sm shadow-sm">
+                                    <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                            <h3 className="text-base font-bold text-slate-800">Module announcements</h3>
+                                            <p className="mt-1 text-xs text-slate-500">
+                                                Share reminders and updates with students following this module.
+                                            </p>
+                                        </div>
+                                        <span className="rounded-full bg-slate-900 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+                                            {announcements.length} posted
+                                        </span>
+                                    </div>
+                                    {annLoading ? (
+                                        <div className="rounded-xl border border-slate-200 bg-white/80 p-3 text-xs text-slate-500">
+                                            Loading announcements…
+                                        </div>
+                                    ) : annError ? (
+                                        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                                            {annError}
+                                        </div>
+                                    ) : announcements.length === 0 ? (
+                                        <div className="rounded-xl border border-dashed border-slate-200 bg-white/70 p-3 text-xs text-slate-500">
+                                            No announcements yet.
+                                        </div>
+                                    ) : (
+                                        <ul className="space-y-2.5">
+                                            {announcements.map((a) => {
+                                                const isOwner = user && (user.role === 'admin' || user.role === 'tutor');
+                                                const isEditing = editingAnnouncementId === a._id;
+
+                                                if (isEditing) {
+                                                    return (
+                                                        <li key={a._id} className="rounded-[1.25rem] border border-slate-200 bg-white px-3 py-3 text-sm shadow-sm">
+                                                            <textarea
+                                                                value={editingAnnouncementText}
+                                                                onChange={(e) => setEditingAnnouncementText(e.target.value)}
+                                                                rows={3}
+                                                                className="w-full rounded-xl border border-indigo-200 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                                                            />
+                                                            <div className="mt-2 flex items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleSaveEdit}
+                                                                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white"
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleEditCancel}
+                                                                    className="text-xs font-semibold text-slate-500"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </li>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <li key={a._id} className="rounded-[1.25rem] border border-slate-200 bg-white px-3 py-3 text-sm leading-relaxed shadow-sm">
+                                                        <p className="text-slate-700">{formatAnnouncement(a.message)}</p>
+                                                        <p className="mt-1 text-[11px] text-slate-400">
+                                                            by {a.createdBy?.name || 'Admin'} • {new Date(a.createdAt).toLocaleString()}
+                                                        </p>
+                                                        {isOwner ? (
+                                                            <div className="mt-2 flex gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleEditStart(a)}
+                                                                    className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-600 hover:bg-blue-100"
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDelete(a._id)}
+                                                                    className="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-600 hover:bg-red-100"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        ) : null}
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
+
+                                    {user?.role === 'admin' || user?.role === 'tutor' ? (
+                                        <div className="mt-4 rounded-[1.25rem] border border-indigo-200 bg-white/80 p-3 shadow-sm">
+                                            <p className="mb-1 text-xs text-slate-500">Use **bold**, *italic*, ==highlight==</p>
+                                            <textarea
+                                                value={newAnnouncement}
+                                                onChange={(e) => setNewAnnouncement(e.target.value)}
+                                                rows={3}
+                                                className="w-full rounded-xl border border-indigo-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                                                placeholder="Type announcement text here..."
+                                            />
+                                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCreateAnnouncement}
+                                                    disabled={savingAnnouncement}
+                                                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                                                >
+                                                    {savingAnnouncement ? 'Saving…' : 'Post announcement'}
+                                                </button>
+                                                <span className="text-xs text-slate-500">Tutor/Admin</span>
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                </section>
+                            </div>
                         </header>
 
                         {loading ? (
@@ -421,72 +473,102 @@ const TutorModulePage = () => {
                             <ul className="space-y-4">
                                 {lessons.map((lesson) => {
                                     const tutorPdfs = getLessonPdfDisplayList(lesson);
+                                    const lessonDateLabel = lesson.lessonDate
+                                        ? new Date(lesson.lessonDate).toLocaleDateString()
+                                        : 'Date pending';
+
                                     return (
-                                    <li
-                                        key={lesson._id}
-                                        className="group rounded-3xl border border-white/70 bg-white/90 backdrop-blur-md shadow-sm hover:shadow-lg hover:border-indigo-200/80 transition-all overflow-hidden"
-                                    >
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 sm:p-6">
-                                            <div className="flex items-center gap-4 min-w-0 flex-1">
-                                                <div className="shrink-0 h-16 w-16 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-base font-black">
-                                                    W{lesson.weekNumber}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h2 className="font-bold text-slate-900 text-lg truncate">{lesson.title}</h2>
-                                                    <p className="text-sm text-slate-500 truncate">
-                                                        {lesson.description
-                                                            ? lesson.description.slice(0, 80) +
-                                                              (lesson.description.length > 80 ? '…' : '')
-                                                            : 'No short description yet'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                                                <span
-                                                    className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-lg ${
-                                                        lesson.status === 'published'
-                                                            ? 'bg-emerald-100 text-emerald-800'
-                                                            : 'bg-amber-100 text-amber-800'
-                                                    }`}
-                                                >
-                                                    {lesson.status}
-                                                </span>
-                                                {tutorPdfs.length ? (
-                                                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg">
-                                                        {tutorPdfs.length} PDF
-                                                        {tutorPdfs.length === 1 ? '' : 's'}
+                                        <li
+                                            key={lesson._id}
+                                            className="group relative overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/90 shadow-lg shadow-slate-900/5 transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-indigo-500/10"
+                                        >
+                                            <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-500 opacity-90" />
+                                            <div className="flex flex-col gap-4 p-5 sm:p-6">
+                                                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                                    <div className="flex min-w-0 flex-1 items-start gap-4">
+                                                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-base font-black text-white shadow-lg shadow-indigo-500/20">
+                                                            W{lesson.weekNumber}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <h2 className="truncate text-lg font-bold text-slate-900">{lesson.title}</h2>
+                                                            <p className="mt-1 text-sm text-slate-500">
+                                                                {lesson.description
+                                                                    ? lesson.description.slice(0, 110) +
+                                                                      (lesson.description.length > 110 ? '…' : '')
+                                                                    : 'No short description yet'}
+                                                            </p>
+                                                            <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wide">
+                                                                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-600">
+                                                                    {lessonDateLabel}
+                                                                </span>
+                                                                {tutorPdfs.length ? (
+                                                                    <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-indigo-700">
+                                                                        {tutorPdfs.length} PDF{tutorPdfs.length === 1 ? '' : 's'}
+                                                                    </span>
+                                                                ) : null}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <span
+                                                        className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
+                                                            lesson.status === 'published'
+                                                                ? 'bg-emerald-100 text-emerald-800'
+                                                                : 'bg-amber-100 text-amber-800'
+                                                        }`}
+                                                    >
+                                                        {lesson.status}
                                                     </span>
-                                                ) : null}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (lesson._id) {
-                                                            navigate(`/tutor-dashboard/lesson/${String(lesson._id)}`);
-                                                        }
-                                                    }}
-                                                    className="rounded-xl bg-slate-900 text-white text-xs font-bold px-4 py-2 hover:bg-slate-800 transition-colors"
-                                                >
-                                                    Edit week
-                                                </button>
+                                                </div>
+
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (lesson._id) {
+                                                                navigate(`/tutor-dashboard/lesson/${String(lesson._id)}`);
+                                                            }
+                                                        }}
+                                                        className="rounded-xl bg-gradient-to-r from-slate-900 to-slate-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:from-slate-800 hover:to-slate-700"
+                                                    >
+                                                        Edit week
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </li>
-                                );
+                                        </li>
+                                    );
                                 })}
                             </ul>
                         )}
                     </div>
 
                     <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0 space-y-4">
+                        <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Module insights</p>
+                            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                                <div className="rounded-xl bg-slate-50 px-2 py-3">
+                                    <p className="text-[10px] font-semibold text-slate-500">Weeks</p>
+                                    <p className="mt-1 text-lg font-black text-slate-900">{lessons.length}</p>
+                                </div>
+                                <div className="rounded-xl bg-emerald-50 px-2 py-3">
+                                    <p className="text-[10px] font-semibold text-emerald-700">Live</p>
+                                    <p className="mt-1 text-lg font-black text-emerald-900">{publishedCount}</p>
+                                </div>
+                                <div className="rounded-xl bg-violet-50 px-2 py-3">
+                                    <p className="text-[10px] font-semibold text-violet-700">Posts</p>
+                                    <p className="mt-1 text-lg font-black text-violet-900">{announcements.length}</p>
+                                </div>
+                            </div>
+                        </div>
                         {lessons.length > 0 ? (
-                            <div className="rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur px-4 py-4 shadow-sm">
-                                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                            <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 px-4 py-4 shadow-sm backdrop-blur">
+                                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
                                     Assistant context
                                 </label>
                                 <select
                                     value={aiLessonId}
                                     onChange={(e) => setAiLessonId(e.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 bg-white text-sm text-slate-800 px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
                                 >
                                     {lessons.map((l) => (
                                         <option key={l._id} value={l._id}>
