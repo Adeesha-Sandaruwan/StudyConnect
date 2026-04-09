@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchMySubjectContents } from '../../services/subjectContentApi';
+import { fetchMySubjectContents, fetchPublishedSubjectContents } from '../../services/subjectContentApi';
 import {
     shareLesson,
     removeSharedLesson,
@@ -29,7 +29,7 @@ const TutorResourcePanel = ({
     sharedResources = [],
     onUpdate
 }) => {
-    const [myLessons, setMyLessons] = useState([]);
+    const [availableLessons, setAvailableLessons] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null); // lessonId being toggled
     const [customSubmitting, setCustomSubmitting] = useState(false);
@@ -57,17 +57,34 @@ const TutorResourcePanel = ({
             setLoading(true);
             setError('');
             try {
-                const data = await fetchMySubjectContents();
-                // Accept array or {contents:[]}
-                const all = Array.isArray(data) ? data : (data.contents || []);
-                setMyLessons(all);
+                const [mineData, publishedData] = await Promise.all([
+                    fetchMySubjectContents(),
+                    fetchPublishedSubjectContents(
+                        {
+                            ...(requestSubject ? { subject: requestSubject } : {}),
+                            ...(gradeNum() !== null ? { grade: gradeNum() } : {})
+                        }
+                    )
+                ]);
+
+                const mine = Array.isArray(mineData) ? mineData : (mineData.contents || []);
+                const published = Array.isArray(publishedData) ? publishedData : (publishedData.contents || []);
+
+                // Keep one entry per lesson id and include linked lessons even if not in fetched lists.
+                const lessonMap = new Map();
+                [...mine, ...published, ...(linkedLessons || [])].forEach((lesson) => {
+                    if (!lesson || !lesson._id) return;
+                    lessonMap.set(lesson._id.toString(), lesson);
+                });
+
+                setAvailableLessons(Array.from(lessonMap.values()));
             } catch (err) {
                 setError('Could not load your lessons.');
             } finally {
                 setLoading(false);
             }
         })();
-    }, []);
+    }, [linkedLessons, requestSubject, gradeNum]);
 
     const isRelevant = (lesson) => {
         const gradeMatch = gradeNum() !== null && lesson.grade === gradeNum();
@@ -77,7 +94,7 @@ const TutorResourcePanel = ({
         return gradeMatch && subjectMatch;
     };
 
-    const filtered = myLessons.filter((lesson) => {
+    const filtered = availableLessons.filter((lesson) => {
         if (showLinkedOnly && !linkedIds.has(lesson._id?.toString())) return false;
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
@@ -108,7 +125,7 @@ const TutorResourcePanel = ({
         }
     };
 
-    const relevantCount = myLessons.filter(isRelevant).length;
+    const relevantCount = availableLessons.filter(isRelevant).length;
     const allSharedResources = [...(sharedResources || [])].sort((left, right) => {
         const leftTime = left?.sharedAt ? new Date(left.sharedAt).getTime() : 0;
         const rightTime = right?.sharedAt ? new Date(right.sharedAt).getTime() : 0;
@@ -220,6 +237,7 @@ const TutorResourcePanel = ({
                     className="flex-1 text-xs px-3 py-1.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-300 bg-slate-50"
                 />
                 <button
+                    type="button"
                     onClick={() => setShowLinkedOnly((v) => !v)}
                     className={`text-xs px-3 py-1.5 rounded-lg font-bold border transition-colors ${
                         showLinkedOnly
@@ -314,8 +332,8 @@ const TutorResourcePanel = ({
                     <div className="text-center py-8 text-slate-400">
                         <p className="text-2xl mb-1">📭</p>
                         <p className="text-xs font-semibold">
-                            {myLessons.length === 0
-                                ? 'You have no lessons yet.'
+                            {availableLessons.length === 0
+                                ? 'No lessons/modules available yet.'
                                 : 'No lessons match your search.'}
                         </p>
                     </div>
