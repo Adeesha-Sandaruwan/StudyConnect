@@ -4,80 +4,84 @@ import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 
 
-const NavLinks = ({ homeLink, currentPath, closeMenu, unreadCount, userRole }) => (
-    <>
-        <Link to="/" className={`font-bold transition-colors ${currentPath === '/' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
-            Home
-        </Link>
+const isActivePath = (currentPath, path, exact = false) => {
+    if (exact) {
+        return currentPath === path;
+    }
+    return currentPath === path || currentPath.startsWith(`${path}/`);
+};
 
-        <Link to={homeLink} className={`font-bold transition-colors ${currentPath === homeLink ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
-            Dashboard
-        </Link>
+const getNavItemClass = (isActive, mobile = false) => {
+    if (mobile) {
+        return `rounded-xl px-3 py-2.5 text-[15px] font-semibold transition-all ${
+            isActive
+                ? 'bg-[#eef2ff] text-[#4460d8] shadow-sm'
+                : 'text-gray-700 hover:bg-gray-100 hover:text-[#4460d8]'
+        }`;
+    }
 
-        {/* Student Links */}
-        {userRole === 'student' && (
-            <>
-                <Link to="/student-requests" className={`font-bold transition-colors ${currentPath === '/student-requests' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
-                    My Requests
-                </Link>
-                <Link to="/browse-requests" className={`font-bold transition-colors ${currentPath === '/browse-requests' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
-                    Browse
-                </Link>
-            </>
-        )}
+    return `relative py-2 text-[15px] font-semibold transition-colors ${
+        isActive ? 'text-[#4460d8]' : 'text-gray-600 hover:text-[#4460d8]'
+    }`;
+};
 
-        {/* Tutor Links */}
-        {userRole === 'tutor' && (
-            <>
-                <Link to="/tutor/my-requests" className={`font-bold transition-colors ${currentPath === '/tutor/my-requests' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
-                    My Assignments
-                </Link>
-                <Link to="/tutor/available-requests" className={`font-bold transition-colors ${currentPath === '/tutor/available-requests' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
-                    Available
-                </Link>
-            </>
-        )}
 
-        {/* Admin Links */}
-        {userRole === 'admin' && (
-            <Link to="/admin/requests" className={`font-bold transition-colors ${currentPath === '/admin/requests' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
-                Manage Requests
-            </Link>
-        )}
+const NavLinks = ({ homeLink, currentPath, closeMenu, unreadCount, userRole, mobile = false }) => {
+    const links = [
+        { to: '/', label: 'Home', exact: true },
+        { to: homeLink, label: 'Dashboard' },
+    ];
 
-        {/* Common Links */}
-        <Link to="/posts" className={`font-bold transition-colors ${currentPath === '/posts' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
-            Study Posts
-        </Link>
+    if (userRole === 'student') {
+        links.push(
+            { to: '/student-requests', label: 'My Requests' },
+            { to: '/browse-requests', label: 'Browse' }
+        );
+    }
 
-        {/* ✅ FEEDBACK LINK ADDED */}
-        <Link 
-            to="/feedbacks" 
-            className={`font-bold transition-colors ${
-                currentPath === '/feedbacks'
-                    ? 'text-[#5b7cfa]'
-                    : 'text-gray-600 hover:text-[#5b7cfa]'
-            }`}
-            onClick={closeMenu}
-        >
-            Feedbacks
-        </Link>
+    if (userRole === 'tutor') {
+        links.push(
+            { to: '/tutor/my-requests', label: 'My Assignments' },
+            { to: '/tutor/available-requests', label: 'Available' }
+        );
+    }
 
-        {/* Notifications */}
-        <Link to="/notifications" className={`relative font-bold transition-colors flex items-center gap-1.5 ${currentPath === '/notifications' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
-            Notifications
-            {unreadCount > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm animate-pulse">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-            )}
-        </Link>
+    if (userRole === 'admin') {
+        links.push({ to: '/admin/requests', label: 'Manage Requests' });
+    }
 
-        <Link to="/profile" className={`font-bold transition-colors ${currentPath === '/profile' ? 'text-[#5b7cfa]' : 'text-gray-600 hover:text-[#5b7cfa]'}`} onClick={closeMenu}>
-            Profile
-        </Link>
-    </>
-);
+    links.push(
+        { to: '/posts', label: 'Study Posts' },
+        { to: '/feedbacks', label: 'Feedbacks' },
+        { to: '/notifications', label: 'Notifications', showBadge: true },
+        { to: '/profile', label: 'Profile' }
+    );
+
+    return (
+        <>
+            {links.map((link) => {
+                const isActive = isActivePath(currentPath, link.to, Boolean(link.exact));
+                return (
+                    <Link
+                        key={link.to}
+                        to={link.to}
+                        className={`${getNavItemClass(isActive, mobile)} ${
+                            link.showBadge ? 'flex items-center gap-2' : ''
+                        }`}
+                        onClick={closeMenu}
+                    >
+                        {link.label}
+                        {link.showBadge && unreadCount > 0 && (
+                            <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white shadow-sm">
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                        )}
+                    </Link>
+                );
+            })}
+        </>
+    );
+};
 
 const NavBar = () => {
     const { user, logout } = useContext(AuthContext);
@@ -100,6 +104,17 @@ const NavBar = () => {
             fetchUnreadCount();
         }
     }, [user, location.pathname]);
+
+    useEffect(() => {
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                setIsMobileMenuOpen(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, []);
 
     const hideOnPaths = ['/login', '/register', '/onboarding', '/forgot-password'];
     if (!user || hideOnPaths.some(path => location.pathname.startsWith(path))) {
@@ -124,19 +139,16 @@ const NavBar = () => {
     };
 
     return (
-        <nav className="bg-white shadow-sm sticky top-0 z-40">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
-                    
-                    {/* Logo */}
-                    <div className="flex items-center">
-                        <Link to="/" className="text-2xl font-extrabold text-[#5b7cfa] tracking-tight">
+        <>
+            <nav className="sticky top-0 z-40 border-b border-[#d9e0ff] bg-white/90 shadow-sm backdrop-blur">
+                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-3">
+                        <Link to="/" className="text-2xl font-extrabold tracking-tight text-[#5b7cfa]">
                             StudyConnect
                         </Link>
                     </div>
 
-                    {/* Desktop Menu */}
-                    <div className="hidden md:flex items-center space-x-8">
+                    <div className="hidden items-center gap-7 md:flex">
                         <NavLinks
                             homeLink={homeLink}
                             currentPath={location.pathname}
@@ -145,59 +157,80 @@ const NavBar = () => {
                             userRole={user.role}
                         />
 
-                        <div className="border-l border-gray-200 h-6 mx-2"></div>
+                        <div className="h-7 border-l border-gray-200" />
 
                         <div className="flex items-center gap-3">
-                            <span className="text-sm font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-full uppercase tracking-wide">
+                            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-gray-700">
                                 {user.role}
                             </span>
-
                             <button
                                 onClick={handleLogout}
-                                className="bg-red-50 text-red-600 font-bold px-4 py-2 rounded-xl hover:bg-red-100 transition-colors text-sm"
+                                className="rounded-xl bg-red-50 px-4 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-100"
                             >
                                 Logout
                             </button>
                         </div>
                     </div>
 
-                    {/* Mobile Menu Button */}
                     <div className="flex items-center md:hidden">
                         <button
-                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="text-gray-500 hover:text-[#5b7cfa] p-2"
+                            aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                            aria-expanded={isMobileMenuOpen}
+                            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                            className="rounded-xl border border-gray-200 p-2 text-gray-600 transition-colors hover:border-[#c8d3ff] hover:bg-[#f5f7ff] hover:text-[#4460d8]"
                         >
-                            ☰
+                            {isMobileMenuOpen ? (
+                                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M18 6L6 18" />
+                                    <path d="M6 6l12 12" />
+                                </svg>
+                            ) : (
+                                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <line x1="3" y1="6" x2="21" y2="6" />
+                                    <line x1="3" y1="12" x2="21" y2="12" />
+                                    <line x1="3" y1="18" x2="21" y2="18" />
+                                </svg>
+                            )}
                         </button>
                     </div>
                 </div>
-            </div>
+            </nav>
 
-            {/* Mobile Menu */}
             {isMobileMenuOpen && (
-                <div className="md:hidden bg-white border-t shadow-lg absolute w-full left-0">
-                    <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
-                        <NavLinks
-                            homeLink={homeLink}
-                            currentPath={location.pathname}
-                            closeMenu={() => setIsMobileMenuOpen(false)}
-                            unreadCount={unreadCount}
-                            userRole={user.role}
-                        />
+                <div className="fixed inset-0 z-30 md:hidden" role="presentation">
+                    <button
+                        aria-label="Close mobile menu"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="absolute inset-0 bg-gray-900/25"
+                    />
 
-                        <div className="border-t pt-4 flex justify-between items-center">
-                            <span className="text-xs font-bold text-gray-500 uppercase">
-                                Logged in as {user.role}
-                            </span>
+                    <div className="absolute inset-x-0 top-16 mx-3 rounded-2xl border border-[#d9e0ff] bg-white p-4 shadow-2xl">
+                        <div className="flex max-h-[calc(100vh-6.5rem)] flex-col gap-2 overflow-y-auto">
+                            <NavLinks
+                                homeLink={homeLink}
+                                currentPath={location.pathname}
+                                closeMenu={() => setIsMobileMenuOpen(false)}
+                                unreadCount={unreadCount}
+                                userRole={user.role}
+                                mobile
+                            />
 
-                            <button onClick={handleLogout} className="text-red-600 font-bold text-sm">
-                                Logout
-                            </button>
+                            <div className="mt-1 border-t border-gray-200 pt-3">
+                                <div className="mb-3 rounded-xl bg-gray-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-gray-600">
+                                    Logged in as {user.role}
+                                </div>
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full rounded-xl bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-100"
+                                >
+                                    Logout
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
-        </nav>
+        </>
     );
 };
 
