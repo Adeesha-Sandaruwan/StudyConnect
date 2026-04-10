@@ -18,30 +18,31 @@ const Profile = () => {
     const [formData, setFormData] = useState({});
     const [avatarFile, setAvatarFile] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState(null);
+    const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
     useEffect(() => {
         if (user?.role === 'admin') {
             setIsLoading(false); // Admins don't need KYC profiles
             return;
         }
+        const fetchProfile = async () => {
+            try {
+                const res = await api.get('/profiles/me');
+                setProfile(res.data);
+                initFormData(res.data);
+            } catch (err) {
+                if (err.response?.status === 404) {
+                    setProfile(null); // No profile found
+                } else {
+                    setError('Failed to load profile.');
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
         fetchProfile();
     }, [user]);
-
-    const fetchProfile = async () => {
-        try {
-            const res = await api.get('/profiles/me');
-            setProfile(res.data);
-            initFormData(res.data);
-        } catch (err) {
-            if (err.response?.status === 404) {
-                setProfile(null); // No profile found
-            } else {
-                setError('Failed to load profile.');
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const initFormData = (data) => {
         setFormData({
@@ -113,6 +114,19 @@ const Profile = () => {
         }
     };
 
+    useEffect(() => {
+        if (!isAvatarModalOpen) return;
+
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                setIsAvatarModalOpen(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, [isAvatarModalOpen]);
+
     if (isLoading) {
         return <div className="min-h-screen flex justify-center items-center"><div className="w-12 h-12 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div></div>;
     }
@@ -158,228 +172,295 @@ const Profile = () => {
     // VIEW: STANDARD PROFILE (STUDENT/TUTOR)
     // ----------------------------------------------------
     const isTutor = user.role === 'tutor';
+    const inputClass = 'w-full rounded-xl border border-white/60 bg-white/90 px-3 py-2.5 text-sm text-gray-800 shadow-sm outline-none transition focus:border-[#8fb1ff] focus:ring-2 focus:ring-[#dfe9ff]';
+    const labelClass = 'mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#5a66a1]';
+    const profileImageUrl = avatarPreview || user.avatar || '';
+    const canPreviewAvatar = Boolean(profileImageUrl);
+
+    const displayValue = (value, fallback = 'Not provided') => {
+        if (value === null || value === undefined || value === '') {
+            return fallback;
+        }
+        return value;
+    };
 
     return (
-        <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
-            
-            {/* Status Banner */}
-            {profile.verificationStatus === 'pending' && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-xl shadow-sm mb-6 flex items-center justify-between">
-                    <div>
-                        <h3 className="font-bold text-yellow-800 text-lg">Verification Pending</h3>
-                        <p className="text-yellow-700 text-sm">Your profile is currently under review by an administrator. Some features may be restricted.</p>
-                    </div>
-                    <span className="text-3xl">⏳</span>
-                </div>
-            )}
-            {profile.verificationStatus === 'rejected' && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl shadow-sm mb-6 flex items-center justify-between">
-                    <div>
-                        <h3 className="font-bold text-red-800 text-lg">Verification Rejected</h3>
-                        <p className="text-red-700 text-sm">Your profile was rejected. Please update your details and ensure your documents are clear.</p>
-                    </div>
-                    <span className="text-3xl">❌</span>
-                </div>
-            )}
-
-            {/* Profile Header */}
-            <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8 mb-6 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative">
-                
-                {/* Avatar Section */}
-                <div className="relative group">
-                    <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
-                        {avatarPreview || user.avatar ? (
-                            <img src={avatarPreview || user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                            <span className="text-4xl text-gray-400 font-bold">{user.name.charAt(0)}</span>
-                        )}
-                    </div>
-                    {isEditing && (
-                        <label className="absolute bottom-0 right-0 bg-[#5b7cfa] text-white p-2 rounded-full cursor-pointer shadow-md hover:bg-[#4a6be0] transition-colors">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                            <input type="file" accept="image/jpeg, image/png, image/jpg" className="hidden" onChange={handleAvatarChange} />
-                        </label>
-                    )}
-                </div>
-
-                <div className="flex-1 text-center sm:text-left">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
-                        <h1 className="text-3xl font-extrabold text-gray-800">{user.name}</h1>
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${isTutor ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                            {user.role}
-                        </span>
-                        {profile.verificationStatus === 'verified' && (
-                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                                Verified
-                            </span>
-                        )}
-                    </div>
-                    <p className="text-gray-500 font-medium">{user.email}</p>
-                    <p className="text-gray-500 mt-1">{profile.city}, {profile.country}</p>
-                </div>
-
-                {!isEditing && (
-                    <button onClick={() => setIsEditing(true)} className="absolute top-6 right-6 text-gray-400 hover:text-[#5b7cfa] transition-colors">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                    </button>
-                )}
-            </div>
-
-            {/* Alerts */}
-            {error && <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 font-semibold border-l-4 border-red-500">{error}</div>}
-            {success && <div className="bg-green-50 text-green-700 p-4 rounded-xl mb-6 font-semibold border-l-4 border-green-500">{success}</div>}
-
-            {/* Profile Content / Form */}
-            <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8">
-                <form onSubmit={handleSubmit}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        
-                        {/* Section 1: Basic Info */}
+        <div className="min-h-[calc(100vh-4rem)] bg-linear-to-br from-[#edf6ff] via-[#f3efff] to-[#fff3e8]">
+            <div className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+                {profile.verificationStatus === 'pending' && (
+                    <div className="mb-6 flex items-start justify-between gap-3 rounded-2xl border border-amber-300 bg-linear-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm">
                         <div>
-                            <h3 className="text-lg font-bold text-[#5b7cfa] border-b pb-2 mb-4">Basic Information</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bio</label>
-                                    {isEditing ? (
-                                        <textarea name="bio" value={formData.bio} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" rows="3"></textarea>
-                                    ) : (
-                                        <p className="text-gray-800 text-sm">{profile.bio || 'No bio provided.'}</p>
-                                    )}
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Phone Number</label>
-                                        {isEditing ? (
-                                            <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" />
-                                        ) : (
-                                            <p className="text-gray-800 text-sm">{profile.phoneNumber}</p>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date of Birth</label>
-                                        <p className="text-gray-800 text-sm py-3">{new Date(profile.dob).toLocaleDateString()}</p> {/* DOB usually shouldn't be edited */}
-                                    </div>
-                                </div>
-                            </div>
+                            <h3 className="text-base font-bold text-amber-900">Verification Pending</h3>
+                            <p className="mt-0.5 text-sm text-amber-800">Your profile is under review by an administrator. Some features may be restricted.</p>
+                        </div>
+                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-lg">⏳</span>
+                    </div>
+                )}
 
-                            <h3 className="text-lg font-bold text-[#5b7cfa] border-b pb-2 mb-4 mt-8">Emergency Contact</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Contact Name</label>
-                                    {isEditing ? (
-                                        <input type="text" name="emergencyContactName" value={formData.emergencyContactName} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" />
-                                    ) : (
-                                        <p className="text-gray-800 text-sm">{profile.emergencyContact?.name}</p>
-                                    )}
+                {profile.verificationStatus === 'rejected' && (
+                    <div className="mb-6 flex items-start justify-between gap-3 rounded-2xl border border-rose-300 bg-linear-to-r from-rose-50 to-pink-50 px-4 py-3 shadow-sm">
+                        <div>
+                            <h3 className="text-base font-bold text-rose-900">Verification Rejected</h3>
+                            <p className="mt-0.5 text-sm text-rose-800">Please update your details and ensure uploaded documents are clear.</p>
+                        </div>
+                        <span className="rounded-full bg-rose-100 px-2.5 py-1 text-lg">❌</span>
+                    </div>
+                )}
+
+                <div className="relative mb-6 overflow-hidden rounded-3xl border border-[#cad8ff] bg-white/95 p-6 shadow-sm sm:p-8">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-linear-to-r from-[#dde9ff] via-[#e8f7ff] to-[#f8e8ff]" />
+
+                    <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start">
+                        <div className="relative self-center sm:self-auto">
+                            {canPreviewAvatar ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAvatarModalOpen(true)}
+                                    aria-label="Open profile picture"
+                                    className="group relative block h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-gray-100 shadow-lg transition hover:scale-[1.02] sm:h-32 sm:w-32"
+                                >
+                                    <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover" />
+                                    <span className="absolute inset-0 flex items-end justify-center bg-black/0 pb-3 text-[11px] font-bold text-white opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100">
+                                        View Photo
+                                    </span>
+                                </button>
+                            ) : (
+                                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-gray-100 shadow-lg sm:h-32 sm:w-32">
+                                    <span className="text-4xl font-bold text-gray-400">{user.name.charAt(0)}</span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Relation</label>
-                                        {isEditing ? (
-                                            <input type="text" name="emergencyContactRelation" value={formData.emergencyContactRelation} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" />
-                                        ) : (
-                                            <p className="text-gray-800 text-sm">{profile.emergencyContact?.relation}</p>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Phone Number</label>
-                                        {isEditing ? (
-                                            <input type="text" name="emergencyContactPhone" value={formData.emergencyContactPhone} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" />
-                                        ) : (
-                                            <p className="text-gray-800 text-sm">{profile.emergencyContact?.phoneNumber}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                            )}
+
+                            {isEditing && (
+                                <label className="absolute bottom-0 right-0 cursor-pointer rounded-full bg-[#5b7cfa] p-2 text-white shadow-md transition-colors hover:bg-[#4a6be0]">
+                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <input type="file" accept="image/jpeg, image/png, image/jpg" className="hidden" onChange={handleAvatarChange} />
+                                </label>
+                            )}
                         </div>
 
-                        {/* Section 2: Role Specific Info */}
-                        <div>
-                            <h3 className="text-lg font-bold text-[#5b7cfa] border-b pb-2 mb-4">Academic & Professional</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Institution / School</label>
-                                    {isEditing ? (
-                                        <input type="text" name="schoolOrUniversity" value={formData.schoolOrUniversity} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" />
-                                    ) : (
-                                        <p className="text-gray-800 text-sm">{profile.schoolOrUniversity}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Grade Level</label>
-                                    {isEditing ? (
-                                        <input type="text" name="gradeLevel" value={formData.gradeLevel} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" />
-                                    ) : (
-                                        <p className="text-gray-800 text-sm">{profile.gradeLevel}</p>
-                                    )}
-                                </div>
+                        <div className="relative flex-1 text-center sm:text-left">
+                            <div className="mb-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                                <h1 className="text-2xl font-extrabold text-gray-900 sm:text-3xl">{user.name}</h1>
+                                <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${isTutor ? 'bg-orange-100 text-orange-700' : 'bg-cyan-100 text-cyan-700'}`}>
+                                    {user.role}
+                                </span>
+                                {profile.verificationStatus === 'verified' && (
+                                    <span className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold uppercase text-green-700">
+                                        <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
+                                        Verified
+                                    </span>
+                                )}
+                            </div>
 
-                                {/* Student Specific */}
-                                {!isTutor && (
+                            <p className="text-sm font-medium text-[#51609c] sm:text-base">{user.email}</p>
+                            <p className="mt-1 text-sm text-[#6876ad] sm:text-base">{displayValue([profile.city, profile.country].filter(Boolean).join(', '))}</p>
+                        </div>
+
+                        {!isEditing && (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="relative self-center rounded-xl border border-[#cfd9ff] bg-linear-to-r from-white to-[#eef3ff] px-4 py-2 text-sm font-bold text-[#4460d8] shadow-sm transition hover:from-[#f7f9ff] hover:to-[#e4ebff] sm:self-start"
+                            >
+                                Edit Profile
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {error && <div className="mb-5 rounded-2xl border border-rose-200 bg-linear-to-r from-rose-50 to-pink-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
+                {success && <div className="mb-5 rounded-2xl border border-green-200 bg-linear-to-r from-green-50 to-emerald-50 px-4 py-3 text-sm font-semibold text-green-700">{success}</div>}
+
+                <div className="rounded-3xl border border-[#d8e0ff] bg-white/95 p-5 shadow-sm sm:p-7">
+                    <form onSubmit={handleSubmit}>
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                            <section className="rounded-2xl border border-sky-100 bg-linear-to-br from-[#f5faff] to-[#eaf5ff] p-5">
+                                <h3 className="mb-4 border-b border-sky-200 pb-2 text-base font-extrabold text-[#2f7ecb]">Basic Information</h3>
+
+                                <div className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Learning Needs</label>
+                                        <label className={labelClass}>Bio</label>
                                         {isEditing ? (
-                                            <textarea name="learningNeeds" value={formData.learningNeeds} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" rows="3"></textarea>
+                                            <textarea name="bio" value={formData.bio} onChange={handleInputChange} className={inputClass} rows="3" placeholder="Tell others about your learning goals" />
                                         ) : (
-                                            <p className="text-gray-800 text-sm">{profile.learningNeeds}</p>
+                                            <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.bio, 'No bio provided.')}</p>
                                         )}
                                     </div>
-                                )}
 
-                                {/* Tutor Specific */}
-                                {isTutor && (
-                                    <>
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Subjects (Comma Separated)</label>
+                                            <label className={labelClass}>Phone Number</label>
                                             {isEditing ? (
-                                                <input type="text" name="subjects" value={formData.subjects} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" />
+                                                <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} className={inputClass} />
                                             ) : (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {profile.subjects?.map((sub, i) => <span key={i} className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-semibold">{sub}</span>)}
-                                                </div>
+                                                <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.phoneNumber)}</p>
                                             )}
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
+
+                                        <div>
+                                            <label className={labelClass}>Date of Birth</label>
+                                            <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'Not provided'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h3 className="mb-4 mt-6 border-b border-sky-200 pb-2 text-base font-extrabold text-[#2f7ecb]">Emergency Contact</h3>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className={labelClass}>Contact Name</label>
+                                        {isEditing ? (
+                                            <input type="text" name="emergencyContactName" value={formData.emergencyContactName} onChange={handleInputChange} className={inputClass} />
+                                        ) : (
+                                            <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.emergencyContact?.name)}</p>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <div>
+                                            <label className={labelClass}>Relation</label>
+                                            {isEditing ? (
+                                                <input type="text" name="emergencyContactRelation" value={formData.emergencyContactRelation} onChange={handleInputChange} className={inputClass} />
+                                            ) : (
+                                                <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.emergencyContact?.relation)}</p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className={labelClass}>Phone Number</label>
+                                            {isEditing ? (
+                                                <input type="text" name="emergencyContactPhone" value={formData.emergencyContactPhone} onChange={handleInputChange} className={inputClass} />
+                                            ) : (
+                                                <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.emergencyContact?.phoneNumber)}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section className="rounded-2xl border border-orange-100 bg-linear-to-br from-[#fff8ee] to-[#fff2fb] p-5">
+                                <h3 className="mb-4 border-b border-orange-200 pb-2 text-base font-extrabold text-[#c26b18]">Academic & Professional</h3>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className={labelClass}>Institution / School</label>
+                                        {isEditing ? (
+                                            <input type="text" name="schoolOrUniversity" value={formData.schoolOrUniversity} onChange={handleInputChange} className={inputClass} />
+                                        ) : (
+                                            <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.schoolOrUniversity)}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className={labelClass}>Grade Level</label>
+                                        {isEditing ? (
+                                            <input type="text" name="gradeLevel" value={formData.gradeLevel} onChange={handleInputChange} className={inputClass} />
+                                        ) : (
+                                            <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.gradeLevel)}</p>
+                                        )}
+                                    </div>
+
+                                    {!isTutor && (
+                                        <div>
+                                            <label className={labelClass}>Learning Needs</label>
+                                            {isEditing ? (
+                                                <textarea name="learningNeeds" value={formData.learningNeeds} onChange={handleInputChange} className={inputClass} rows="3" />
+                                            ) : (
+                                                <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.learningNeeds)}</p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {isTutor && (
+                                        <>
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Experience (Years)</label>
+                                                <label className={labelClass}>Subjects</label>
                                                 {isEditing ? (
-                                                    <input type="number" name="experience" value={formData.experience} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" />
+                                                    <input type="text" name="subjects" value={formData.subjects} onChange={handleInputChange} className={inputClass} placeholder="Comma separated subjects" />
                                                 ) : (
-                                                    <p className="text-gray-800 text-sm">{profile.experience} Years</p>
+                                                    <div className="flex flex-wrap gap-2 rounded-xl bg-white/85 px-3 py-2.5">
+                                                        {profile.subjects?.length ? profile.subjects.map((sub, i) => (
+                                                            <span key={i} className="rounded-full bg-[#ffe7c7] px-3 py-1 text-xs font-semibold text-[#a85b16]">{sub}</span>
+                                                        )) : <span className="text-sm text-gray-700">Not provided</span>}
+                                                    </div>
                                                 )}
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">NIC Number</label>
-                                                <p className="text-gray-800 text-sm py-3 font-mono">{profile.nicNumber}</p> {/* NIC shouldn't be easily editable */}
+
+                                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                <div>
+                                                    <label className={labelClass}>Experience (Years)</label>
+                                                    {isEditing ? (
+                                                        <input type="number" name="experience" value={formData.experience} onChange={handleInputChange} className={inputClass} />
+                                                    ) : (
+                                                        <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.experience, '0')} Years</p>
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <label className={labelClass}>NIC Number</label>
+                                                    <p className="rounded-xl bg-white/85 px-3 py-2.5 font-mono text-sm text-gray-700">{displayValue(profile.nicNumber)}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Availability (Comma Separated)</label>
-                                            {isEditing ? (
-                                                <input type="text" name="availability" value={formData.availability} onChange={handleInputChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#5b7cfa] text-sm" placeholder="e.g. Weekends, Evenings" />
-                                            ) : (
-                                                <p className="text-gray-800 text-sm">{profile.availability?.join(', ')}</p>
-                                            )}
-                                        </div>
-                                    </>
-                                )}
+
+                                            <div>
+                                                <label className={labelClass}>Availability</label>
+                                                {isEditing ? (
+                                                    <input type="text" name="availability" value={formData.availability} onChange={handleInputChange} className={inputClass} placeholder="e.g. Weekends, Evenings" />
+                                                ) : (
+                                                    <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.availability?.join(', '))}</p>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </section>
+                        </div>
+
+                        {isEditing && (
+                            <div className="mt-8 flex flex-col-reverse justify-end gap-3 border-t border-gray-100 pt-6 sm:flex-row">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsEditing(false);
+                                        initFormData(profile);
+                                        setAvatarPreview(null);
+                                        setAvatarFile(null);
+                                    }}
+                                    className="rounded-xl border border-gray-200 bg-gray-50 px-6 py-2.5 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-100"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="rounded-xl bg-linear-to-r from-[#5b7cfa] to-[#7e63f3] px-8 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:from-[#4a6be0] hover:to-[#6f52e7]"
+                                >
+                                    Save Changes
+                                </button>
                             </div>
+                        )}
+                    </form>
+                </div>
+
+                {isAvatarModalOpen && canPreviewAvatar && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+                        onClick={() => setIsAvatarModalOpen(false)}
+                    >
+                        <div className="relative w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                type="button"
+                                onClick={() => setIsAvatarModalOpen(false)}
+                                className="absolute right-3 top-3 z-10 rounded-full bg-black/60 px-3 py-1 text-sm font-bold text-white transition-colors hover:bg-black/80"
+                            >
+                                Close
+                            </button>
+                            <img
+                                src={profileImageUrl}
+                                alt="Profile preview"
+                                className="max-h-[85vh] w-full rounded-2xl border border-white/20 bg-black/20 object-contain"
+                            />
                         </div>
                     </div>
-
-                    {/* Action Buttons */}
-                    {isEditing && (
-                        <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end gap-4">
-                            <button type="button" onClick={() => { setIsEditing(false); initFormData(profile); setAvatarPreview(null); setAvatarFile(null); }} className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-xl font-bold hover:bg-gray-200 transition-colors">
-                                Cancel
-                            </button>
-                            <button type="submit" className="bg-[#5b7cfa] text-white px-8 py-2.5 rounded-xl font-bold hover:bg-[#4a6be0] transition-colors shadow-md">
-                                Save Changes
-                            </button>
-                        </div>
-                    )}
-                </form>
+                )}
             </div>
         </div>
     );

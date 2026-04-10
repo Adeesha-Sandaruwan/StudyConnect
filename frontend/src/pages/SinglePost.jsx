@@ -15,6 +15,9 @@ const DownArrowIcon = ({ filled }) => (
     </svg>
 );
 
+const FRIENDLY_POST_REMOVED_MSG = 'This post was removed or is no longer available.';
+const OBJECT_ID_REGEX = /^[a-fA-F0-9]{24}$/;
+
 const SinglePost = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -49,11 +52,27 @@ const SinglePost = () => {
 
     const fetchPost = async () => {
         setIsLoading(true);
+
+        if (!id || !OBJECT_ID_REGEX.test(id)) {
+            setPost(null);
+            setError(FRIENDLY_POST_REMOVED_MSG);
+            setIsLoading(false);
+            return;
+        }
+
         try {
             const res = await api.get(`/studyposts/${id}`);
             setPost(res.data);
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to load the study post.');
+            const status = err.response?.status;
+            const serverMessage = err.response?.data?.message || '';
+            const castObjectIdError = typeof serverMessage === 'string' && serverMessage.includes('Cast to ObjectId failed');
+
+            if (status === 404 || status === 400 || castObjectIdError) {
+                setError(FRIENDLY_POST_REMOVED_MSG);
+            } else {
+                setError('Failed to load the study post. Please try again.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -176,7 +195,7 @@ const SinglePost = () => {
 
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6 border border-gray-200 flex flex-col sm:flex-row">
                 
-                <div className={`hidden sm:flex flex-col items-center py-5 px-2 min-w-[64px] border-r transition-colors ${hasUpvoted ? 'bg-[#5b7cfa] border-[#5b7cfa] text-white' : hasDownvoted ? 'bg-red-500 border-red-500 text-white' : 'bg-gray-50 border-gray-200 text-gray-600'}`} onClick={(e) => e.preventDefault()}>
+                <div className={`hidden sm:flex flex-col items-center py-5 px-2 min-w-16 border-r transition-colors ${hasUpvoted ? 'bg-[#5b7cfa] border-[#5b7cfa] text-white' : hasDownvoted ? 'bg-red-500 border-red-500 text-white' : 'bg-gray-50 border-gray-200 text-gray-600'}`} onClick={(e) => e.preventDefault()}>
                     <button onClick={() => handleVote('upvote')} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors`}>
                         <UpArrowIcon filled={hasUpvoted} />
                     </button>
@@ -219,7 +238,7 @@ const SinglePost = () => {
                     </div>
 
                     {post.media && post.media.length > 0 && (
-                        <div className="relative bg-gray-50 border-y border-gray-200 p-2 sm:p-4 flex justify-center items-center min-h-[300px]">
+                        <div className="relative bg-gray-50 border-y border-gray-200 p-2 sm:p-4 flex justify-center items-center min-h-75">
                             {isPdf(post.media[currentMediaIndex]) ? (
                                 <div className="text-center w-full max-w-sm bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                                     <svg className="w-12 h-12 mx-auto text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
@@ -229,7 +248,7 @@ const SinglePost = () => {
                                     </a>
                                 </div>
                             ) : (
-                                <img src={post.media[currentMediaIndex]} alt="Post attachment" className="max-h-[500px] w-auto object-contain rounded-lg shadow-sm border border-gray-200" />
+                                <img src={post.media[currentMediaIndex]} alt="Post attachment" className="max-h-125 w-auto object-contain rounded-lg shadow-sm border border-gray-200" />
                             )}
 
                             {post.media.length > 1 && (
@@ -255,7 +274,7 @@ const SinglePost = () => {
                             <button onClick={() => handleVote('upvote')} className="p-1.5 rounded-l-full hover:bg-black/5 transition-colors">
                                 <UpArrowIcon filled={hasUpvoted} />
                             </button>
-                            <span className="text-sm font-extrabold min-w-[24px] text-center">
+                            <span className="text-sm font-extrabold min-w-6 text-center">
                                 {voteCount}
                             </span>
                             <button onClick={() => handleVote('downvote')} className="p-1.5 rounded-r-full hover:bg-black/5 transition-colors">
@@ -286,7 +305,7 @@ const SinglePost = () => {
 
                             return (
                                 <div key={answer._id} className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-200 relative group flex gap-3 sm:gap-4">
-                                    <div className="flex-shrink-0 flex flex-col items-center">
+                                    <div className="shrink-0 flex flex-col items-center">
                                         {answer.user?.avatar ? (
                                             <img src={answer.user.avatar} alt="avatar" className="w-8 h-8 rounded-full object-cover border border-gray-100" />
                                         ) : (

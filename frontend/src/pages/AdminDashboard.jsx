@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
@@ -22,16 +22,7 @@ const AdminDashboard = () => {
     const [showAddAdmin, setShowAddAdmin] = useState(false);
     const [addAdminData, setAddAdminData] = useState({ name: '', email: '', password: '' });
 
-    useEffect(() => {
-        if (!user) return;
-        if (user.role !== 'admin') {
-            navigate('/');
-            return;
-        }
-        fetchData();
-    }, [activeTab, kycStatus, user, navigate]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setIsLoading(true);
         setError('');
         try {
@@ -47,7 +38,16 @@ const AdminDashboard = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [activeTab, kycStatus]);
+
+    useEffect(() => {
+        if (!user) return;
+        if (user.role !== 'admin') {
+            navigate('/');
+            return;
+        }
+        fetchData();
+    }, [user, navigate, fetchData]);
 
     const handleVerifyProfile = async (profileId, status) => {
         if (!window.confirm(`Are you sure you want to mark this profile as ${status}?`)) return;
@@ -116,23 +116,23 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#eef2f6] p-4 sm:p-8 font-sans relative">
+        <div className="min-h-screen bg-linear-to-br from-cyan-50 via-blue-50 to-indigo-100 p-3 sm:p-6 lg:p-8 font-sans relative">
             <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-center bg-white rounded-3xl p-6 sm:p-8 shadow-sm mb-8">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-linear-to-r from-blue-600 via-indigo-600 to-cyan-600 rounded-3xl p-5 sm:p-7 shadow-xl mb-6 sm:mb-8 text-white">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">Admin Dashboard</h1>
-                        <p className="text-gray-500 mt-1">Manage platform users and verify KYC applications.</p>
+                        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Admin Dashboard</h1>
+                        <p className="text-blue-100 mt-1 text-sm sm:text-base">Manage platform users and verify KYC applications.</p>
                     </div>
-                    <div className="mt-4 md:mt-0 flex gap-4 bg-gray-100 p-1.5 rounded-xl">
+                    <div className="w-full lg:w-auto flex gap-2 sm:gap-3 bg-white/20 p-1.5 rounded-xl backdrop-blur-sm overflow-x-auto">
                         <button 
                             onClick={() => setActiveTab('kyc')}
-                            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'kyc' ? 'bg-white text-[#5b7cfa] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`whitespace-nowrap px-4 sm:px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'kyc' ? 'bg-white text-indigo-700 shadow-sm' : 'text-blue-100 hover:bg-white/15'}`}
                         >
                             KYC Approvals
                         </button>
                         <button 
                             onClick={() => setActiveTab('users')}
-                            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'users' ? 'bg-white text-[#5b7cfa] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`whitespace-nowrap px-4 sm:px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'users' ? 'bg-white text-indigo-700 shadow-sm' : 'text-blue-100 hover:bg-white/15'}`}
                         >
                             User Management
                         </button>
@@ -145,19 +145,19 @@ const AdminDashboard = () => {
                     </div>
                 )}
 
-                <div className="bg-white rounded-3xl shadow-sm overflow-hidden min-h-[600px] flex flex-col">
+                <div className="bg-white/90 backdrop-blur-sm rounded-3xl border border-blue-100 shadow-lg overflow-hidden min-h-150 flex flex-col">
                     
                     {/* Dynamic Toolbar */}
-                    <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row gap-4 justify-between items-center">
+                    <div className="p-4 sm:p-6 border-b border-blue-100 bg-linear-to-r from-sky-50 to-indigo-50 flex flex-col sm:flex-row gap-4 justify-between items-center">
                         {activeTab === 'kyc' ? (
-                            <div className="flex gap-2">
-                                <button onClick={() => setKycStatus('pending')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${kycStatus === 'pending' ? 'bg-yellow-100 text-yellow-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>⏳ Pending</button>
-                                <button onClick={() => setKycStatus('verified')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${kycStatus === 'verified' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>✅ Approved</button>
-                                <button onClick={() => setKycStatus('rejected')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${kycStatus === 'rejected' ? 'bg-red-100 text-red-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>❌ Rejected</button>
+                            <div className="w-full sm:w-auto flex gap-2 overflow-x-auto">
+                                <button onClick={() => setKycStatus('pending')} className={`whitespace-nowrap px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${kycStatus === 'pending' ? 'bg-yellow-100 text-yellow-700 shadow-sm ring-2 ring-yellow-200' : 'text-gray-600 bg-white hover:bg-yellow-50'}`}>Pending</button>
+                                <button onClick={() => setKycStatus('verified')} className={`whitespace-nowrap px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${kycStatus === 'verified' ? 'bg-green-100 text-green-700 shadow-sm ring-2 ring-green-200' : 'text-gray-600 bg-white hover:bg-green-50'}`}>Approved</button>
+                                <button onClick={() => setKycStatus('rejected')} className={`whitespace-nowrap px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${kycStatus === 'rejected' ? 'bg-red-100 text-red-700 shadow-sm ring-2 ring-red-200' : 'text-gray-600 bg-white hover:bg-red-50'}`}>Rejected</button>
                             </div>
                         ) : (
                             <div className="flex justify-end w-full">
-                                <button onClick={() => setShowAddAdmin(true)} className="bg-gray-800 text-white hover:bg-gray-900 px-6 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-md">
+                                <button onClick={() => setShowAddAdmin(true)} className="w-full sm:w-auto bg-linear-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 px-6 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-md">
                                     + Add New Admin
                                 </button>
                             </div>
@@ -166,116 +166,198 @@ const AdminDashboard = () => {
 
                     <div className="w-full overflow-x-auto flex-1">
                         {isLoading ? (
-                            <div className="flex justify-center items-center h-[400px]">
+                            <div className="flex justify-center items-center h-100">
                                 <div className="w-12 h-12 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div>
                             </div>
                         ) : (
                             <>
                                 {activeTab === 'kyc' && (
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
-                                                <th className="p-5 font-bold">User Info</th>
-                                                <th className="p-5 font-bold">Role / Level</th>
-                                                <th className="p-5 font-bold">Applied On</th>
-                                                <th className="p-5 font-bold text-center">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
+                                    <>
+                                        <table className="hidden md:table w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
+                                                    <th className="p-5 font-bold">User Info</th>
+                                                    <th className="p-5 font-bold">Role / Level</th>
+                                                    <th className="p-5 font-bold">Applied On</th>
+                                                    <th className="p-5 font-bold text-center">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {kycProfiles.length === 0 ? (
+                                                    <tr><td colSpan="4" className="text-center p-8 text-gray-500 font-medium">No {kycStatus} profiles found.</td></tr>
+                                                ) : (
+                                                    kycProfiles.map(profile => (
+                                                        <tr key={profile._id} className="hover:bg-gray-50/50 transition-colors">
+                                                            <td className="p-5">
+                                                                <div className="flex items-center gap-3">
+                                                                    {profile.user?.avatar ? (
+                                                                        <img src={profile.user.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+                                                                    ) : (
+                                                                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
+                                                                            {profile.user?.name?.charAt(0) || '?'}
+                                                                        </div>
+                                                                    )}
+                                                                    <div>
+                                                                        <p className="font-bold text-gray-800">{profile.user?.name || 'Unknown'}</p>
+                                                                        <p className="text-xs text-gray-500">{profile.user?.email}</p>
+                                                                        <p className="text-xs text-gray-400 mt-0.5">{profile.phoneNumber} • {profile.city}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-5">
+                                                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${profile.user?.role === 'tutor' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                                    {profile.user?.role || 'Unknown'}
+                                                                </span>
+                                                                <p className="text-sm font-semibold text-gray-700 mt-2">{profile.schoolOrUniversity}</p>
+                                                                <p className="text-xs text-gray-500">{profile.gradeLevel}</p>
+                                                            </td>
+                                                            <td className="p-5">
+                                                                <span className="text-sm text-gray-600">{new Date(profile.createdAt).toLocaleDateString()}</span>
+                                                            </td>
+                                                            <td className="p-5 text-center">
+                                                                <button onClick={() => setViewProfile(profile)} className="bg-linear-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-600 hover:to-blue-600 px-6 py-2 rounded-lg font-bold text-sm transition-colors shadow-sm">
+                                                                    Review Documents
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+
+                                        <div className="md:hidden p-4 space-y-4">
                                             {kycProfiles.length === 0 ? (
-                                                <tr><td colSpan="4" className="text-center p-8 text-gray-500 font-medium">No {kycStatus} profiles found.</td></tr>
+                                                <div className="text-center p-8 text-gray-500 font-medium bg-white rounded-2xl border border-gray-100">No {kycStatus} profiles found.</div>
                                             ) : (
                                                 kycProfiles.map(profile => (
-                                                    <tr key={profile._id} className="hover:bg-gray-50/50 transition-colors">
-                                                        <td className="p-5">
-                                                            <div className="flex items-center gap-3">
-                                                                {profile.user?.avatar ? (
-                                                                    <img src={profile.user.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
-                                                                ) : (
-                                                                    <div className="w-10 h-10 rounded-full bg-[#5b7cfa]/10 flex items-center justify-center text-[#5b7cfa] font-bold">
-                                                                        {profile.user?.name?.charAt(0) || '?'}
-                                                                    </div>
-                                                                )}
-                                                                <div>
-                                                                    <p className="font-bold text-gray-800">{profile.user?.name || 'Unknown'}</p>
-                                                                    <p className="text-xs text-gray-500">{profile.user?.email}</p>
-                                                                    <p className="text-xs text-gray-400 mt-0.5">{profile.phoneNumber} • {profile.city}</p>
+                                                    <div key={profile._id} className="rounded-2xl border border-blue-100 bg-linear-to-br from-white to-blue-50 p-4 shadow-sm">
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            {profile.user?.avatar ? (
+                                                                <img src={profile.user.avatar} alt="avatar" className="w-11 h-11 rounded-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
+                                                                    {profile.user?.name?.charAt(0) || '?'}
                                                                 </div>
+                                                            )}
+                                                            <div className="min-w-0">
+                                                                <p className="font-bold text-gray-800 truncate">{profile.user?.name || 'Unknown'}</p>
+                                                                <p className="text-xs text-gray-500 truncate">{profile.user?.email}</p>
                                                             </div>
-                                                        </td>
-                                                        <td className="p-5">
-                                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${profile.user?.role === 'tutor' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                        </div>
+                                                        <div className="space-y-2 text-sm mb-4">
+                                                            <p className="text-gray-600"><span className="font-semibold">Phone:</span> {profile.phoneNumber || 'N/A'}</p>
+                                                            <p className="text-gray-600"><span className="font-semibold">Location:</span> {profile.city || 'N/A'}</p>
+                                                            <p className="text-gray-600"><span className="font-semibold">Institution:</span> {profile.schoolOrUniversity || 'N/A'}</p>
+                                                            <p className="text-gray-600"><span className="font-semibold">Applied:</span> {new Date(profile.createdAt).toLocaleDateString()}</p>
+                                                        </div>
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${profile.user?.role === 'tutor' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-blue-100 text-blue-700'}`}>
                                                                 {profile.user?.role || 'Unknown'}
                                                             </span>
-                                                            <p className="text-sm font-semibold text-gray-700 mt-2">{profile.schoolOrUniversity}</p>
-                                                            <p className="text-xs text-gray-500">{profile.gradeLevel}</p>
-                                                        </td>
-                                                        <td className="p-5">
-                                                            <span className="text-sm text-gray-600">{new Date(profile.createdAt).toLocaleDateString()}</span>
-                                                        </td>
-                                                        <td className="p-5 text-center">
-                                                            <button onClick={() => setViewProfile(profile)} className="bg-[#5b7cfa] text-white hover:bg-[#4a6be0] px-6 py-2 rounded-lg font-bold text-sm transition-colors shadow-sm">
+                                                            <button onClick={() => setViewProfile(profile)} className="bg-linear-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-600 hover:to-blue-600 px-4 py-2 rounded-lg font-bold text-xs transition-colors shadow-sm">
                                                                 Review Documents
                                                             </button>
-                                                        </td>
-                                                    </tr>
+                                                        </div>
+                                                    </div>
                                                 ))
                                             )}
-                                        </tbody>
-                                    </table>
+                                        </div>
+                                    </>
                                 )}
 
                                 {activeTab === 'users' && (
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
-                                                <th className="p-5 font-bold">User Details</th>
-                                                <th className="p-5 font-bold">Role</th>
-                                                <th className="p-5 font-bold text-center">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
+                                    <>
+                                        <table className="hidden md:table w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
+                                                    <th className="p-5 font-bold">User Details</th>
+                                                    <th className="p-5 font-bold">Role</th>
+                                                    <th className="p-5 font-bold text-center">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {allUsers.length === 0 ? (
+                                                    <tr><td colSpan="3" className="text-center p-8 text-gray-500 font-medium">No users found.</td></tr>
+                                                ) : (
+                                                    allUsers.map(u => (
+                                                        <tr key={u._id} className="hover:bg-gray-50/50 transition-colors">
+                                                            <td className="p-5 flex items-center gap-3">
+                                                                {u.avatar ? (
+                                                                    <img src={u.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+                                                                ) : (
+                                                                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                                                                        {u.name?.charAt(0) || '?'}
+                                                                    </div>
+                                                                )}
+                                                                <div>
+                                                                    <p className="font-bold text-gray-800">{u.name}</p>
+                                                                    <p className="text-xs text-gray-500">{u.email}</p>
+                                                                    <p className="text-xs text-gray-400 mt-0.5 font-mono">ID: {u._id}</p>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-5">
+                                                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${u.role === 'admin' ? 'bg-gray-800 text-white' : u.role === 'tutor' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                                    {u.role}
+                                                                </span>
+                                                            </td>
+                                                            <td className="p-5">
+                                                                <div className="flex justify-center gap-2">
+                                                                    <button onClick={() => { setEditFormData({ name: u.name, email: u.email, role: u.role }); setEditUser(u); }} className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg font-bold text-sm transition-colors">
+                                                                        Edit
+                                                                    </button>
+                                                                    {u.role !== 'admin' && (
+                                                                        <button onClick={() => handleDeleteUser(u._id)} className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors">
+                                                                            Delete
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+
+                                        <div className="md:hidden p-4 space-y-4">
                                             {allUsers.length === 0 ? (
-                                                <tr><td colSpan="3" className="text-center p-8 text-gray-500 font-medium">No users found.</td></tr>
+                                                <div className="text-center p-8 text-gray-500 font-medium bg-white rounded-2xl border border-gray-100">No users found.</div>
                                             ) : (
                                                 allUsers.map(u => (
-                                                    <tr key={u._id} className="hover:bg-gray-50/50 transition-colors">
-                                                        <td className="p-5 flex items-center gap-3">
+                                                    <div key={u._id} className="rounded-2xl border border-emerald-100 bg-linear-to-br from-white to-emerald-50 p-4 shadow-sm">
+                                                        <div className="flex items-center gap-3 mb-3">
                                                             {u.avatar ? (
-                                                                <img src={u.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+                                                                <img src={u.avatar} alt="avatar" className="w-11 h-11 rounded-full object-cover" />
                                                             ) : (
-                                                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                                                                <div className="w-11 h-11 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
                                                                     {u.name?.charAt(0) || '?'}
                                                                 </div>
                                                             )}
-                                                            <div>
-                                                                <p className="font-bold text-gray-800">{u.name}</p>
-                                                                <p className="text-xs text-gray-500">{u.email}</p>
-                                                                <p className="text-xs text-gray-400 mt-0.5 font-mono">ID: {u._id}</p>
+                                                            <div className="min-w-0">
+                                                                <p className="font-bold text-gray-800 truncate">{u.name}</p>
+                                                                <p className="text-xs text-gray-500 truncate">{u.email}</p>
                                                             </div>
-                                                        </td>
-                                                        <td className="p-5">
-                                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${u.role === 'admin' ? 'bg-gray-800 text-white' : u.role === 'tutor' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                        </div>
+                                                        <p className="text-xs text-gray-400 mb-3 break-all">ID: {u._id}</p>
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${u.role === 'admin' ? 'bg-gray-800 text-white' : u.role === 'tutor' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-blue-100 text-blue-700'}`}>
                                                                 {u.role}
                                                             </span>
-                                                        </td>
-                                                        <td className="p-5">
-                                                            <div className="flex justify-center gap-2">
-                                                                <button onClick={() => { setEditFormData({ name: u.name, email: u.email, role: u.role }); setEditUser(u); }} className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg font-bold text-sm transition-colors">
-                                                                    Edit
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button onClick={() => { setEditFormData({ name: u.name, email: u.email, role: u.role }); setEditUser(u); }} className="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg font-bold text-sm transition-colors">
+                                                                Edit
+                                                            </button>
+                                                            {u.role !== 'admin' && (
+                                                                <button onClick={() => handleDeleteUser(u._id)} className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors">
+                                                                    Delete
                                                                 </button>
-                                                                {u.role !== 'admin' && (
-                                                                    <button onClick={() => handleDeleteUser(u._id)} className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors">
-                                                                        Delete
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 ))
                                             )}
-                                        </tbody>
-                                    </table>
+                                        </div>
+                                    </>
                                 )}
                             </>
                         )}
@@ -287,11 +369,11 @@ const AdminDashboard = () => {
             {viewProfile && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-linear-to-r from-indigo-50 to-blue-50">
                             <h2 className="text-2xl font-extrabold text-gray-800">Review KYC Profile</h2>
                             <button onClick={() => setViewProfile(null)} className="text-gray-400 hover:text-gray-800 text-2xl font-bold">&times;</button>
                         </div>
-                        <div className="p-6 overflow-y-auto flex-1">
+                        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>
                                     <h3 className="text-lg font-bold text-[#5b7cfa] mb-4 border-b pb-2">User Details</h3>
@@ -349,14 +431,14 @@ const AdminDashboard = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-4">
-                            <button onClick={() => handleVerifyProfile(viewProfile._id, 'rejected')} className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-6 py-3 rounded-xl font-bold transition-colors">
+                        <div className="p-4 sm:p-6 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
+                            <button onClick={() => handleVerifyProfile(viewProfile._id, 'rejected')} className="w-full sm:w-auto bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-6 py-3 rounded-xl font-bold transition-colors">
                                 Reject Profile
                             </button>
-                            <button onClick={() => handleVerifyProfile(viewProfile._id, 'pending')} className="bg-yellow-50 text-yellow-600 hover:bg-yellow-100 hover:text-yellow-700 px-6 py-3 rounded-xl font-bold transition-colors">
+                            <button onClick={() => handleVerifyProfile(viewProfile._id, 'pending')} className="w-full sm:w-auto bg-yellow-50 text-yellow-600 hover:bg-yellow-100 hover:text-yellow-700 px-6 py-3 rounded-xl font-bold transition-colors">
                                 Mark as Pending
                             </button>
-                            <button onClick={() => handleVerifyProfile(viewProfile._id, 'verified')} className="bg-green-500 text-white hover:bg-green-600 px-8 py-3 rounded-xl font-bold transition-colors shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                            <button onClick={() => handleVerifyProfile(viewProfile._id, 'verified')} className="w-full sm:w-auto bg-green-500 text-white hover:bg-green-600 px-8 py-3 rounded-xl font-bold transition-colors shadow-md hover:shadow-lg hover:-translate-y-0.5">
                                 Approve Profile
                             </button>
                         </div>
@@ -368,7 +450,7 @@ const AdminDashboard = () => {
             {editUser && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-linear-to-r from-violet-50 to-indigo-50">
                             <h2 className="text-xl font-extrabold text-gray-800">Edit User</h2>
                             <button onClick={() => setEditUser(null)} className="text-gray-400 hover:text-gray-800 text-2xl font-bold">&times;</button>
                         </div>
@@ -402,7 +484,7 @@ const AdminDashboard = () => {
             {showAddAdmin && (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-900 text-white">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-linear-to-r from-emerald-600 to-teal-700 text-white">
                             <h2 className="text-xl font-extrabold">Create New Admin</h2>
                             <button onClick={() => setShowAddAdmin(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
                         </div>
