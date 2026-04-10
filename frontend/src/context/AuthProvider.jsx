@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { setAuthToken } from '../services/api';
 import { AuthContext } from './AuthContext';
 import Loader from '../components/Loader';
 
@@ -24,6 +25,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         const response = await api.post('/users/login', { email, password });
+        setAuthToken(response.data?.token || null);
         setUser(response.data.user || response.data);
         
         let hasProfile = false;
@@ -39,12 +41,14 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         const response = await api.post('/users/register', userData);
+        setAuthToken(response.data?.token || null);
         setUser(response.data.user || response.data);
         return { ...response.data, hasProfile: false };
     };
 
     const logout = async () => {
         await api.post('/users/logout');
+        setAuthToken(null);
         setUser(null);
     };
 

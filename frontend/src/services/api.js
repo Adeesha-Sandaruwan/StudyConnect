@@ -5,6 +5,27 @@ const api = axios.create({
     withCredentials: true
 });
 
+const TOKEN_KEY = 'studyconnect_auth_token';
+
+export const setAuthToken = (token) => {
+    if (token) {
+        localStorage.setItem(TOKEN_KEY, token);
+    } else {
+        localStorage.removeItem(TOKEN_KEY);
+    }
+};
+
+export const getAuthToken = () => localStorage.getItem(TOKEN_KEY);
+
+api.interceptors.request.use((config) => {
+    const token = getAuthToken();
+    if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
 api.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -20,6 +41,7 @@ api.interceptors.response.use(
             currentPath.startsWith('/forgot-password');
 
         if (error.response && error.response.status === 401 && !isPublicPath) {
+            setAuthToken(null);
             window.location.href = '/login';
         }
         return Promise.reject(error);

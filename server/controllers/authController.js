@@ -31,13 +31,14 @@ const registerUser = async (req, res) => {// Extracting the name, email, passwor
     });// Creating a new user in the database with the provided name, email, password, and validated role
 
     if (user) {// If the user is successfully created
-      generateToken(res, user._id);// Generating a JWT token for the newly created user and setting it in the response cookies
+      const token = generateToken(res, user._id);// Generating a JWT token for the newly created user and setting it in the response cookies
       res.status(201).json({
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
-        avatar: user.avatar
+        avatar: user.avatar,
+        token
       });// Returning the user details along with the generated token in the response
     } else {
       res.status(400).json({ message: 'Invalid user data' });// If the user creation fails, return a 400 status with an error message
@@ -55,13 +56,14 @@ const loginUser = async (req, res) => {// Extracting the email and password from
     const user = await User.findOne({ email });// Finding a user in the database with the provided email
 
     if (user && (await user.matchPassword(password))) {// If a user is found and the provided password matches the stored password
-      generateToken(res, user._id);// Generating a JWT token for the authenticated user and setting it in the response cookies
+      const token = generateToken(res, user._id);// Generating a JWT token for the authenticated user and setting it in the response cookies
       res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
-        avatar: user.avatar
+        avatar: user.avatar,
+        token
       });// Returning the user details along with the generated token in the response
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
@@ -114,13 +116,14 @@ const googleAuth = async (req, res) => {// Extracting the token from the request
       });//
     }
 
-    generateToken(res, user._id);// Generating a JWT token for the authenticated user and setting it in the response cookies
+    const token = generateToken(res, user._id);// Generating a JWT token for the authenticated user and setting it in the response cookies
     res.status(200).json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      avatar: user.avatar
+      avatar: user.avatar,
+      token
     });
     
   } catch (error) {
@@ -297,7 +300,7 @@ const resetPassword = async (req, res) => {
     await user.save();
 
     // Log the user in immediately after successful reset
-    generateToken(res, user._id);
+    const token = generateToken(res, user._id);
     
     res.status(200).json({
       _id: user._id,
@@ -305,6 +308,7 @@ const resetPassword = async (req, res) => {
       email: user.email,
       role: user.role,
       avatar: user.avatar,
+      token,
       message: 'Password reset successful'
     });
   } catch (error) {
