@@ -40,12 +40,6 @@ const Notifications = () => {
     };
 
     const handleNotificationClick = async (notif) => {
-        if (notif.type === 'request-resource-shared') {
-            navigate('/student-requests');
-        } else {
-            navigate(`/posts/${notif.post?._id}`);
-        }
-        
         if (!notif.isRead) {
             try {
                 await api.put(`/notifications/${notif._id}/read`);
@@ -53,6 +47,13 @@ const Notifications = () => {
             } catch (err) {
                 console.error('Failed to mark notification as read:', err);
             }
+        }
+
+        if (notif.type === 'request-resource-shared') {
+            navigate('/student-requests');
+        } else {
+            const postId = notif.post?._id;
+            navigate(`/posts/${postId || 'deleted'}`);
         }
     };
 
@@ -75,7 +76,7 @@ const Notifications = () => {
         if (notif.type === 'request-resource-shared') {
             const subject = notif.studentRequest?.subject || 'your request';
             return {
-                iconBg: 'bg-indigo-100 text-indigo-600',
+                iconBg: 'bg-linear-to-br from-indigo-100 to-violet-100 text-indigo-700',
                 icon: (
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2M22 12A10 10 0 112 12a10 10 0 0120 0z"></path></svg>
                 ),
@@ -94,7 +95,7 @@ const Notifications = () => {
         }
 
         return {
-            iconBg: notif.type === 'upvote' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-[#5b7cfa]',
+            iconBg: notif.type === 'upvote' ? 'bg-linear-to-br from-emerald-100 to-green-100 text-emerald-700' : 'bg-linear-to-br from-blue-100 to-indigo-100 text-[#4d67dd]',
             icon: notif.type === 'upvote' ? (
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
             ) : (
@@ -113,69 +114,90 @@ const Notifications = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-[80vh] flex justify-center items-center">
-                <div className="w-12 h-12 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div>
+            <div className="min-h-[80vh] flex items-center justify-center bg-linear-to-b from-[#eef5ff] via-[#f6f5ff] to-[#fff6ef]">
+                <div className="rounded-2xl border border-[#d9e4ff] bg-white px-6 py-5 shadow-sm">
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#5b7cfa] border-t-transparent"></div>
+                </div>
             </div>
         );
     }
 
+    const unreadCount = notifications.filter((n) => !n.isRead).length;
+
     return (
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 font-sans pb-24">
-            <div className="bg-white rounded-3xl shadow-sm p-6 sm:p-8 mb-8">
-                <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight mb-2">Notifications</h1>
-                <p className="text-gray-500 text-sm mb-8">Stay updated on study post activity and tutor resources shared on your requests.</p>
+        <div className="min-h-[calc(100vh-4rem)] bg-linear-to-b from-[#eef5ff] via-[#f7f5ff] to-[#fff8f1] pb-24">
+            <div className="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
+                <div className="mb-6 overflow-hidden rounded-3xl border border-[#d6e2ff] bg-white shadow-sm">
+                    <div className="bg-linear-to-r from-[#e6eeff] via-[#f1efff] to-[#fff1e5] px-6 py-7 sm:px-8">
+                        <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Notifications</h1>
+                        <p className="mt-2 text-sm text-gray-600">Stay updated on study post activity and tutor resources shared on your requests.</p>
+
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-[#ccdaff] bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[#4b66dd]">
+                                Total {notifications.length}
+                            </span>
+                            <span className="rounded-full border border-[#ffd8d8] bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-rose-600">
+                                Unread {unreadCount}
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
                 {error && (
-                    <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 font-semibold border-l-4 border-red-500">
+                    <div className="mb-6 rounded-2xl border border-rose-200 bg-linear-to-r from-rose-50 to-pink-50 p-4 text-sm font-semibold text-rose-700">
                         {error}
                     </div>
                 )}
 
                 {notifications.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed border-gray-100 rounded-2xl">
+                    <div className="rounded-3xl border border-dashed border-[#d7e2ff] bg-white px-6 py-12 text-center shadow-sm">
                         <span className="text-5xl block mb-4">🔕</span>
-                        <h3 className="text-xl font-bold text-gray-700">All caught up!</h3>
-                        <p className="text-gray-500 mt-2">You do not have any new notifications right now.</p>
+                        <h3 className="text-xl font-bold text-gray-800">All caught up!</h3>
+                        <p className="mt-2 text-gray-500">You do not have any new notifications right now.</p>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-4">
                         {notifications.map(notif => {
                             const copy = getNotificationCopy(notif);
+                            const unreadCard = !notif.isRead;
 
                             return (
                             <div 
                                 key={notif._id} 
                                 onClick={() => handleNotificationClick(notif)}
-                                className={`flex items-start gap-4 p-5 rounded-2xl cursor-pointer transition-all border ${notif.isRead ? 'bg-white border-gray-100 hover:border-gray-200' : 'bg-blue-50/50 border-blue-100 shadow-sm hover:shadow-md'}`}
+                                className={`group relative flex cursor-pointer items-start gap-4 rounded-2xl border p-5 transition-all ${unreadCard ? 'border-[#cfdcff] bg-linear-to-r from-[#f5f8ff] to-[#fdf8ff] shadow-sm hover:-translate-y-0.5 hover:shadow-md' : 'border-gray-100 bg-white hover:border-[#d7e2ff]'}`}
                             >
+                                <div className={`absolute inset-y-3 left-0 w-1 rounded-r-full ${unreadCard ? 'bg-linear-to-b from-[#5b7cfa] to-[#8f66f4]' : 'bg-transparent'}`} />
+
                                 <div className="shrink-0 relative mt-1">
                                     {notif.sender?.avatar ? (
-                                        <img src={notif.sender.avatar} alt="avatar" className="w-12 h-12 rounded-full object-cover shadow-sm" />
+                                        <img src={notif.sender.avatar} alt="avatar" className="h-12 w-12 rounded-full object-cover shadow-sm ring-2 ring-white" />
                                     ) : (
-                                        <div className="w-12 h-12 rounded-full bg-[#5b7cfa]/10 flex items-center justify-center text-[#5b7cfa] font-extrabold text-lg">
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br from-[#e8eeff] to-[#e8f5ff] text-lg font-extrabold text-[#5b7cfa]">
                                             {notif.sender?.name?.charAt(0) || '?'}
                                         </div>
                                     )}
-                                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
-                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${copy.iconBg}`}>
+                                    <div className="absolute -bottom-1 -right-1 rounded-full bg-white p-0.5 shadow-sm">
+                                        <div className={`flex h-5 w-5 items-center justify-center rounded-full ${copy.iconBg}`}>
                                             {copy.icon}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="flex-1">
-                                    <div className="flex justify-between items-start gap-2">
+                                    <div className="flex items-start justify-between gap-2">
                                         <div>
-                                            <p className="text-sm text-gray-800 leading-snug">{copy.text}</p>
+                                            <p className="text-sm leading-snug text-gray-800">{copy.text}</p>
                                             {copy.subtext && (
-                                                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{copy.subtext}</p>
+                                                <p className="mt-1 text-xs leading-relaxed text-gray-500">{copy.subtext}</p>
                                             )}
                                         </div>
                                         {!notif.isRead && (
-                                            <div className="w-2.5 h-2.5 bg-[#5b7cfa] rounded-full shrink-0 mt-1"></div>
+                                            <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-linear-to-r from-[#5b7cfa] to-[#8c67f4]"></div>
                                         )}
                                     </div>
-                                    <span className={`text-xs mt-1 block ${notif.isRead ? 'text-gray-400' : 'text-[#5b7cfa] font-semibold'}`}>
+
+                                    <span className={`mt-2 inline-block rounded-full px-2.5 py-1 text-xs ${notif.isRead ? 'bg-gray-100 text-gray-500' : 'bg-[#e8eeff] font-semibold text-[#4b67de]'}`}>
                                         {timeAgo(notif.createdAt)}
                                     </span>
                                 </div>

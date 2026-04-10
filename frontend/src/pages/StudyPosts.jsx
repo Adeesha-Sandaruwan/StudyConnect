@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
@@ -29,6 +29,7 @@ const StudyPosts = () => {
     const [subjectTag, setSubjectTag] = useState('');
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [notice, setNotice] = useState('');
 
     const SUBJECTS = [
         'Mathematics', 'Physics', 'Chemistry', 'Biology', 
@@ -51,11 +52,7 @@ const StudyPosts = () => {
         checkVerification();
     }, [user]);
 
-    useEffect(() => {
-        fetchPosts();
-    }, [page, keyword, subjectTag]);
-
-    const fetchPosts = async () => {
+    const fetchPosts = useCallback(async () => {
         setIsLoading(true);
         try {
             let query = `?page=${page}&limit=10`;
@@ -70,7 +67,11 @@ const StudyPosts = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [page, keyword, subjectTag]);
+
+    useEffect(() => {
+        fetchPosts();
+    }, [fetchPosts]);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -92,7 +93,7 @@ const StudyPosts = () => {
     const handleVote = async (e, postId, type) => {
         e.preventDefault();
         if (!isVerified) {
-            alert('You must complete onboarding and be verified by an admin to vote.');
+            setNotice('Complete onboarding and verification to vote on posts.');
             return;
         }
 
@@ -150,30 +151,54 @@ const StudyPosts = () => {
         return netB - netA;
     });
 
+    useEffect(() => {
+        if (!notice) return;
+        const timer = setTimeout(() => setNotice(''), 3200);
+        return () => clearTimeout(timer);
+    }, [notice]);
+
     return (
-        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 font-sans">
+        <div className="min-h-[calc(100vh-4rem)] bg-linear-to-b from-[#f4f7ff] via-[#f9fbff] to-white">
             <CreatePostModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPostCreated={handlePostCreated} />
 
-            <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-                
-                <div className="w-full lg:w-3/4 flex flex-col gap-4">
-                    
-                    <div className="flex items-center justify-between mb-2">
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Study Feed</h1>
-                        {subjectTag && (
-                            <span className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-2">
-                                {subjectTag}
-                                <button onClick={() => handleSubjectChange(subjectTag)} className="text-gray-400 hover:text-red-500">✕</button>
-                            </span>
-                        )}
+            <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+                <div className="mb-6 overflow-hidden rounded-3xl border border-[#dde4ff] bg-white shadow-sm">
+                    <div className="bg-linear-to-r from-[#e8eeff] via-[#f2f6ff] to-[#f8faff] px-5 py-6 sm:px-7 sm:py-7">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">Study Feed</h1>
+                                <p className="mt-1 text-sm font-medium text-gray-600 sm:text-base">Discover questions, share ideas, and learn faster together.</p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full border border-[#d4ddff] bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[#4a66de]">
+                                    {sortedPosts.length} visible posts
+                                </span>
+                                {subjectTag && (
+                                    <span className="inline-flex items-center gap-2 rounded-full border border-[#d4ddff] bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-[#4a66de]">
+                                        {subjectTag}
+                                        <button onClick={() => handleSubjectChange(subjectTag)} className="text-[#6f82d9] hover:text-red-500">✕</button>
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                     </div>
+                </div>
+
+                {notice && (
+                    <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                        {notice}
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
+                    <div className="flex flex-col gap-4">
 
                     {isLoading ? (
-                        <div className="flex justify-center items-center h-64">
-                            <div className="w-10 h-10 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div>
+                        <div className="flex h-64 items-center justify-center rounded-3xl border border-[#dbe3ff] bg-white shadow-sm">
+                            <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#5b7cfa] border-t-transparent"></div>
                         </div>
                     ) : sortedPosts.length === 0 ? (
-                        <div className="bg-white rounded-[20px] shadow-sm p-12 text-center border border-gray-200 flex flex-col items-center">
+                        <div className="flex flex-col items-center rounded-3xl border border-[#dbe3ff] bg-white p-12 text-center shadow-sm">
                             <div className="bg-gray-50 p-6 rounded-full mb-4">
                                 <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
                             </div>
@@ -193,9 +218,9 @@ const StudyPosts = () => {
                                 const voteCount = (post.upvotes?.length || 0) - (post.downvotes?.length || 0);
 
                                 return (
-                                    <Link to={`/posts/${post._id}`} key={post._id} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:gap-5 border border-gray-200 hover:border-[#5b7cfa]/40 group">
+                                    <Link to={`/posts/${post._id}`} key={post._id} className="group flex flex-col gap-4 rounded-3xl border border-[#dbe3ff] bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#b9c8ff] hover:shadow-md sm:flex-row sm:gap-5 sm:p-5">
                                         
-                                        <div className={`hidden sm:flex flex-col items-center rounded-full py-1.5 px-1 min-w-[52px] h-fit transition-colors border ${hasUpvoted ? 'bg-[#5b7cfa] border-[#5b7cfa] text-white' : hasDownvoted ? 'bg-red-500 border-red-500 text-white' : 'bg-gray-50 border-gray-200 text-gray-600'}`} onClick={(e) => e.preventDefault()}>
+                                        <div className={`hidden h-fit w-13 flex-col items-center rounded-full border px-1 py-1.5 transition-colors sm:flex ${hasUpvoted ? 'border-[#5b7cfa] bg-[#5b7cfa] text-white' : hasDownvoted ? 'border-red-500 bg-red-500 text-white' : 'border-gray-200 bg-gray-50 text-gray-600'}`} onClick={(e) => e.preventDefault()}>
                                             <button onClick={(e) => handleVote(e, post._id, 'upvote')} className={`p-1.5 rounded-full hover:bg-black/10 transition-colors`}>
                                                 <UpArrowIcon filled={hasUpvoted} />
                                             </button>
@@ -207,13 +232,13 @@ const StudyPosts = () => {
                                             </button>
                                         </div>
 
-                                        <div className="flex-1 flex flex-col min-w-0">
-                                            <div className="flex items-center justify-between mb-2.5">
+                                        <div className="flex min-w-0 flex-1 flex-col">
+                                            <div className="mb-2.5 flex items-center justify-between gap-2">
                                                 <div className="flex items-center gap-2">
                                                     {post.user?.avatar ? (
-                                                        <img src={post.user.avatar} alt="avatar" className="w-6 h-6 rounded-full object-cover border border-gray-100" />
+                                                        <img src={post.user.avatar} alt="avatar" className="h-7 w-7 rounded-full border border-gray-100 object-cover" />
                                                     ) : (
-                                                        <div className="w-6 h-6 rounded-full bg-[#5b7cfa]/10 flex items-center justify-center text-[#5b7cfa] font-bold text-[10px]">
+                                                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#5b7cfa]/10 text-[10px] font-bold text-[#5b7cfa]">
                                                             {post.user?.name?.charAt(0) || '?'}
                                                         </div>
                                                     )}
@@ -222,20 +247,20 @@ const StudyPosts = () => {
                                                         <span className="text-gray-400 text-xs font-medium">• {new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                                                     </div>
                                                 </div>
-                                                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider shrink-0">
+                                                <span className="shrink-0 rounded-full border border-[#d5ddff] bg-[#eef2ff] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#4662da]">
                                                     {post.subjectTag || 'General'}
                                                 </span>
                                             </div>
 
-                                            <h3 className="text-lg sm:text-xl font-extrabold text-gray-900 mb-2 leading-tight group-hover:text-[#5b7cfa] transition-colors pr-4">{post.title}</h3>
-                                            <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4">{post.description}</p>
+                                            <h3 className="mb-2 pr-4 text-lg font-extrabold leading-tight text-gray-900 transition-colors group-hover:text-[#4b67de] sm:text-xl">{post.title}</h3>
+                                            <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-gray-600">{post.description}</p>
 
-                                            <div className="flex items-center justify-between mt-auto pt-2">
-                                                <div className={`flex sm:hidden items-center rounded-full border transition-colors ${hasUpvoted ? 'bg-[#5b7cfa] border-[#5b7cfa] text-white' : hasDownvoted ? 'bg-red-500 border-red-500 text-white' : 'bg-gray-50 border-gray-200 text-gray-600'}`} onClick={(e) => e.preventDefault()}>
+                                            <div className="mt-auto flex items-center justify-between pt-2">
+                                                <div className={`flex items-center rounded-full border transition-colors sm:hidden ${hasUpvoted ? 'border-[#5b7cfa] bg-[#5b7cfa] text-white' : hasDownvoted ? 'border-red-500 bg-red-500 text-white' : 'border-gray-200 bg-gray-50 text-gray-600'}`} onClick={(e) => e.preventDefault()}>
                                                     <button onClick={(e) => handleVote(e, post._id, 'upvote')} className={`p-1.5 sm:p-2 rounded-l-full hover:bg-black/10 transition-colors`}>
                                                         <UpArrowIcon filled={hasUpvoted} />
                                                     </button>
-                                                    <span className="text-xs font-extrabold min-w-[20px] text-center">
+                                                    <span className="inline-block w-5 text-center text-xs font-extrabold">
                                                         {voteCount}
                                                     </span>
                                                     <button onClick={(e) => handleVote(e, post._id, 'downvote')} className={`p-1.5 sm:p-2 rounded-r-full hover:bg-black/10 transition-colors`}>
@@ -243,7 +268,7 @@ const StudyPosts = () => {
                                                     </button>
                                                 </div>
 
-                                                <div className="flex items-center gap-1.5 bg-gray-50 sm:bg-transparent border sm:border-transparent border-gray-200 px-3 sm:px-0 py-1.5 sm:py-0 rounded-full text-gray-500 hover:text-gray-700 font-bold text-xs sm:text-sm transition-colors">
+                                                <div className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-500 transition-colors hover:text-gray-700 sm:border-transparent sm:bg-transparent sm:px-0 sm:py-0 sm:text-sm">
                                                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                                                     {post.answers?.length || 0} Answers
                                                 </div>
@@ -257,37 +282,63 @@ const StudyPosts = () => {
 
                     {!isLoading && totalPages > 1 && (
                         <div className="flex justify-center items-center gap-3 mt-6">
-                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${page === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white shadow-sm text-gray-700 hover:bg-[#5b7cfa] hover:text-white border border-gray-200'}`}>Prev</button>
-                            <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm">{page} / {totalPages}</span>
-                            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${page === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white shadow-sm text-gray-700 hover:bg-[#5b7cfa] hover:text-white border border-gray-200'}`}>Next</button>
+                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${page === 1 ? 'cursor-not-allowed bg-gray-100 text-gray-400' : 'border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-[#5b7cfa] hover:text-white'}`}>Prev</button>
+                            <span className="rounded-full border border-[#d9e1ff] bg-white px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider text-[#4b67de] shadow-sm">{page} / {totalPages}</span>
+                            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${page === totalPages ? 'cursor-not-allowed bg-gray-100 text-gray-400' : 'border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-[#5b7cfa] hover:text-white'}`}>Next</button>
                         </div>
                     )}
                 </div>
 
-                <div className="w-full lg:w-1/4 relative">
+                <div className="relative">
                     <div className="sticky top-24 flex flex-col gap-5">
-                        
-                        {isVerified && (
-                            <button onClick={() => setIsCreateModalOpen(true)} className="w-full bg-[#5b7cfa] text-white px-6 py-3.5 rounded-2xl font-extrabold shadow-md hover:bg-[#4a6be0] hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 text-sm">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
-                                Create Post
-                            </button>
-                        )}
+                        <div className="rounded-3xl border border-[#dbe3ff] bg-white p-5 shadow-sm">
+                            <h3 className="mb-2 text-sm font-extrabold uppercase tracking-widest text-gray-900">Your Space</h3>
+                            <p className="mb-4 text-sm text-gray-600">Start a helpful discussion or ask a clear question for faster responses.</p>
 
-                        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-200">
-                            <h3 className="font-extrabold text-gray-900 mb-3 text-xs uppercase tracking-widest">Search Community</h3>
-                            <form onSubmit={handleSearch} className="relative">
-                                <input type="text" placeholder="Search posts..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#5b7cfa] focus:border-transparent outline-none transition-all" />
-                                <svg className="absolute left-3.5 top-3 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            </form>
+                            {isVerified ? (
+                                <button onClick={() => setIsCreateModalOpen(true)} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#5b7cfa] px-6 py-3.5 text-sm font-extrabold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#4a6be0] hover:shadow-lg">
+                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
+                                    Create Post
+                                </button>
+                            ) : (
+                                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-xs font-semibold text-amber-800">
+                                    You can browse posts now. Complete onboarding and get verified to create posts or vote.
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-200">
-                            <h3 className="font-extrabold text-gray-900 mb-3 text-xs uppercase tracking-widest">Topics</h3>
+                        <div className="rounded-3xl border border-[#dbe3ff] bg-white p-5 shadow-sm">
+                            <h3 className="mb-3 text-xs font-extrabold uppercase tracking-widest text-gray-900">Search Community</h3>
+                            <form onSubmit={handleSearch} className="relative">
+                                <input type="text" placeholder="Search posts..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-[#bfd0ff] focus:ring-2 focus:ring-[#dfe7ff]" />
+                                <svg className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </form>
+
+                            <div className="mt-3 flex gap-2">
+                                <button onClick={handleSearch} className="rounded-lg bg-[#eef2ff] px-3 py-1.5 text-xs font-bold text-[#4965dc] transition-colors hover:bg-[#dde5ff]">
+                                    Apply
+                                </button>
+                                {(keyword || searchInput) && (
+                                    <button
+                                        onClick={() => {
+                                            setKeyword('');
+                                            setSearchInput('');
+                                            setPage(1);
+                                        }}
+                                        className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-200"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-[#dbe3ff] bg-white p-5 shadow-sm">
+                            <h3 className="mb-3 text-xs font-extrabold uppercase tracking-widest text-gray-900">Topics</h3>
                             <div className="flex flex-wrap gap-2">
                                 <button 
                                     onClick={() => handleSubjectChange('')} 
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${subjectTag === '' ? 'bg-[#5b7cfa] text-white border-[#5b7cfa]' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-200'}`}
+                                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${subjectTag === '' ? 'border-[#5b7cfa] bg-[#5b7cfa] text-white' : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
                                 >
                                     All
                                 </button>
@@ -295,17 +346,27 @@ const StudyPosts = () => {
                                     <button 
                                         key={sub} 
                                         onClick={() => handleSubjectChange(sub)} 
-                                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${subjectTag === sub ? 'bg-[#5b7cfa] text-white border-[#5b7cfa]' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-200'}`}
+                                        className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${subjectTag === sub ? 'border-[#5b7cfa] bg-[#5b7cfa] text-white' : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
                                     >
                                         {sub}
                                     </button>
                                 ))}
                             </div>
                         </div>
+
+                        <div className="rounded-3xl border border-[#dbe3ff] bg-white p-5 shadow-sm">
+                            <h3 className="mb-2 text-xs font-extrabold uppercase tracking-widest text-gray-900">Tips For Better Replies</h3>
+                            <ul className="space-y-2 text-xs font-medium text-gray-600">
+                                <li>Use a clear, specific title with the topic and grade level.</li>
+                                <li>Add what you have already tried before asking.</li>
+                                <li>Attach screenshots or notes for faster, better answers.</li>
+                            </ul>
+                        </div>
                         
                     </div>
                 </div>
 
+            </div>
             </div>
         </div>
     );

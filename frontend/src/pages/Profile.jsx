@@ -18,6 +18,7 @@ const Profile = () => {
     const [formData, setFormData] = useState({});
     const [avatarFile, setAvatarFile] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState(null);
+    const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
     useEffect(() => {
         if (user?.role === 'admin') {
@@ -113,6 +114,19 @@ const Profile = () => {
         }
     };
 
+    useEffect(() => {
+        if (!isAvatarModalOpen) return;
+
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                setIsAvatarModalOpen(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, [isAvatarModalOpen]);
+
     if (isLoading) {
         return <div className="min-h-screen flex justify-center items-center"><div className="w-12 h-12 border-4 border-[#5b7cfa] border-t-transparent rounded-full animate-spin"></div></div>;
     }
@@ -158,8 +172,10 @@ const Profile = () => {
     // VIEW: STANDARD PROFILE (STUDENT/TUTOR)
     // ----------------------------------------------------
     const isTutor = user.role === 'tutor';
-    const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none transition focus:border-[#9eb0ff] focus:ring-2 focus:ring-[#dfe5ff]';
-    const labelClass = 'mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-gray-500';
+    const inputClass = 'w-full rounded-xl border border-white/60 bg-white/90 px-3 py-2.5 text-sm text-gray-800 shadow-sm outline-none transition focus:border-[#8fb1ff] focus:ring-2 focus:ring-[#dfe9ff]';
+    const labelClass = 'mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#5a66a1]';
+    const profileImageUrl = avatarPreview || user.avatar || '';
+    const canPreviewAvatar = Boolean(profileImageUrl);
 
     const displayValue = (value, fallback = 'Not provided') => {
         if (value === null || value === undefined || value === '') {
@@ -169,40 +185,50 @@ const Profile = () => {
     };
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] bg-linear-to-b from-[#f4f7ff] to-white">
+        <div className="min-h-[calc(100vh-4rem)] bg-linear-to-br from-[#edf6ff] via-[#f3efff] to-[#fff3e8]">
             <div className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:px-6 lg:px-8">
                 {profile.verificationStatus === 'pending' && (
-                    <div className="mb-6 flex items-start justify-between gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-3 shadow-sm">
+                    <div className="mb-6 flex items-start justify-between gap-3 rounded-2xl border border-amber-300 bg-linear-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm">
                         <div>
-                            <h3 className="text-base font-bold text-yellow-800">Verification Pending</h3>
-                            <p className="mt-0.5 text-sm text-yellow-700">Your profile is under review by an administrator. Some features may be restricted.</p>
+                            <h3 className="text-base font-bold text-amber-900">Verification Pending</h3>
+                            <p className="mt-0.5 text-sm text-amber-800">Your profile is under review by an administrator. Some features may be restricted.</p>
                         </div>
-                        <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-lg">⏳</span>
+                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-lg">⏳</span>
                     </div>
                 )}
 
                 {profile.verificationStatus === 'rejected' && (
-                    <div className="mb-6 flex items-start justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 shadow-sm">
+                    <div className="mb-6 flex items-start justify-between gap-3 rounded-2xl border border-rose-300 bg-linear-to-r from-rose-50 to-pink-50 px-4 py-3 shadow-sm">
                         <div>
-                            <h3 className="text-base font-bold text-red-800">Verification Rejected</h3>
-                            <p className="mt-0.5 text-sm text-red-700">Please update your details and ensure uploaded documents are clear.</p>
+                            <h3 className="text-base font-bold text-rose-900">Verification Rejected</h3>
+                            <p className="mt-0.5 text-sm text-rose-800">Please update your details and ensure uploaded documents are clear.</p>
                         </div>
-                        <span className="rounded-full bg-red-100 px-2.5 py-1 text-lg">❌</span>
+                        <span className="rounded-full bg-rose-100 px-2.5 py-1 text-lg">❌</span>
                     </div>
                 )}
 
-                <div className="relative mb-6 overflow-hidden rounded-3xl border border-[#dbe2ff] bg-white p-6 shadow-sm sm:p-8">
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-linear-to-r from-[#edf1ff] to-[#f8faff]" />
+                <div className="relative mb-6 overflow-hidden rounded-3xl border border-[#cad8ff] bg-white/95 p-6 shadow-sm sm:p-8">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-linear-to-r from-[#dde9ff] via-[#e8f7ff] to-[#f8e8ff]" />
 
                     <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start">
                         <div className="relative self-center sm:self-auto">
-                            <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-gray-100 shadow-lg sm:h-32 sm:w-32">
-                                {avatarPreview || user.avatar ? (
-                                    <img src={avatarPreview || user.avatar} alt="Profile" className="h-full w-full object-cover" />
-                                ) : (
+                            {canPreviewAvatar ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAvatarModalOpen(true)}
+                                    aria-label="Open profile picture"
+                                    className="group relative block h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-gray-100 shadow-lg transition hover:scale-[1.02] sm:h-32 sm:w-32"
+                                >
+                                    <img src={profileImageUrl} alt="Profile" className="h-full w-full object-cover" />
+                                    <span className="absolute inset-0 flex items-end justify-center bg-black/0 pb-3 text-[11px] font-bold text-white opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100">
+                                        View Photo
+                                    </span>
+                                </button>
+                            ) : (
+                                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-gray-100 shadow-lg sm:h-32 sm:w-32">
                                     <span className="text-4xl font-bold text-gray-400">{user.name.charAt(0)}</span>
-                                )}
-                            </div>
+                                </div>
+                            )}
 
                             {isEditing && (
                                 <label className="absolute bottom-0 right-0 cursor-pointer rounded-full bg-[#5b7cfa] p-2 text-white shadow-md transition-colors hover:bg-[#4a6be0]">
@@ -215,25 +241,25 @@ const Profile = () => {
                         <div className="relative flex-1 text-center sm:text-left">
                             <div className="mb-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                                 <h1 className="text-2xl font-extrabold text-gray-900 sm:text-3xl">{user.name}</h1>
-                                <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${isTutor ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700'}`}>
+                                <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${isTutor ? 'bg-orange-100 text-orange-700' : 'bg-cyan-100 text-cyan-700'}`}>
                                     {user.role}
                                 </span>
                                 {profile.verificationStatus === 'verified' && (
-                                    <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase text-emerald-700">
+                                    <span className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold uppercase text-green-700">
                                         <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
                                         Verified
                                     </span>
                                 )}
                             </div>
 
-                            <p className="text-sm font-medium text-gray-600 sm:text-base">{user.email}</p>
-                            <p className="mt-1 text-sm text-gray-500 sm:text-base">{displayValue([profile.city, profile.country].filter(Boolean).join(', '))}</p>
+                            <p className="text-sm font-medium text-[#51609c] sm:text-base">{user.email}</p>
+                            <p className="mt-1 text-sm text-[#6876ad] sm:text-base">{displayValue([profile.city, profile.country].filter(Boolean).join(', '))}</p>
                         </div>
 
                         {!isEditing && (
                             <button
                                 onClick={() => setIsEditing(true)}
-                                className="relative self-center rounded-xl border border-[#d3dcff] bg-white px-4 py-2 text-sm font-bold text-[#4460d8] shadow-sm transition hover:bg-[#f5f7ff] sm:self-start"
+                                className="relative self-center rounded-xl border border-[#cfd9ff] bg-linear-to-r from-white to-[#eef3ff] px-4 py-2 text-sm font-bold text-[#4460d8] shadow-sm transition hover:from-[#f7f9ff] hover:to-[#e4ebff] sm:self-start"
                             >
                                 Edit Profile
                             </button>
@@ -241,14 +267,14 @@ const Profile = () => {
                     </div>
                 </div>
 
-                {error && <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
-                {success && <div className="mb-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">{success}</div>}
+                {error && <div className="mb-5 rounded-2xl border border-rose-200 bg-linear-to-r from-rose-50 to-pink-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
+                {success && <div className="mb-5 rounded-2xl border border-green-200 bg-linear-to-r from-green-50 to-emerald-50 px-4 py-3 text-sm font-semibold text-green-700">{success}</div>}
 
-                <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm sm:p-7">
+                <div className="rounded-3xl border border-[#d8e0ff] bg-white/95 p-5 shadow-sm sm:p-7">
                     <form onSubmit={handleSubmit}>
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            <section className="rounded-2xl border border-gray-100 bg-[#fafbff] p-5">
-                                <h3 className="mb-4 border-b border-[#dfe5ff] pb-2 text-base font-extrabold text-[#4b67de]">Basic Information</h3>
+                            <section className="rounded-2xl border border-sky-100 bg-linear-to-br from-[#f5faff] to-[#eaf5ff] p-5">
+                                <h3 className="mb-4 border-b border-sky-200 pb-2 text-base font-extrabold text-[#2f7ecb]">Basic Information</h3>
 
                                 <div className="space-y-4">
                                     <div>
@@ -256,7 +282,7 @@ const Profile = () => {
                                         {isEditing ? (
                                             <textarea name="bio" value={formData.bio} onChange={handleInputChange} className={inputClass} rows="3" placeholder="Tell others about your learning goals" />
                                         ) : (
-                                            <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.bio, 'No bio provided.')}</p>
+                                            <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.bio, 'No bio provided.')}</p>
                                         )}
                                     </div>
 
@@ -266,18 +292,18 @@ const Profile = () => {
                                             {isEditing ? (
                                                 <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} className={inputClass} />
                                             ) : (
-                                                <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.phoneNumber)}</p>
+                                                <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.phoneNumber)}</p>
                                             )}
                                         </div>
 
                                         <div>
                                             <label className={labelClass}>Date of Birth</label>
-                                            <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'Not provided'}</p>
+                                            <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{profile.dob ? new Date(profile.dob).toLocaleDateString() : 'Not provided'}</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <h3 className="mb-4 mt-6 border-b border-[#dfe5ff] pb-2 text-base font-extrabold text-[#4b67de]">Emergency Contact</h3>
+                                <h3 className="mb-4 mt-6 border-b border-sky-200 pb-2 text-base font-extrabold text-[#2f7ecb]">Emergency Contact</h3>
 
                                 <div className="space-y-4">
                                     <div>
@@ -285,7 +311,7 @@ const Profile = () => {
                                         {isEditing ? (
                                             <input type="text" name="emergencyContactName" value={formData.emergencyContactName} onChange={handleInputChange} className={inputClass} />
                                         ) : (
-                                            <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.emergencyContact?.name)}</p>
+                                            <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.emergencyContact?.name)}</p>
                                         )}
                                     </div>
 
@@ -295,7 +321,7 @@ const Profile = () => {
                                             {isEditing ? (
                                                 <input type="text" name="emergencyContactRelation" value={formData.emergencyContactRelation} onChange={handleInputChange} className={inputClass} />
                                             ) : (
-                                                <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.emergencyContact?.relation)}</p>
+                                                <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.emergencyContact?.relation)}</p>
                                             )}
                                         </div>
 
@@ -304,15 +330,15 @@ const Profile = () => {
                                             {isEditing ? (
                                                 <input type="text" name="emergencyContactPhone" value={formData.emergencyContactPhone} onChange={handleInputChange} className={inputClass} />
                                             ) : (
-                                                <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.emergencyContact?.phoneNumber)}</p>
+                                                <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.emergencyContact?.phoneNumber)}</p>
                                             )}
                                         </div>
                                     </div>
                                 </div>
                             </section>
 
-                            <section className="rounded-2xl border border-gray-100 bg-[#fafbff] p-5">
-                                <h3 className="mb-4 border-b border-[#dfe5ff] pb-2 text-base font-extrabold text-[#4b67de]">Academic & Professional</h3>
+                            <section className="rounded-2xl border border-orange-100 bg-linear-to-br from-[#fff8ee] to-[#fff2fb] p-5">
+                                <h3 className="mb-4 border-b border-orange-200 pb-2 text-base font-extrabold text-[#c26b18]">Academic & Professional</h3>
 
                                 <div className="space-y-4">
                                     <div>
@@ -320,7 +346,7 @@ const Profile = () => {
                                         {isEditing ? (
                                             <input type="text" name="schoolOrUniversity" value={formData.schoolOrUniversity} onChange={handleInputChange} className={inputClass} />
                                         ) : (
-                                            <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.schoolOrUniversity)}</p>
+                                            <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.schoolOrUniversity)}</p>
                                         )}
                                     </div>
 
@@ -329,7 +355,7 @@ const Profile = () => {
                                         {isEditing ? (
                                             <input type="text" name="gradeLevel" value={formData.gradeLevel} onChange={handleInputChange} className={inputClass} />
                                         ) : (
-                                            <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.gradeLevel)}</p>
+                                            <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.gradeLevel)}</p>
                                         )}
                                     </div>
 
@@ -339,7 +365,7 @@ const Profile = () => {
                                             {isEditing ? (
                                                 <textarea name="learningNeeds" value={formData.learningNeeds} onChange={handleInputChange} className={inputClass} rows="3" />
                                             ) : (
-                                                <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.learningNeeds)}</p>
+                                                <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.learningNeeds)}</p>
                                             )}
                                         </div>
                                     )}
@@ -351,9 +377,9 @@ const Profile = () => {
                                                 {isEditing ? (
                                                     <input type="text" name="subjects" value={formData.subjects} onChange={handleInputChange} className={inputClass} placeholder="Comma separated subjects" />
                                                 ) : (
-                                                    <div className="flex flex-wrap gap-2 rounded-xl bg-white px-3 py-2.5">
+                                                    <div className="flex flex-wrap gap-2 rounded-xl bg-white/85 px-3 py-2.5">
                                                         {profile.subjects?.length ? profile.subjects.map((sub, i) => (
-                                                            <span key={i} className="rounded-full bg-[#eef2ff] px-3 py-1 text-xs font-semibold text-[#4b67de]">{sub}</span>
+                                                            <span key={i} className="rounded-full bg-[#ffe7c7] px-3 py-1 text-xs font-semibold text-[#a85b16]">{sub}</span>
                                                         )) : <span className="text-sm text-gray-700">Not provided</span>}
                                                     </div>
                                                 )}
@@ -365,13 +391,13 @@ const Profile = () => {
                                                     {isEditing ? (
                                                         <input type="number" name="experience" value={formData.experience} onChange={handleInputChange} className={inputClass} />
                                                     ) : (
-                                                        <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.experience, '0')} Years</p>
+                                                        <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.experience, '0')} Years</p>
                                                     )}
                                                 </div>
 
                                                 <div>
                                                     <label className={labelClass}>NIC Number</label>
-                                                    <p className="rounded-xl bg-white px-3 py-2.5 font-mono text-sm text-gray-700">{displayValue(profile.nicNumber)}</p>
+                                                    <p className="rounded-xl bg-white/85 px-3 py-2.5 font-mono text-sm text-gray-700">{displayValue(profile.nicNumber)}</p>
                                                 </div>
                                             </div>
 
@@ -380,7 +406,7 @@ const Profile = () => {
                                                 {isEditing ? (
                                                     <input type="text" name="availability" value={formData.availability} onChange={handleInputChange} className={inputClass} placeholder="e.g. Weekends, Evenings" />
                                                 ) : (
-                                                    <p className="rounded-xl bg-white px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.availability?.join(', '))}</p>
+                                                    <p className="rounded-xl bg-white/85 px-3 py-2.5 text-sm text-gray-700">{displayValue(profile.availability?.join(', '))}</p>
                                                 )}
                                             </div>
                                         </>
@@ -405,7 +431,7 @@ const Profile = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="rounded-xl bg-[#5b7cfa] px-8 py-2.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-[#4a6be0]"
+                                    className="rounded-xl bg-linear-to-r from-[#5b7cfa] to-[#7e63f3] px-8 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:from-[#4a6be0] hover:to-[#6f52e7]"
                                 >
                                     Save Changes
                                 </button>
@@ -413,6 +439,28 @@ const Profile = () => {
                         )}
                     </form>
                 </div>
+
+                {isAvatarModalOpen && canPreviewAvatar && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+                        onClick={() => setIsAvatarModalOpen(false)}
+                    >
+                        <div className="relative w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                type="button"
+                                onClick={() => setIsAvatarModalOpen(false)}
+                                className="absolute right-3 top-3 z-10 rounded-full bg-black/60 px-3 py-1 text-sm font-bold text-white transition-colors hover:bg-black/80"
+                            >
+                                Close
+                            </button>
+                            <img
+                                src={profileImageUrl}
+                                alt="Profile preview"
+                                className="max-h-[85vh] w-full rounded-2xl border border-white/20 bg-black/20 object-contain"
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
