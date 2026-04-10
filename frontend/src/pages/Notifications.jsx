@@ -51,6 +51,8 @@ const Notifications = () => {
 
         if (notif.type === 'request-resource-shared') {
             navigate('/student-requests');
+        } else if (notif.type === 'kyc-status') {
+            navigate(notif.actionLink || '/profile');
         } else {
             const postId = notif.post?._id;
             navigate(`/posts/${postId || 'deleted'}`);
@@ -91,6 +93,34 @@ const Notifications = () => {
                     </>
                 ),
                 subtext: notif.message || 'Open your request to see the shared lesson, note, or PDF.'
+            };
+        }
+
+        if (notif.type === 'kyc-status') {
+            const isApproved = (notif.title || '').toLowerCase().includes('approved') || (notif.message || '').toLowerCase().includes('approved');
+            const isRejected = (notif.title || '').toLowerCase().includes('rejected') || (notif.message || '').toLowerCase().includes('rejected');
+
+            return {
+                iconBg: isApproved
+                    ? 'bg-linear-to-br from-emerald-100 to-green-100 text-emerald-700'
+                    : isRejected
+                        ? 'bg-linear-to-br from-rose-100 to-red-100 text-rose-700'
+                        : 'bg-linear-to-br from-amber-100 to-yellow-100 text-amber-700',
+                icon: isApproved ? (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                ) : isRejected ? (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                ) : (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M10.29 3.86l-8.49 14.72A2 2 0 003.52 21h16.96a2 2 0 001.72-3.42L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>
+                ),
+                text: (
+                    <>
+                        <span className="font-extrabold">{notif.sender?.name || 'Admin'}</span>
+                        {' '}updated your KYC status to{' '}
+                        <span className="font-semibold">{notif.title || 'pending'}</span>
+                    </>
+                ),
+                subtext: notif.message || 'Open your profile to review the latest KYC status.'
             };
         }
 
