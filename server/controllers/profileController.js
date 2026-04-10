@@ -1,5 +1,6 @@
 import Profile from '../models/Profile.js';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 
 const getCurrentProfile = async (req, res) => {
   try {// Find the profile associated with the currently authenticated user
@@ -225,9 +226,30 @@ const updateProfileStatus = async (req, res) => {
       return res.status(404).json({ message: 'Profile not found' });
     }
 
+    const previousStatus = profile.verificationStatus;
     profile.verificationStatus = status;
     // Save the updated profile to the database
     await profile.save();
+
+    if (previousStatus !== status) {
+      const statusLabel = status === 'verified' ? 'approved' : status;
+      const title = `Your KYC profile was ${statusLabel}`;
+      const message =
+        status === 'verified'
+          ? 'Your profile has been approved. You can now continue using verified features on StudyConnect.'
+          : status === 'rejected'
+            ? 'Your profile was rejected. Please review your details and submit an updated KYC application.'
+            : 'Your profile status was set back to pending for further review.';
+
+      await Notification.create({
+        recipient: profile.user,
+        sender: req.user._id,
+        type: 'kyc-status',
+        title,
+        message,
+        actionLink: '/profile',
+      });
+    }
 
 
     res.json({ message: `Profile marked as ${status}`, profile });

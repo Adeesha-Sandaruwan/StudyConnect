@@ -14,7 +14,7 @@ const notificationSchema = mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['answer', 'upvote', 'request-resource-shared'],
+      enum: ['answer', 'upvote', 'request-resource-shared', 'kyc-status'],
       required: true,
     },
     post: {
