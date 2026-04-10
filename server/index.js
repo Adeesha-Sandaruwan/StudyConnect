@@ -27,15 +27,33 @@ app.use(cookieParser());
 app.use(helmet());
 app.use(morgan('dev'));
 
-const allowedOrigins = [
+const explicitOrigins = [
   process.env.FRONTEND_URL,
-  'http://localhost:5173'
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
 ].filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (explicitOrigins.includes(origin)) return true;
+
+  // Accept all Vercel deployments for this app in production.
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol === 'https:' && hostname.endsWith('.vercel.app')) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+};
 
 app.use(cors({
   origin: (origin, callback) => {
     // Allow same-origin tools, curl/Postman, and configured web clients.
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));
@@ -44,6 +62,7 @@ app.use(cors({
 }));
 
 app.use('/api/users', authRoutes);
+app.use('/users', authRoutes); // Backward-compatible alias for clients missing /api prefix
 app.use('/api/profiles', profileRoutes);
 app.use('/api/studyposts', studyPostRoutes);
 app.use("/api/subject-content", subjectContentRoutes);
