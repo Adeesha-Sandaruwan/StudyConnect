@@ -4,6 +4,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { AuthContext } from '../context/AuthContext';
 import { validateLoginForm } from '../utils/validation';
 import api from '../services/api';
+import { setAuthToken } from '../services/api';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -50,6 +51,8 @@ const Login = () => {
                     access_token: tokenResponse.access_token,
                     role: googleRole
                 });
+
+                setAuthToken(res.data?.token || null);
 
                 const currentRole = res.data.role.toLowerCase();
 

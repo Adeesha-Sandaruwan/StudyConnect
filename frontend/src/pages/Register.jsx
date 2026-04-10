@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { validateRegisterForm } from '../utils/validation';
 import api from '../services/api';
+import { setAuthToken } from '../services/api';
 
 const Register = () => {
     const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'student' });
@@ -24,7 +25,8 @@ const Register = () => {
         }
 
         try {
-            await api.post('/users/register', formData);
+            const response = await api.post('/users/register', formData);
+            setAuthToken(response.data?.token || null);
             window.location.href = '/onboarding';
         } catch (err) {
             setError(err.response?.data?.message || 'Registration failed. Please try again.');
@@ -38,6 +40,7 @@ const Register = () => {
                     access_token: tokenResponse.access_token,
                     role: googleRole 
                 });
+                setAuthToken(res.data?.token || null);
                 
                 const currentRole = res.data.role.toLowerCase();
 

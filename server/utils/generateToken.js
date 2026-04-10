@@ -12,6 +12,8 @@ const generateToken = (res, userId) => {
     sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
     maxAge: 30 * 24 * 60 * 60 * 1000,// Set cookie to expire in 30 days
   });
+
+  return token;
 };
 
 export default generateToken;
