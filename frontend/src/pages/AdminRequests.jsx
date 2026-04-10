@@ -1,33 +1,45 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { getAllRequests, assignTutor, getTutorUsers, updateRequestStatus } from '../services/studentRequestApi';
 import RequestCard from '../components/student/RequestCard';
 import RequestFilters from '../components/student/RequestFilters';
 import RequestModal from '../components/student/RequestModal';
+import RequestPageShell from '../components/student/RequestPageShell';
+import RequestViewTabs from '../components/student/RequestViewTabs';
 import Loader from '../components/Loader';
 
 /**
  * AdminRequests Page
  * Admin panel for managing all student requests across the platform
- * View, filter, and assign tutors to requests
+ * Features: View all requests, filter, assign/reassign tutors, update status
+ * Only accessible to admin role users
  */
 
 const AdminRequests = () => {
     const { user } = useContext(AuthContext);
+    // State for request list and pagination
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // Modal to show request detail or assignment panel
     const [selectedRequest, setSelectedRequest] = useState(null);
+    // Tutor list for assignment dropdown
     const [tutors, setTutors] = useState([]);
+    // Track selected tutor per request in assignment dropdown
     const [selectedTutorByRequest, setSelectedTutorByRequest] = useState({});
+    // Loading states for assignment and status update operations
     const [assigningRequestId, setAssigningRequestId] = useState('');
     const [statusUpdatingRequestId, setStatusUpdatingRequestId] = useState('');
+    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
+    // Section tabs (all, unassigned, assigned)
+    const [sectionTab, setSectionTab] = useState('all');
     const itemsPerPage = 8;
 
+    // Filter state: subject, grade, priority, status
     const [filters, setFilters] = useState({
         subject: '',
         gradeLevel: '',
@@ -36,14 +48,15 @@ const AdminRequests = () => {
     });
 
     useEffect(() => {
-        loadRequests();
+        loadRequests(); // Reload when filters or page changes
     }, [filters, currentPage]);
 
+    // Load all requests with current filters for admin view
     const loadRequests = async () => {
         setLoading(true);
         setError('');
         try {
-            // Build filter object
+            // Build filter object - API expects single values
             const apiFilters = {
                 subject: filters.subject || undefined,
                 gradeLevel: filters.gradeLevel || undefined,
@@ -57,11 +70,12 @@ const AdminRequests = () => {
             setTotalPages(response.pagination?.pages || 1);
             setTotalRequests(response.pagination?.total || 0);
 
+            // Pre-populate tutor selection dropdowns with existing assignments
             setSelectedTutorByRequest((prev) => {
                 const next = { ...prev };
                 nextRequests.forEach((r) => {
                     if (!(r._id in next)) {
-                        next[r._id] = r.assignedTutor?._id || '';
+                        next[r._id] = r.assignedTutor?._id || ''; // Default to current tutor
                     }
                 });
                 return next;
@@ -74,6 +88,7 @@ const AdminRequests = () => {
         }
     };
 
+    // Load all tutor users for assignment dropdown
     const loadTutors = async () => {
         try {
             const response = await getTutorUsers();
@@ -84,7 +99,7 @@ const AdminRequests = () => {
     };
 
     useEffect(() => {
-        loadTutors();
+        loadTutors(); // Load tutors list on mount (needed for assignment dropdowns)
     }, []);
 
     const handleFilterChange = (newFilters) => {
@@ -114,29 +129,33 @@ const AdminRequests = () => {
         }
     };
 
+    // Admin assigns a tutor to a specific request
     const handleAssignTutor = async (requestId) => {
-        const tutorId = selectedTutorByRequest[requestId];
+        const tutorId = selectedTutorByRequest[requestId]; // Get selected tutor for this request
         if (!tutorId) {
             setError('Please select a tutor before assigning.');
             return;
         }
 
-        setAssigningRequestId(requestId);
+        setAssigningRequestId(requestId); // Show loading state on this button
         try {
+            // API assigns tutor and changes request status to in-progress
             await assignTutor(requestId, tutorId);
             setError('');
-            setSelectedTutorByRequest((prev) => ({ ...prev, [requestId]: '' }));
-            await loadRequests();
+            setSelectedTutorByRequest((prev) => ({ ...prev, [requestId]: '' })); // Clear dropdown
+            await loadRequests(); // Refresh list
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to assign tutor');
         } finally {
-            setAssigningRequestId('');
+            setAssigningRequestId(''); // Clear loading state
         }
     };
 
+    // Admin removes tutor assignment from a request (reverts to 'open')
     const handleRemoveTutor = async (requestId) => {
         setAssigningRequestId(requestId);
         try {
+            // API with no tutorId clears assignment and reverts to 'open'
             await assignTutor(requestId);
             setError('');
             setSelectedTutorByRequest((prev) => ({ ...prev, [requestId]: '' }));
@@ -148,9 +167,11 @@ const AdminRequests = () => {
         }
     };
 
+    // Admin changes the status of a request
     const handleUpdateStatus = async (requestId, status) => {
-        setStatusUpdatingRequestId(requestId);
+        setStatusUpdatingRequestId(requestId); // Show loading state on this request
         try {
+            // API updates status and sends email notification to student and tutor
             await updateRequestStatus(requestId, status);
             setError('');
             await loadRequests();
@@ -161,6 +182,7 @@ const AdminRequests = () => {
         }
     };
 
+    // Status options for admin action buttons displayed on each request card
     const statusButtons = [
         {
             value: 'open',
@@ -184,12 +206,6 @@ const AdminRequests = () => {
         }
     ];
 
-    if (user && user.role !== 'admin') {
-        return <Navigate to={user.role === 'tutor' ? '/tutor-dashboard' : '/student-dashboard'} replace />;
-    }
-
-    if (loading && requests.length === 0) return <Loader text="Loading all requests..." />;
-
     const getStatusStats = () => {
         const stats = {
             total: totalRequests,
@@ -202,29 +218,50 @@ const AdminRequests = () => {
     };
 
     const stats = getStatusStats();
+    const sectionCounts = useMemo(() => ({
+        all: requests.length,
+        unassigned: requests.filter((r) => !r.assignedTutor).length,
+        rejected: requests.filter((r) => r.status === 'rejected' || r.status === 'cancelled').length,
+        completed: requests.filter((r) => r.status === 'completed').length
+    }), [requests]);
+
+    const filteredRequests = useMemo(() => {
+        if (sectionTab === 'all') return requests;
+        if (sectionTab === 'unassigned') {
+            return requests.filter((request) => !request.assignedTutor);
+        }
+        if (sectionTab === 'rejected') {
+            return requests.filter((request) => request.status === 'rejected' || request.status === 'cancelled');
+        }
+        if (sectionTab === 'completed') {
+            return requests.filter((request) => request.status === 'completed');
+        }
+        return requests;
+    }, [requests, sectionTab]);
+
+    if (user && user.role !== 'admin') {
+        return <Navigate to={user.role === 'tutor' ? '/tutor-dashboard' : '/student-dashboard'} replace />;
+    }
+
+    if (loading && requests.length === 0) return <Loader text="Loading all requests..." />;
 
     return (
-        <div className="min-h-screen relative overflow-hidden">
-            {/* Background gradient */}
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(14,165,233,0.12),transparent),radial-gradient(ellipse_60%_40%_at_100%_30%,rgba(99,102,241,0.1),transparent)]" />
-            
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
-                
-                {/* Header */}
-                <header className="mb-10">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600 mb-2">
-                        ⚙️ Admin Panel
-                    </p>
-                    <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-3">
-                        Manage All{' '}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-indigo-600">
-                            Student Requests
-                        </span>
-                    </h1>
-                    <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-2xl">
-                        View, filter, and manage all student tutoring requests across the platform. Assign tutors and monitor request status.
-                    </p>
-                </header>
+        <RequestPageShell
+            badge="⚙️ Admin Panel"
+            title="Manage All"
+            highlight="Student Requests"
+            description="View, filter, and manage all student tutoring requests across the platform. Assign tutors and monitor request status."
+            headerActions={
+                <RequestViewTabs
+                    items={[
+                        { label: `All (${sectionCounts.all})`, active: sectionTab === 'all', onClick: () => setSectionTab('all') },
+                        { label: `Unassigned (${sectionCounts.unassigned})`, active: sectionTab === 'unassigned', onClick: () => setSectionTab('unassigned') },
+                        { label: `Flagged/Rejected (${sectionCounts.rejected})`, active: sectionTab === 'rejected', onClick: () => setSectionTab('rejected') },
+                        { label: `Completed (${sectionCounts.completed})`, active: sectionTab === 'completed', onClick: () => setSectionTab('completed') }
+                    ]}
+                />
+            }
+        >
 
                 {/* Error Alert */}
                 {error && (
@@ -267,7 +304,7 @@ const AdminRequests = () => {
                         <div className="mb-6 flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-semibold text-gray-600">
-                                    📊 Showing {requests.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min(currentPage * itemsPerPage, totalRequests)} of {totalRequests}
+                                    📊 Showing {filteredRequests.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min((currentPage - 1) * itemsPerPage + filteredRequests.length, totalRequests)} of {totalRequests}
                                 </p>
                             </div>
                         </div>
@@ -287,16 +324,24 @@ const AdminRequests = () => {
                                     Clear All Filters
                                 </button>
                             </div>
+                        ) : filteredRequests.length === 0 ? (
+                            <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
+                                <div className="text-6xl mb-4">🗂️</div>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-2">No Requests in This Section</h3>
+                                <p className="text-gray-600">
+                                    Choose a different admin section tab to inspect other requests.
+                                </p>
+                            </div>
                         ) : (
                             <>
                                 <div className="grid gap-6 md:grid-cols-2 mb-8">
-                                    {requests.map(request => (
+                                    {filteredRequests.map(request => (
                                         <RequestCard
                                             key={request._id}
                                             request={request}
                                             onClick={() => setSelectedRequest(request)}
                                             customActions={
-                                                <div className="space-y-3">
+                                                <div className="space-y-3 lg:sticky lg:top-4">
                                                     {request.status === 'open' && !request.assignedTutor && (
                                                         <div className="flex gap-2 items-center">
                                                             <select
@@ -485,8 +530,7 @@ const AdminRequests = () => {
                         }}
                     />
                 )}
-            </div>
-        </div>
+        </RequestPageShell>
     );
 };
 

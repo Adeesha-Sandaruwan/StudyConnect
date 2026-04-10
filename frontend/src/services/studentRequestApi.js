@@ -2,32 +2,34 @@ import api from './api';
 
 const root = '/student-requests';
 
+// Normalize form payload before sending to backend
+// Maps frontend form values to backend schema enum values
 function normalizeRequestPayload(payload = {}) {
     const normalized = { ...payload };
 
     // Align requestType enum with backend model
     if (normalized.requestType === 'once') {
-        normalized.requestType = 'one-time';
+        normalized.requestType = 'one-time'; // 'once' used in form, 'one-time' expected by API
     }
 
-    // Align grade level values with backend enum
+    // Align grade level values with backend enum (Grade 6-12, University)
     if (normalized.gradeLevel === '0' || normalized.gradeLevel === 0 || normalized.gradeLevel === 'Course/University') {
-        normalized.gradeLevel = 'University';
+        normalized.gradeLevel = 'University'; // Map numeric 0 and text to 'University'
     } else if (typeof normalized.gradeLevel === 'number') {
-        normalized.gradeLevel = `Grade ${normalized.gradeLevel}`;
+        normalized.gradeLevel = `Grade ${normalized.gradeLevel}`; // 10 -> 'Grade 10'
     } else if (typeof normalized.gradeLevel === 'string' && /^\d+$/.test(normalized.gradeLevel)) {
-        normalized.gradeLevel = `Grade ${normalized.gradeLevel}`;
+        normalized.gradeLevel = `Grade ${normalized.gradeLevel}`; // '10' -> 'Grade 10'
     }
 
-    // Backend expects only low/medium/high
+    // Backend expects only low/medium/high (no 'urgent')
     if (normalized.priority === 'urgent') {
-        normalized.priority = 'high';
+        normalized.priority = 'high'; // Map 'urgent' to 'high'
     }
 
-    // Backend expects preferredSchedule as string[]
+    // Backend expects preferredSchedule as string[] (not plain string)
     if (typeof normalized.preferredSchedule === 'string') {
         const schedule = normalized.preferredSchedule.trim();
-        normalized.preferredSchedule = schedule ? [schedule] : [];
+        normalized.preferredSchedule = schedule ? [schedule] : []; // Wrap in array or send empty
     }
 
     return normalized;

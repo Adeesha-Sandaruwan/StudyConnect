@@ -10,27 +10,31 @@ import Loader from '../components/Loader';
 /**
  * RequestDetail Page
  * Single request detail view with full information and status timeline
+ * Shows: student/tutor info, shared resources, request history, status actions
  */
 
 const RequestDetail = () => {
-    const { id } = useParams();
+    const { id } = useParams(); // Request ID from URL
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
+    // State for request details
     const [request, setRequest] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // State for status update operation
     const [statusUpdating, setStatusUpdating] = useState(false);
 
     useEffect(() => {
-        loadRequest();
+        loadRequest(); // Fetch request when ID changes (or on initial mount)
     }, [id]);
 
+    // Load full request details including shared resources and linked lessons
     const loadRequest = async () => {
         setLoading(true);
         setError('');
         try {
             const response = await getRequestById(id);
-            setRequest(response.request || response);
+            setRequest(response.request || response); // Handle both response shapes
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to load request details');
             setRequest(null);
@@ -39,13 +43,14 @@ const RequestDetail = () => {
         }
     };
 
+    // Handle status update by admin or tutor
     const handleStatusChange = async (newStatus) => {
-        if (!window.confirm(`Update status to ${newStatus}?`)) return;
+        if (!window.confirm(`Update status to ${newStatus}?`)) return; // Confirm before changing
 
         setStatusUpdating(true);
         try {
             const response = await updateRequestStatus(id, newStatus);
-            setRequest(response.request || response);
+            setRequest(response.request || response); // Update displayed request
             setError('');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to update status');
@@ -54,6 +59,7 @@ const RequestDetail = () => {
         }
     };
 
+    // Format ISO date string to readable format
     const formatDate = (date) => {
         return new Date(date).toLocaleDateString('en-US', {
             weekday: 'long',
@@ -66,21 +72,23 @@ const RequestDetail = () => {
     };
 
     const getGradeLabel = (grade) => {
-        if (grade === 0) return 'Course/University Level';
+        if (grade === 0) return 'Course/University Level'; // Grade 0 means university
         return `Grade ${grade}`;
     };
 
+    // Valid status transitions for request lifecycle state machine
     const getStatusTransitions = (currentStatus) => {
         const transitions = {
-            open: ['in-progress', 'rejected'],
-            'in-progress': ['completed', 'rejected'],
-            completed: [],
-            rejected: [],
-            cancelled: []
+            open: ['in-progress', 'rejected'], // Admin can assign or reject
+            'in-progress': ['completed', 'rejected'], // Tutor can complete or admin can reject
+            completed: [], // Terminal state
+            rejected: [], // Terminal state
+            cancelled: [] // Terminal state (student-cancelled)
         };
         return transitions[currentStatus] || [];
     };
 
+    // Get direct (non-lesson) resources: PDFs and tutor notes only
     const directResources = (request?.sharedResources || []).filter(
         (resource) => resource.resourceType !== 'lesson'
     );

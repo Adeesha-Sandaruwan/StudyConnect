@@ -1,12 +1,13 @@
 import mongoose from 'mongoose';
 
+// Nested schema for file metadata (PDFs, notes) shared directly by tutors
 const requestSharedFileSchema = new mongoose.Schema(
   {
-    url: { type: String, default: '' },
-    publicId: { type: String, default: '' },
-    name: { type: String, default: '' }
+    url: { type: String, default: '' }, // Cloudinary secure URL for accessing the file
+    publicId: { type: String, default: '' }, // Cloudinary public ID for file deletion/updates
+    name: { type: String, default: '' } // Original filename
   },
-  { _id: false }
+  { _id: false } // Don't create separate IDs for embedded file objects
 );
 
 const requestSharedResourceSchema = new mongoose.Schema(
@@ -121,7 +122,8 @@ const studentRequestSchema = mongoose.Schema(
       default: 'medium'
     },
 
-    // Lessons shared by the assigned tutor to help the student with this request
+    // Array of module lesson IDs linked to this request by tutors
+    // Contains lessons from SubjectContent that help address the student's needs
     linkedLessons: {
       type: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -130,7 +132,8 @@ const studentRequestSchema = mongoose.Schema(
       default: []
     },
 
-    // Tutor-shared resources shown directly on the request for the student.
+    // Array of resources directly shared by tutor (lesson refs, PDFs, notes, messages)
+    // These are resources specifically created or uploaded for this request
     sharedResources: {
       type: [requestSharedResourceSchema],
       default: []
@@ -140,6 +143,15 @@ const studentRequestSchema = mongoose.Schema(
     timestamps: true
   }
 );
+
+// Compound database indexes for high-frequency query patterns
+// Improves performance on public browse, admin dashboards, tutor searches
+studentRequestSchema.index({ status: 1, createdAt: -1 }); // List open requests in feed
+studentRequestSchema.index({ subject: 1, status: 1, createdAt: -1 }); // Filter by subject + status
+studentRequestSchema.index({ gradeLevel: 1, status: 1, createdAt: -1 }); // Filter by grade + status
+studentRequestSchema.index({ priority: 1, status: 1, createdAt: -1 }); // Sort by priority
+studentRequestSchema.index({ assignedTutor: 1, status: 1, createdAt: -1 }); // Tutor dashboard (tutor's assigned requests)
+studentRequestSchema.index({ student: 1, createdAt: -1 }); // Student's own requests
 
 const StudentRequest = mongoose.model('StudentRequest', studentRequestSchema);
 

@@ -5,42 +5,50 @@ import { getAllRequests } from '../services/studentRequestApi';
 import RequestCard from '../components/student/RequestCard';
 import RequestFilters from '../components/student/RequestFilters';
 import RequestModal from '../components/student/RequestModal';
+import RequestPageShell from '../components/student/RequestPageShell';
+import RequestViewTabs from '../components/student/RequestViewTabs';
 import Loader from '../components/Loader';
 
 /**
  * BrowseRequests Page
- * Public page for tutors to browse available student requests
- * Supports advanced filtering and pagination
+ * Public page for tutors (authenticated) to browse available student requests
+ * Supports advanced filtering by subject, grade, priority status
+ * Tutors can browse and view request details before accepting
  */
 
 const BrowseRequests = () => {
     const { user } = useContext(AuthContext);
+    // State for requests list
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // Modal to display request details
     const [selectedRequest, setSelectedRequest] = useState(null);
+    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
 
+    // Advanced filter state: support multi-select for priority and status
     const [filters, setFilters] = useState({
-        subject: '',
-        gradeLevel: '',
-        priority: [],
-        status: []
+        subject: '', // Single select: Mathematics, English, Science, etc
+        gradeLevel: '', // Single select: Grade 6-12, University
+        priority: [], // Multi-select: low, medium, high
+        status: [] // Multi-select: open, in-progress, completed, rejected
     });
 
     const itemsPerPage = 10;
 
     useEffect(() => {
-        loadRequests();
+        loadRequests(); // Reload requests when filters or page changes
     }, [filters, currentPage]);
 
+    // Load requests from public browse endpoint with filters
     const loadRequests = async () => {
         setLoading(true);
         setError('');
         try {
-            // Build filter object
+            // Build filter object - API expects single values, not arrays
             const apiFilters = {
                 subject: filters.subject || undefined,
                 gradeLevel: filters.gradeLevel || undefined,
@@ -48,6 +56,7 @@ const BrowseRequests = () => {
                 status: filters.status.length > 0 ? filters.status[0] : undefined,
             };
 
+            // Fetch all public requests with these filters
             const response = await getAllRequests(apiFilters, currentPage, itemsPerPage);
             setRequests(response.requests || []);
             setTotalPages(response.pagination?.pages || 1);
@@ -60,11 +69,13 @@ const BrowseRequests = () => {
         }
     };
 
+    // Update active filters and reset to page 1
     const handleFilterChange = (newFilters) => {
         setFilters(newFilters);
         setCurrentPage(1); // Reset to first page on filter change
     };
 
+    // Clear all filters
     const handleClearFilters = () => {
         setFilters({
             subject: '',
@@ -94,27 +105,20 @@ const BrowseRequests = () => {
     if (loading && requests.length === 0) return <Loader text="Loading requests..." />;
 
     return (
-        <div className="min-h-screen relative overflow-hidden">
-            {/* Background gradient */}
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(14,165,233,0.12),transparent),radial-gradient(ellipse_60%_40%_at_100%_30%,rgba(99,102,241,0.1),transparent)]" />
-            
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
-                
-                {/* Header */}
-                <header className="mb-10">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600 mb-2">
-                        🔍 Browse Requests
-                    </p>
-                    <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-3">
-                        Find Student{' '}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-indigo-600">
-                            Requests
-                        </span>
-                    </h1>
-                    <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-2xl">
-                        Browse all available tutoring requests from students. Filter by subject, grade level, and priority to find the perfect match.
-                    </p>
-                </header>
+        <RequestPageShell
+            badge="🔍 Browse Requests"
+            title="Find Student"
+            highlight="Requests"
+            description="Browse all available tutoring requests from students. Filter by subject, grade level, and priority to find the perfect match."
+            headerActions={
+                <RequestViewTabs
+                    items={[
+                        { label: 'My Requests', to: '/student-requests', active: false },
+                        { label: 'Browse Requests', to: '/browse-requests', active: true }
+                    ]}
+                />
+            }
+        >
 
                 {/* Error Alert */}
                 {error && (
@@ -243,8 +247,7 @@ const BrowseRequests = () => {
                         allowEdit={false}
                     />
                 )}
-            </div>
-        </div>
+        </RequestPageShell>
     );
 };
 

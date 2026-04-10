@@ -1,39 +1,49 @@
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { getMyRequests, createRequest, updateRequest, deleteRequest, getRequestById } from '../services/studentRequestApi';
 import RequestCard from '../components/student/RequestCard';
 import RequestForm from '../components/student/RequestForm';
 import RequestModal from '../components/student/RequestModal';
+import RequestPageShell from '../components/student/RequestPageShell';
+import RequestViewTabs from '../components/student/RequestViewTabs';
 import Loader from '../components/Loader';
 
 /**
  * StudentRequests Page
  * Display student's own requests with create, edit, delete functionality
+ * Features: Create new request, view list with pagination, edit status, delete, filter by status
  */
 
 const StudentRequests = () => {
     const { user } = useContext(AuthContext);
+    // State for requests list and pagination
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // State for create/edit modal forms
     const [showCreateForm, setShowCreateForm] = useState(false);
-    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [selectedRequest, setSelectedRequest] = useState(null); // For detail/edit modal
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Pagination: track current page and total pages
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRequests, setTotalRequests] = useState(0);
+    // Filter: show all requests or filter by status (open, in-progress, completed)
+    const [statusTab, setStatusTab] = useState('all');
 
     const itemsPerPage = 10;
 
     useEffect(() => {
-        loadRequests();
+        loadRequests(); // Fetch requests when page or filters change
     }, [currentPage]);
 
+    // Load student's own requests with pagination
     const loadRequests = async () => {
         setLoading(true);
         setError('');
         try {
+            // API call to fetch only this student's requests
             const response = await getMyRequests(currentPage, itemsPerPage);
             setRequests(response.requests || []);
             setTotalPages(response.pagination?.pages || 1);
@@ -46,13 +56,15 @@ const StudentRequests = () => {
         }
     };
 
+    // Handle creating a new request
     const handleCreateRequest = async (formData) => {
         setIsSubmitting(true);
         try {
+            // Send request to backend API
             const response = await createRequest(formData);
-            setShowCreateForm(false);
-            setCurrentPage(1);
-            await loadRequests();
+            setShowCreateForm(false); // Close form modal
+            setCurrentPage(1); // Reset to first page
+            await loadRequests(); // Refresh list
             setError('');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create request');
@@ -61,32 +73,37 @@ const StudentRequests = () => {
         }
     };
 
+    // Delete a request (with confirmation)
     const handleDeleteRequest = async (requestId) => {
         if (!window.confirm('Are you sure you want to delete this request?')) return;
         
         try {
             await deleteRequest(requestId);
-            await loadRequests();
+            await loadRequests(); // Refresh list after deletion
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to delete request');
         }
     };
 
+    // Update request details (subject, description, schedule, etc)
     const handleUpdateRequest = async (requestId, payload) => {
         try {
             await updateRequest(requestId, payload);
-            await loadRequests();
-            setSelectedRequest(null);
+            await loadRequests(); // Refresh list
+            setSelectedRequest(null); // Close detail modal
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to update request');
         }
     };
 
+    // Open detail modal for a request
     const handleOpenRequest = useCallback(async (request) => {
         try {
+            // Fetch full request details (with shared resources, linked lessons, etc)
             const response = await getRequestById(request._id);
             setSelectedRequest(response.request || request);
         } catch {
+            // Fallback: show what we already have
             setSelectedRequest(request);
         }
     }, []);
@@ -99,6 +116,20 @@ const StudentRequests = () => {
         if (currentPage < totalPages) setCurrentPage(currentPage + 1);
     };
 
+    // Count requests by status for tab badges (memoized to avoid repeated filter)
+    const statusCounts = useMemo(() => ({
+        all: requests.length,
+        open: requests.filter((r) => r.status === 'open').length,
+        'in-progress': requests.filter((r) => r.status === 'in-progress').length,
+        completed: requests.filter((r) => r.status === 'completed').length
+    }), [requests]);
+
+    // Filter client-side by selected status tab (no extra API call needed)
+    const filteredRequests = useMemo(() => {
+        if (statusTab === 'all') return requests;
+        return requests.filter((request) => request.status === statusTab);
+    }, [requests, statusTab]);
+
     if (user && user.role !== 'student') {
         return <Navigate to={user.role === 'tutor' ? '/tutor-dashboard' : '/admin'} replace />;
     }
@@ -106,35 +137,32 @@ const StudentRequests = () => {
     if (loading) return <Loader text="Loading your requests..." />;
 
     return (
-        <div className="min-h-screen relative overflow-hidden">
-            {/* Background gradient */}
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(14,165,233,0.12),transparent),radial-gradient(ellipse_60%_40%_at_100%_30%,rgba(99,102,241,0.1),transparent)]" />
-            
-            <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
-                
-                {/* Header */}
-                <header className="mb-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-                    <div className="space-y-3 max-w-2xl">
-                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">
-                            📋 My Requests
-                        </p>
-                        <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                            Your Tutoring{' '}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-indigo-600">
-                                Requests
-                            </span>
-                        </h1>
-                        <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-                            Manage your tutoring requests, track tutor assignments, and monitor request status.
-                        </p>
-                    </div>
+        <RequestPageShell
+            badge="📋 My Requests"
+            title="Your Tutoring"
+            highlight="Requests"
+            description="Manage your tutoring requests, track tutor assignments, and monitor request status."
+            maxWidth="max-w-6xl"
+            headerActions={
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className="px-3 py-1.5 rounded-full bg-white/85 border border-sky-100 text-sky-700 text-xs font-bold">
+                        My Requests: {totalRequests}
+                    </span>
+                    <RequestViewTabs
+                        items={[
+                            { label: 'My Requests', to: '/student-requests', active: true },
+                            { label: 'Browse Requests', to: '/browse-requests', active: false }
+                        ]}
+                    />
                     <button
                         onClick={() => setShowCreateForm(!showCreateForm)}
-                        className="self-start lg:self-auto px-6 py-3 bg-[#5b7cfa] text-white rounded-xl font-bold hover:bg-[#4a6be0] transition-all hover:-translate-y-0.5 shadow-md flex items-center gap-2"
+                        className="px-6 py-3 bg-[#5b7cfa] text-white rounded-xl font-bold hover:bg-[#4a6be0] transition-all hover:-translate-y-0.5 shadow-md flex items-center gap-2"
                     >
                         ✨ Create Request
                     </button>
-                </header>
+                </div>
+            }
+        >
 
                 {/* Error Alert */}
                 {error && (
@@ -163,6 +191,20 @@ const StudentRequests = () => {
                     </div>
                 )}
 
+                <div className="mb-6 flex flex-wrap items-center gap-3">
+                    <RequestViewTabs
+                        items={[
+                            { label: `All (${statusCounts.all})`, active: statusTab === 'all', onClick: () => setStatusTab('all') },
+                            { label: `Open (${statusCounts.open})`, active: statusTab === 'open', onClick: () => setStatusTab('open') },
+                            { label: `In Progress (${statusCounts['in-progress']})`, active: statusTab === 'in-progress', onClick: () => setStatusTab('in-progress') },
+                            { label: `Completed (${statusCounts.completed})`, active: statusTab === 'completed', onClick: () => setStatusTab('completed') }
+                        ]}
+                    />
+                    <span className="px-3 py-1.5 rounded-full bg-white/85 border border-gray-200 text-xs font-semibold text-gray-600">
+                        Showing {filteredRequests.length} in this section
+                    </span>
+                </div>
+
                 {/* Requests Grid */}
                 {requests.length === 0 ? (
                     <div className="text-center py-16">
@@ -178,15 +220,21 @@ const StudentRequests = () => {
                             Create Your First Request
                         </button>
                     </div>
+                ) : filteredRequests.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
+                        <div className="text-6xl mb-4">🔎</div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">No Requests in This Section</h3>
+                        <p className="text-gray-600">Switch to another tab to see requests in different statuses.</p>
+                    </div>
                 ) : (
                     <>
                         <div className="mb-5">
                             <p className="text-sm font-semibold text-gray-600">
-                                📊 Showing {requests.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min(currentPage * itemsPerPage, totalRequests)} of {totalRequests}
+                                📊 Showing {filteredRequests.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min((currentPage - 1) * itemsPerPage + filteredRequests.length, totalRequests)} of {totalRequests}
                             </p>
                         </div>
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {requests.map(request => (
+                            {filteredRequests.map(request => (
                                 <RequestCard
                                     key={request._id}
                                     request={request}
@@ -238,8 +286,7 @@ const StudentRequests = () => {
                         allowEdit={true}
                     />
                 )}
-            </div>
-        </div>
+        </RequestPageShell>
     );
 };
 
