@@ -1,7 +1,15 @@
 import axios from 'axios';
 
+const normalizeApiBaseUrl = (rawBaseUrl) => {
+    const fallback = 'http://localhost:5000/api';
+    const base = (rawBaseUrl || fallback).replace(/\/$/, '');
+    return base.endsWith('/api') ? base : `${base}/api`;
+};
+
+export const getApiBaseUrl = () => normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+    baseURL: getApiBaseUrl(),
     withCredentials: true
 });
 

@@ -1,4 +1,4 @@
-import api from './api';
+import api, { getApiBaseUrl } from './api';
 
 const root = '/student-requests';
 
@@ -281,7 +281,7 @@ export async function removeSharedResource(requestId, resourceId) {
  * @returns {String}
  */
 export function getSharedRequestPdfUrl(requestId, resourceId) {
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const base = getApiBaseUrl();
     const trimmed = base.replace(/\/$/, '');
     return `${trimmed}${root}/${requestId}/resources/shared/${resourceId}/file`;
 }

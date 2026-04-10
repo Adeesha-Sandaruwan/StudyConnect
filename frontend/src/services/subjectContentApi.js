@@ -1,4 +1,4 @@
-import api from './api';
+import api, { getApiBaseUrl } from './api';
 
 const root = '/subject-content';
 
@@ -96,7 +96,7 @@ function buildSubjectContentFormData(payload, pdfFile) {
 
 /** Open PDF by 0-based index (uses authenticated redirect on the API). */
 export function getSubjectPdfWindowUrl(contentId, pdfIndex = 0) {
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const base = getApiBaseUrl();
     const trimmed = base.replace(/\/$/, '');
     const i = Number.isFinite(Number(pdfIndex)) ? Number(pdfIndex) : 0;
     return `${trimmed}${root}/${contentId}/pdf/${i}`;
