@@ -286,7 +286,27 @@ Authenticates a user and sets an HTTP-only JWT cookie.
 **Production Environment Variables:**
 
 - **Backend:** `MONGO_URI`, `JWT_SECRET`, `NODE_ENV`, `GOOGLE_CLIENT_ID`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `EMAIL_USER`, `EMAIL_PASS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_EMAIL`, `SMTP_PASSWORD`, `FROM_NAME`, `FROM_EMAIL`, `FRONTEND_URL`
-- **Frontend:** `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`
+- **Frontend:** `VITE_API_BASE_URL`, `VITE_GOOGLE_CLIENT_ID`
+
+<br/>
+
+### Deployment Report (April 2026)
+
+| Item | Status | Notes |
+|---|---|---|
+| **Frontend Deployment** | ✅ Completed | Vercel: `https://studyconnectdeploy-ni3kg0ngs-adeesha-sandaruwans-projects.vercel.app` |
+| **Backend Deployment** | ✅ Completed | Render: `https://studyconnect-3v1n.onrender.com` |
+| **Database** | ✅ Connected | MongoDB Atlas used in production |
+| **CORS Configuration** | ✅ Updated | Backend now uses `FRONTEND_URL` with localhost fallback for development |
+| **Frontend API Base URL** | ✅ Updated | `VITE_API_BASE_URL=https://studyconnect-3v1n.onrender.com/api` |
+
+**Post-Deployment Validation Checklist:**
+
+- `GET /api/users/me` responds from frontend without CORS errors
+- Register and login flows work in production
+- Google login preflight request succeeds
+- Protected routes redirect unauthenticated users correctly
+- Render service is reachable after idle spin-up
 
 <br/>
 
